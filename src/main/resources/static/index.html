@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bachat Gat / SHG Management Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .landing-hero {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      padding: 5rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .landing-hero::before {
+      content: "";
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.2) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.4rem 1rem;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.15);
+      color: #38bdf8;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .hero-title {
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      max-width: 850px;
+      margin-inline: auto;
+    }
+    .hero-desc {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      color: #94a3b8;
+      max-width: 650px;
+      margin-inline: auto;
+      margin-bottom: 2rem;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: -3rem auto 4rem auto;
+      padding: 0 1.5rem;
+      position: relative;
+      z-index: 10;
+    }
+    .feature-card {
+      background: #fff;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      transition: var(--transition);
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .feature-icon-box {
+      width: 50px;
+      height: 50px;
+      border-radius: var(--radius-md);
+      background-color: var(--primary-light);
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+    .feature-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Navigation -->
+  <header style="background: #fff; border-bottom: 1px solid var(--border-color); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <div class="brand-icon">₹</div>
+      <div>
+        <div style="font-weight: 800; font-size: 1.15rem; color: var(--text-main);" data-i18n="appName">Bachat Gat Portal</div>
+        <div style="font-size: 0.75rem; color: var(--text-muted);" data-i18n="appSubtitle">Self-Help Group Management Platform</div>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="/guide.html" class="btn-outline-custom" style="padding: 0.4rem 1rem; border-color: var(--primary); color: var(--primary); font-size: 0.85rem;">
+        <i class="bi bi-book-half"></i> Project Guide
+      </a>
+      <select class="lang-selector form-select" style="width: auto;">
+        <option value="en">English</option>
+        <option value="mr">मराठी</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+      <a href="/login.html" class="btn-primary-custom" style="padding: 0.4rem 1.25rem;">
+        <i class="bi bi-box-arrow-in-right"></i> <span data-i18n="login">Login</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="landing-hero">
+    <div class="hero-badge">
+      <i class="bi bi-shield-check"></i> Enterprise Self-Help Group Management
+    </div>
+    <h1 class="hero-title">Empowering Women's Self-Help Groups With Trust, Automation & Transparency</h1>
+    <p class="hero-desc">
+      A digital financial platform designed for Bachat Gats to automate monthly savings collections, member loan applications, approvals, repayment schedules, and cloud accounting.
+    </p>
+    <div class="hero-actions">
+      <a href="/login.html" class="btn-primary-custom" style="font-size: 1rem; padding: 0.75rem 1.75rem;">
+        <i class="bi bi-person-check-fill"></i> Access Portal
+      </a>
+      <a href="/guide.html" class="btn-outline-custom" style="color: #38bdf8; border-color: rgba(56, 189, 248, 0.5); background: rgba(56, 189, 248, 0.12); font-size: 1rem; padding: 0.75rem 1.75rem;">
+        <i class="bi bi-journal-bookmark-fill"></i> Detailed Project Guide
+      </a>
+      <a href="/login.html?demo=admin" class="btn-outline-custom" style="color: #fff; border-color: rgba(255,255,255,0.25); font-size: 1rem; padding: 0.75rem 1.75rem;">
+        <i class="bi bi-shield-lock"></i> Admin Demo
+      </a>
+      <a href="/login.html?demo=user" class="btn-outline-custom" style="color: #fff; border-color: rgba(255,255,255,0.25); font-size: 1rem; padding: 0.75rem 1.75rem;">
+        <i class="bi bi-person-circle"></i> Member Self-Service Demo
+      </a>
+    </div>
+  </section>
+
+  <!-- Key Value Props -->
+  <section class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon-box"><i class="bi bi-people-fill"></i></div>
+      <h3 class="feature-title" data-i18n="members">Member Management</h3>
+      <p class="feature-text">Complete digital registration with multiple identifiers, KYC details, nominee information, and strict financial ledger separation.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon-box" style="background-color: var(--success-bg); color: var(--success);"><i class="bi bi-wallet2"></i></div>
+      <h3 class="feature-title" data-i18n="collections">Monthly Savings Collections</h3>
+      <p class="feature-text">Idempotent monthly recurring collection generation, duplicate prevention, payment tracking (Paid, Partial, Pending), and instant receipts.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon-box" style="background-color: var(--warning-bg); color: #d97706;"><i class="bi bi-cash-coin"></i></div>
+      <h3 class="feature-title" data-i18n="loans">Loan Applications & Approvals</h3>
+      <p class="feature-text">Members submit loan requests online. Admins review, adjust sanction amounts, set interest rates, and auto-generate monthly repayment schedules.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon-box" style="background-color: var(--secondary-light); color: var(--secondary);"><i class="bi bi-shield-lock-fill"></i></div>
+      <h3 class="feature-title">Strict Role Privacy</h3>
+      <p class="feature-text">Normal members can ONLY view their own records and submit loan applications. Admins manage the group securely with comprehensive audit logs.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon-box" style="background-color: var(--info-bg); color: var(--info);"><i class="bi bi-translate"></i></div>
+      <h3 class="feature-title" data-i18n="language">Multilingual Support</h3>
+      <p class="feature-text">Seamless native interface in English, Marathi (मराठी), and Hindi (हिन्दी) tailored for rural and urban community leaders.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon-box"><i class="bi bi-cloud-check-fill"></i></div>
+      <h3 class="feature-title">Google Cloud Architecture</h3>
+      <p class="feature-text">Designed specifically for Google Cloud Run, Cloud Firestore, Cloud Storage, and Secret Manager for high availability and security.</p>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border-color); background: #fff;">
+    <p>&copy; 2026 Bachat Gat / Self-Help Group Management Platform. Built for Google Cloud Platform.</p>
+  </footer>
+
+  <script src="/js/i18n.js"></script>
+</body>
+</html>

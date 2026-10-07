@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transaction Ledger - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item active"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="transactions">Financial Transaction Ledger</h1>
+            <p class="page-subtitle">Immutable audit trail of all savings, share contributions, disbursements, repayments, and expenses</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="btn-export-csv" class="btn-outline-custom">
+              <i class="bi bi-download"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Summary -->
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label">Total Inflow</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-arrow-down-left-circle-fill"></i></div>
+            </div>
+            <div id="metric-total-inflow" class="metric-value">₹0</div>
+            <div class="metric-sub">Savings, repayments & income</div>
+          </div>
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-label">Total Outflow</span>
+              <div class="metric-icon-wrap icon-red"><i class="bi bi-arrow-up-right-circle-fill"></i></div>
+            </div>
+            <div id="metric-total-outflow" class="metric-value">₹0</div>
+            <div class="metric-sub">Disbursements & expenses</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Net Balance Impact</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-bank2"></i></div>
+            </div>
+            <div id="metric-net-flow" class="metric-value">₹0</div>
+            <div class="metric-sub">Group fund net movement</div>
+          </div>
+          <div class="metric-card secondary">
+            <div class="metric-header">
+              <span class="metric-label">Recorded Transactions</span>
+              <div class="metric-icon-wrap icon-teal"><i class="bi bi-hash"></i></div>
+            </div>
+            <div id="metric-txn-count" class="metric-value">0</div>
+            <div class="metric-sub">Permanent immutable records</div>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="content-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; flex: 1;">
+              <div style="flex: 2; min-width: 200px; position: relative;">
+                <input type="text" id="search-transactions" class="form-control" placeholder="Search by ID, Member, Loan, or Reference...">
+                <i class="bi bi-search" style="position: absolute; right: 12px; top: 10px; color: var(--text-muted);"></i>
+              </div>
+              <div style="width: 170px;">
+                <select id="filter-type" class="form-select">
+                  <option value="">All Categories</option>
+                  <option value="MEMBER_SAVING">Monthly Savings</option>
+                  <option value="LOAN_DISBURSEMENT">Loan Disbursement</option>
+                  <option value="LOAN_REPAYMENT">Repayment (EMI)</option>
+                  <option value="EXTRA_LOAN_PAYMENT">Extra Prepayment</option>
+                  <option value="EXPENSE">Expense</option>
+                  <option value="OTHER_INCOME">Income & Penalties</option>
+                  <option value="MEETING">Meeting</option>
+                  <option value="REPORTS">Reports</option>
+                </select>
+              </div>
+              <div style="width: 120px;">
+                <select id="filter-month" class="form-select">
+                  <option value="">All Months</option>
+                  <option value="1">Jan</option>
+                  <option value="2">Feb</option>
+                  <option value="3">Mar</option>
+                  <option value="4">Apr</option>
+                  <option value="5">May</option>
+                  <option value="6">Jun</option>
+                  <option value="7">Jul</option>
+                  <option value="8">Aug</option>
+                  <option value="9">Sep</option>
+                  <option value="10">Oct</option>
+                  <option value="11">Nov</option>
+                  <option value="12">Dec</option>
+                </select>
+              </div>
+              <div style="width: 110px;">
+                <select id="filter-year" class="form-select">
+                  <option value="">All Years</option>
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+              </div>
+              <div style="width: 160px;">
+                <select id="filter-member" class="form-select">
+                  <option value="">All Members</option>
+                </select>
+              </div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">
+              Showing <strong id="showing-count">0</strong> entries
+            </div>
+          </div>
+        </div>
+
+        <!-- Dynamic Dropdown Details Section (Requirement 5) -->
+        <div id="dynamic-dropdown-details" class="content-card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; border-left: 4px solid var(--primary); background: #ffffff;">
+          <!-- Content dynamically rendered on dropdown change -->
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Transaction ID</th>
+                  <th>Date & Time</th>
+                  <th>Type</th>
+                  <th>Member</th>
+                  <th>Loan Ref</th>
+                  <th style="text-align: right;">Principal (₹)</th>
+                  <th style="text-align: right;">Interest (₹)</th>
+                  <th style="text-align: right;">Total Amount (₹)</th>
+                  <th>Description</th>
+                  <th>Recorded By</th>
+                </tr>
+              </thead>
+              <tbody id="transactions-table-body">
+                <tr>
+                  <td colspan="10" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading transactions...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let allTransactions = [];
+    let currentFilteredTransactions = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      await loadTransactions();
+      await loadMembersDropdown();
+
+      document.getElementById('search-transactions').addEventListener('input', applyFilters);
+      document.getElementById('filter-type').addEventListener('change', applyFilters);
+      document.getElementById('filter-month').addEventListener('change', applyFilters);
+      document.getElementById('filter-year').addEventListener('change', applyFilters);
+      document.getElementById('filter-member').addEventListener('change', applyFilters);
+      document.getElementById('btn-export-csv').addEventListener('click', exportToCsv);
+
+      window.addEventListener('groupChanged', async () => {
+        await loadTransactions();
+        await loadMembersDropdown();
+      });
+    });
+
+    async function loadMembersDropdown() {
+      const groupId = Common.getSelectedGroupId();
+      try {
+        const members = await api.getMembers(groupId);
+        const sel = document.getElementById('filter-member');
+        if (sel && members && members.length > 0) {
+          sel.innerHTML = '<option value="">All Members</option>' + members.map(m => `
+            <option value="${m.memberId || m.id}">${escapeHtml(m.fullName || m.name)}</option>
+          `).join('');
+        }
+      } catch (e) {
+        console.warn('Could not populate member filter:', e);
+      }
+    }
+
+    async function loadTransactions() {
+      const groupId = Common.getSelectedGroupId();
+      try {
+        allTransactions = await api.getTransactions(groupId);
+        currentFilteredTransactions = [...allTransactions];
+        calculateSummaryMetrics(allTransactions);
+        renderTransactions(allTransactions);
+      } catch (err) {
+        Common.showToast('Failed to load transactions: ' + err.message, 'danger');
+      }
+    }
+
+    function calculateSummaryMetrics(txns) {
+      let inflow = 0;
+      let outflow = 0;
+
+      txns.forEach(t => {
+        const amt = parseFloat(t.amount) || 0;
+        if (['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'LOAN_REPAYMENT', 'EXTRA_LOAN_PAYMENT', 'OTHER_INCOME', 'BANK_DEPOSIT'].includes(t.type)) {
+          inflow += amt;
+        } else if (['LOAN_DISBURSEMENT', 'EXPENSE', 'BANK_WITHDRAWAL'].includes(t.type)) {
+          outflow += amt;
+        }
+      });
+
+      document.getElementById('metric-total-inflow').textContent = Common.formatIndianCurrency(inflow);
+      document.getElementById('metric-total-outflow').textContent = Common.formatIndianCurrency(outflow);
+      document.getElementById('metric-net-flow').textContent = Common.formatIndianCurrency(inflow - outflow);
+      document.getElementById('metric-txn-count').textContent = txns.length;
+      document.getElementById('showing-count').textContent = txns.length;
+    }
+
+    function applyFilters() {
+      const query = document.getElementById('search-transactions').value.toLowerCase().trim();
+      const typeFilter = document.getElementById('filter-type').value;
+      const monthFilter = document.getElementById('filter-month').value;
+      const yearFilter = document.getElementById('filter-year').value;
+      const memberFilter = document.getElementById('filter-member').value;
+
+      renderDynamicDropdownDetails(typeFilter, allTransactions);
+
+      currentFilteredTransactions = allTransactions.filter(t => {
+        let matchesType = true;
+        if (typeFilter === 'MEETING' || typeFilter === 'REPORTS') {
+          matchesType = false;
+        } else if (typeFilter) {
+          matchesType = (t.type === typeFilter);
+        }
+
+        const searchStr = `${t.id || ''} ${t.memberId || ''} ${t.loanId || ''} ${t.reference || ''} ${t.description || ''} ${t.createdBy || ''}`.toLowerCase();
+        const matchesQuery = !query || searchStr.includes(query);
+
+        let matchesMonth = true;
+        let matchesYear = true;
+        if (monthFilter || yearFilter) {
+          const d = new Date(t.date || t.createdAt);
+          if (!isNaN(d.getTime())) {
+            if (monthFilter && (d.getMonth() + 1) !== parseInt(monthFilter)) matchesMonth = false;
+            if (yearFilter && d.getFullYear() !== parseInt(yearFilter)) matchesYear = false;
+          }
+        }
+
+        let matchesMember = true;
+        if (memberFilter) {
+          matchesMember = (t.memberId === memberFilter);
+        }
+
+        return matchesType && matchesQuery && matchesMonth && matchesYear && matchesMember;
+      });
+
+      calculateSummaryMetrics(currentFilteredTransactions);
+      renderTransactions(currentFilteredTransactions);
+    }
+
+    function renderDynamicDropdownDetails(selectedType, allTxns) {
+      const container = document.getElementById('dynamic-dropdown-details');
+      if (!container) return;
+
+      let html = '';
+      if (selectedType === 'MEMBER_SAVING') {
+        const list = allTxns.filter(t => t.type === 'MEMBER_SAVING');
+        const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const uniqueMembers = new Set(list.map(t => t.memberId).filter(Boolean)).size;
+
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #16a34a;"><i class="bi bi-wallet2"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #16a34a;">Monthly Savings Details (मासिक बचत)</h3>
+                <span class="badge" style="background: #dcfce7; color: #166534; font-size: 0.75rem;">Core Capital Inflow</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0; max-width: 650px;">
+                Regular monthly savings contributed by active members. These funds accumulate in the group's internal lending corpus and earn cumulative interest for member dividends.
+              </p>
+            </div>
+            <a href="/admin/collections.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem;">
+              <i class="bi bi-plus-circle"></i> Record Monthly Collection
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Savings Inflow</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #16a34a;">${Common.formatIndianCurrency(total)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Deposit Transactions</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} entries</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Contributing Members</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">${uniqueMembers} members</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Avg Contribution</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #0284c7;">${list.length > 0 ? Common.formatIndianCurrency(total / list.length) : '₹0'}</div>
+            </div>
+          </div>
+        `;
+      } else if (selectedType === 'LOAN_DISBURSEMENT') {
+        const list = allTxns.filter(t => t.type === 'LOAN_DISBURSEMENT');
+        const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #d97706;"><i class="bi bi-cash-coin"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #d97706;">Loan Disbursement Details (कर्ज वाटप)</h3>
+                <span class="badge" style="background: #fef3c7; color: #92400e; font-size: 0.75rem;">Capital Outflow</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0; max-width: 650px;">
+                Internal micro-credit loans sanctioned and disbursed to eligible group members from the accumulated pool. Interest is charged on diminishing or flat balance at 2% monthly.
+              </p>
+            </div>
+            <a href="/admin/loans.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #d97706; border-color: #d97706;">
+              <i class="bi bi-bank"></i> View Loan Ledger
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Loans Disbursed</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #d97706;">${Common.formatIndianCurrency(total)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Disbursed Loans</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} loans</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Average Loan Size</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">${list.length > 0 ? Common.formatIndianCurrency(total / list.length) : '₹0'}</div>
+            </div>
+          </div>
+        `;
+      } else if (selectedType === 'LOAN_REPAYMENT' || selectedType === 'EXTRA_LOAN_PAYMENT') {
+        const list = allTxns.filter(t => t.type === 'LOAN_REPAYMENT' || t.type === 'EXTRA_LOAN_PAYMENT');
+        const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+        const principal = list.reduce((sum, t) => sum + (parseFloat(t.principalAmount) || 0), 0);
+        const interest = list.reduce((sum, t) => sum + (parseFloat(t.interestAmount) || 0), 0);
+
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #059669;"><i class="bi bi-arrow-repeat"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #059669;">Loan Repayment Details (कर्ज परतफेड)</h3>
+                <span class="badge" style="background: #ecfdf5; color: #047857; font-size: 0.75rem;">Recovery Inflow</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0; max-width: 650px;">
+                Monthly loan EMI recovery entries split into Principal reduction (restoring available lending pool) and Interest earnings (group profit for distribution).
+              </p>
+            </div>
+            <a href="/admin/loans.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #059669; border-color: #047857;">
+              <i class="bi bi-check2-circle"></i> Record Installment
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Recovered</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #059669;">${Common.formatIndianCurrency(total)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Principal Recovered</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">${Common.formatIndianCurrency(principal)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Interest Earned</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #16a34a;">${Common.formatIndianCurrency(interest)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Installments Paid</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} payments</div>
+            </div>
+          </div>
+        `;
+      } else if (selectedType === 'EXPENSE') {
+        const list = allTxns.filter(t => t.type === 'EXPENSE');
+        const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #dc2626;"><i class="bi bi-receipt"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #dc2626;">Group Expense Details (गट खर्च)</h3>
+                <span class="badge" style="background: #fee2e2; color: #991b1b; font-size: 0.75rem;">Operating Outflow</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0; max-width: 650px;">
+                Authorized operational expenditures including stationery, meeting tea/refreshments, travel, bank SMS fees, and auditing costs.
+              </p>
+            </div>
+            <a href="/admin/expenses.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #dc2626; border-color: #dc2626;">
+              <i class="bi bi-plus-circle"></i> Add Expense
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Expense Outflow</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #dc2626;">${Common.formatIndianCurrency(total)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Expense Records</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} expenses</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Average Expense</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">${list.length > 0 ? Common.formatIndianCurrency(total / list.length) : '₹0'}</div>
+            </div>
+          </div>
+        `;
+      } else if (selectedType === 'OTHER_INCOME') {
+        const list = allTxns.filter(t => t.type === 'OTHER_INCOME');
+        const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #0284c7;"><i class="bi bi-piggy-bank"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #0284c7;">Other Income & Fines Details (इतर उत्पन्न)</h3>
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.75rem;">Ancillary Inflow</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0 0 0.75rem 0; max-width: 650px;">
+                Non-regular revenues such as late payment fines, meeting absence penalties, entrance membership fees, and savings bank interest.
+              </p>
+            </div>
+            <a href="/admin/income.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #0284c7; border-color: #0284c7;">
+              <i class="bi bi-plus-circle"></i> Record Income
+            </a>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total Other Income</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: #0284c7;">${Common.formatIndianCurrency(total)}</div>
+            </div>
+            <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Recorded Entries</span>
+              <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} records</div>
+            </div>
+          </div>
+        `;
+      } else if (selectedType === 'MEETING') {
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #6366f1;"><i class="bi bi-calendar-event"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #6366f1;">Monthly Meeting Details (मासिक बैठक)</h3>
+                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem;">SHG Governance</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 650px;">
+                Official group meetings held on the scheduled meeting day. Tracks quorum, agenda discussion, resolution minutes, and member attendance.
+              </p>
+            </div>
+            <a href="/admin/meetings.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #6366f1; border-color: #6366f1;">
+              <i class="bi bi-calendar2-check"></i> View Meetings Register
+            </a>
+          </div>
+        `;
+      } else if (selectedType === 'REPORTS') {
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.25rem; color: #0d9488;"><i class="bi bi-file-earmark-bar-graph"></i></span>
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #0d9488;">Audit & Financial Reports (अहवाल व जमाखर्च)</h3>
+                <span class="badge" style="background: #ccfbf1; color: #115e59; font-size: 0.75rem;">Official Compliance</span>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 650px;">
+                Generate official audit statements, member passbooks, collection summaries, and ledger printouts for bank submissions and government audits.
+              </p>
+            </div>
+            <a href="/admin/reports.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #0d9488; border-color: #0d9488;">
+              <i class="bi bi-download"></i> Open Reports Center
+            </a>
+          </div>
+        `;
+      } else {
+        html = `
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <span style="font-size: 1.25rem; color: var(--primary);"><i class="bi bi-journal-text"></i></span>
+                <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Comprehensive Financial Ledger (सर्व जमाखर्च नोंदवही)</h3>
+              </div>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                Complete real-time transaction ledger. Select any specific category above to view dedicated breakdown, rules, and option-specific details.
+              </p>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-muted);">
+              Total Records: <strong style="color: var(--text-main); font-size: 1rem;">${allTxns.length}</strong>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function renderTransactions(txns) {
+      const tbody = document.getElementById('transactions-table-body');
+      document.getElementById('showing-count').textContent = txns.length;
+
+      if (!txns || txns.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" class="text-center py-4 text-muted">
+              <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+              <p class="mt-2">No transactions found matching your criteria.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = txns.map(t => {
+        const isInflow = ['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'LOAN_REPAYMENT', 'EXTRA_LOAN_PAYMENT', 'OTHER_INCOME'].includes(t.type);
+        const typeBadge = getTypeBadge(t.type);
+        const totalFormatted = Common.formatIndianCurrency(t.amount);
+        const principalFormatted = t.principalAmount ? Common.formatIndianCurrency(t.principalAmount) : '-';
+        const interestFormatted = t.interestAmount ? Common.formatIndianCurrency(t.interestAmount) : '-';
+
+        return `
+          <tr>
+            <td><strong style="color: var(--primary); font-family: monospace;">${escapeHtml(t.id || '')}</strong></td>
+            <td>${Common.formatDateTime(t.date || t.createdAt)}</td>
+            <td>${typeBadge}</td>
+            <td>${t.memberId ? `<span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.memberId)}</span>` : '<span class="text-muted">Group Fund</span>'}</td>
+            <td>${t.loanId ? `<span style="font-family: monospace;">${escapeHtml(t.loanId)}</span>` : '-'}</td>
+            <td style="text-align: right;">${principalFormatted}</td>
+            <td style="text-align: right;">${interestFormatted}</td>
+            <td style="text-align: right;">
+              <strong class="${isInflow ? 'text-success' : 'text-danger'}">
+                ${isInflow ? '+' : '-'} ${totalFormatted}
+              </strong>
+            </td>
+            <td><small class="text-muted">${escapeHtml(t.description || t.reference || '-')}</small></td>
+            <td><small>${escapeHtml(t.createdBy || 'SYSTEM')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getTypeBadge(type) {
+      switch(type) {
+        case 'MEMBER_SAVING':
+        case 'SHARE_CONTRIBUTION':
+          return '<span class="status-badge badge-active"><i class="bi bi-piggy-bank"></i> ' + type.replace('_', ' ') + '</span>';
+        case 'LOAN_DISBURSEMENT':
+          return '<span class="status-badge badge-danger"><i class="bi bi-cash"></i> DISBURSEMENT</span>';
+        case 'LOAN_REPAYMENT':
+          return '<span class="status-badge badge-active"><i class="bi bi-arrow-repeat"></i> REPAYMENT</span>';
+        case 'EXTRA_LOAN_PAYMENT':
+          return '<span class="status-badge badge-active" style="background:#ccfbf1; color:#0f766e;"><i class="bi bi-lightning-charge"></i> EXTRA PAYMENT</span>';
+        case 'EXPENSE':
+          return '<span class="status-badge badge-danger"><i class="bi bi-receipt"></i> EXPENSE</span>';
+        case 'OTHER_INCOME':
+          return '<span class="status-badge badge-active"><i class="bi bi-graph-up"></i> INCOME</span>';
+        default:
+          return `<span class="status-badge badge-partial">${escapeHtml(type)}</span>`;
+      }
+    }
+
+    function exportToCsv() {
+      const exportList = currentFilteredTransactions && currentFilteredTransactions.length > 0 ? currentFilteredTransactions : allTransactions;
+      if (!exportList || exportList.length === 0) {
+        Common.showToast('No transactions to export', 'warning');
+        return;
+      }
+      let csv = 'Transaction ID,Date,Type,Member ID,Loan ID,Principal,Interest,Total Amount,Description,Recorded By\n';
+      exportList.forEach(t => {
+        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${t.memberId || ''}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}","${t.createdBy || ''}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

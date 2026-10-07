@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Settings - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/reports.html" class="menu-item"><i class="bi bi-bar-chart-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+        <li><a href="/user/settings.html" class="menu-item active"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-shield-lock text-primary"></i> Account & Security Settings
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="settings">Account & Security Preferences</h1>
+            <p class="page-subtitle">Manage your portal password, display language, and mobile notification settings</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem;">
+          <div class="content-card" style="padding: 1.5rem;">
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--secondary);"><i class="bi bi-person-lock"></i> Change Username</h2>
+            <p class="text-muted" style="font-size:.85rem;">Current username: <strong id="current-username">-</strong></p>
+            <form id="form-user-username">
+              <input type="text" id="u-new-username" class="form-control mb-3" minlength="3" maxlength="50" pattern="[A-Za-z0-9._-]+" placeholder="New username" required>
+              <input type="text" id="u-confirm-username" class="form-control mb-3" minlength="3" maxlength="50" pattern="[A-Za-z0-9._-]+" placeholder="Confirm new username" required>
+              <button type="submit" class="btn-outline-custom" style="width:100%;">Save Username</button>
+            </form>
+          </div>
+          <!-- Change Password -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-key-fill"></i> Change Portal Password
+            </h2>
+            <form id="form-user-password">
+              <div class="form-group mb-3">
+                <label class="form-label required">Current Password</label>
+                <input type="password" id="u-current-pwd" class="form-control" required placeholder="Enter current password">
+              </div>
+              <div class="form-group mb-3">
+                <label class="form-label required">New Password</label>
+                <input type="password" id="u-new-pwd" class="form-control" minlength="6" required placeholder="Enter new password (min 6 characters)">
+              </div>
+              <div class="form-group mb-4">
+                <label class="form-label required">Confirm New Password</label>
+                <input type="password" id="u-confirm-pwd" class="form-control" minlength="6" required placeholder="Confirm new password">
+              </div>
+              <button type="submit" class="btn-primary-custom" style="width: 100%;">
+                <i class="bi bi-shield-check"></i> Update Password
+              </button>
+            </form>
+          </div>
+
+          <!-- Preferences -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-sliders"></i> Portal Preferences
+            </h2>
+            <div style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.9rem;">
+              <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">Preferred Language</label>
+                <select id="user-pref-lang" class="form-select">
+                  <option value="en">English (Default)</option>
+                  <option value="mr">मराठी (Marathi)</option>
+                  <option value="hi">हिन्दी (Hindi)</option>
+                </select>
+              </div>
+
+              <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+                <label style="font-weight: 600; display: block; margin-bottom: 0.25rem;">SMS & WhatsApp Notifications</label>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem;">
+                  <input type="checkbox" id="chk-sms" checked>
+                  <span>Receive monthly bachat deposit receipts via SMS</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem;">
+                  <input type="checkbox" id="chk-loan-reminders" checked>
+                  <span>Receive loan installment reminders 3 days before due date</span>
+                </div>
+              </div>
+
+              <div style="padding-top: 0.5rem;">
+                <button type="button" class="btn-outline-custom" style="width: 100%;" onclick="Common.showToast('Preferences updated successfully!', 'success')">
+                  Save Preferences
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      api.getCurrentUserProfile().then(user => {
+        document.getElementById('current-username').textContent = user.username || '-';
+      }).catch(() => {});
+
+      document.getElementById('form-user-username').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const next = document.getElementById('u-new-username').value.trim();
+        const confirm = document.getElementById('u-confirm-username').value.trim();
+        if (next !== confirm) { Common.showToast('Usernames do not match', 'warning'); return; }
+        try {
+          await api.changeUsername(next, confirm);
+          Common.showToast('Username changed. Please sign in again.', 'success');
+          Auth.logout();
+        } catch (err) { Common.showToast('Failed to change username: ' + err.message, 'danger'); }
+      });
+
+      document.getElementById('form-user-password').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cur = document.getElementById('u-current-pwd').value;
+        const n1 = document.getElementById('u-new-pwd').value;
+        const n2 = document.getElementById('u-confirm-pwd').value;
+
+        if (n1 !== n2) {
+          Common.showToast('New passwords do not match', 'warning');
+          return;
+        }
+
+        try {
+          await api.changePassword(cur, n1);
+          Common.showToast('Password changed successfully!', 'success');
+          document.getElementById('form-user-password').reset();
+        } catch (err) {
+          Common.showToast('Failed to change password: ' + err.message, 'danger');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

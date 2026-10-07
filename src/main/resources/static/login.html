@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Bachat Gat Management Portal</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      padding: 1rem;
+      min-height: 100vh;
+    }
+    .login-card {
+      background: #ffffff;
+      border-radius: var(--radius-xl);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      width: 100%;
+      max-width: 480px;
+      padding: 2rem;
+      position: relative;
+    }
+    .login-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .role-badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 999px;
+      margin-top: 0.35rem;
+    }
+    .role-badge-president {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    .role-badge-secretary {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+    .role-badge-treasurer {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+    .role-badge-member {
+      background: #e0f2fe;
+      color: #075985;
+      border: 1px solid #bae6fd;
+    }
+    .demo-credentials-box {
+      margin-top: 1.25rem;
+      padding: 0.85rem 1rem;
+      background: #f8fafc;
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 0.8rem;
+    }
+    .demo-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .demo-btn {
+      padding: 0.45rem 0.6rem;
+      background: #e2e8f0;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: var(--transition);
+    }
+    .demo-btn:hover {
+      background: #cbd5e1;
+      color: #0f172a;
+    }
+    .demo-btn-super {
+      grid-column: 1 / -1;
+      justify-content: center;
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .demo-btn-super:hover {
+      background: #fde68a;
+    }
+    .input-icon-wrap {
+      position: relative;
+    }
+    .input-icon-wrap .toggle-pw-btn {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .switch-mode-btn {
+      background: none;
+      border: none;
+      color: #0284c7;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+    }
+    @media (max-width: 480px) {
+      .login-card {
+        padding: 1.5rem 1.25rem;
+      }
+      .demo-btn-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <a href="/guide.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 0.25rem 0.6rem; border-radius: 4px; border: 1px solid #bae6fd;">
+        <i class="bi bi-book-half"></i> Project Guide
+      </a>
+      <select class="lang-selector form-select" id="lang-select" style="font-size: 0.8rem; width: auto;">
+        <option value="en">English</option>
+        <option value="mr">मराठी</option>
+        <option value="hi">हिन्दी</option>
+      </select>
+    </div>
+
+    <div class="login-brand">
+      <div class="brand-icon">₹</div>
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); margin: 0;" data-i18n="appName">Bachat Gat Portal</h2>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;" data-i18n="appSubtitle">Self-Help Group (SHG) Management Platform</p>
+      </div>
+    </div>
+
+    <!-- Title & Mode switcher -->
+    <div style="text-align: center; margin-bottom: 1rem;">
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 0.2rem;" id="login-title-text" data-i18n="unifiedLoginTitle">Sign In</h3>
+      <p style="font-size: 0.78rem; color: #64748b; margin: 0;" id="login-subtitle-text">
+        Choose your Bachat Gat & Name to sign in as President, Secretary, Treasurer, or Member
+      </p>
+    </div>
+
+    <div id="login-alert" style="display: none; padding: 0.75rem; border-radius: var(--radius-md); font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+    <!-- MAIN GUIDED LOGIN FORM -->
+    <form id="form-common-login" novalidate>
+      <!-- 1. SEARCH GROUP (results come from the backend) -->
+      <div class="form-group mb-3" id="group-select-container">
+        <label class="form-label" for="login-group-search">
+          <i class="bi bi-search text-primary"></i> <span data-i18n="searchBachatGat">Search Your Bachat Gat</span> *
+        </label>
+        <div style="display:flex; gap:0.5rem;">
+          <input id="login-group-search" class="form-control" type="search"
+                 placeholder="Enter group name or Group ID" autocomplete="off" required>
+          <button type="button" id="btn-search-group" class="btn-primary-custom" style="white-space:nowrap; padding:0.65rem 0.9rem;">
+            <i class="bi bi-search"></i> <span data-i18n="search">Search</span>
+          </button>
+        </div>
+        <select id="login-group-select" class="form-select" style="display:none; margin-top:0.5rem;" disabled>
+          <option value="">-- Select found Bachat Gat --</option>
+        </select>
+        <div id="group-search-status" style="font-size:0.78rem; color:#64748b; margin-top:0.35rem;"></div>
+      </div>
+
+      <!-- 2. MEMBER / PERSON DROPDOWN (Filtered by Selected Group) -->
+      <div class="form-group mb-3" id="person-select-container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+          <label class="form-label mb-0" for="login-person-select">
+            <i class="bi bi-person-circle text-primary"></i> <span data-i18n="selectMember">Select Your Name</span> *
+          </label>
+          <span id="member-count-badge" style="font-size: 0.7rem; color: #64748b; display: none;"></span>
+        </div>
+        <select id="login-person-select" class="form-select" disabled>
+          <option value="">← Please choose Bachat Gat first</option>
+        </select>
+        <div id="selected-person-info" style="display: none; margin-top: 0.35rem;">
+          <span id="person-role-badge" class="role-badge-pill role-badge-member"></span>
+        </div>
+      </div>
+
+      <!-- 3. USERNAME / MOBILE / ID FIELD (kept hidden in guided mode) -->
+      <div class="form-group mb-3">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+          <label class="form-label mb-0" for="login-username">
+            <i class="bi bi-person-badge-fill text-primary"></i> <span data-i18n="usernameOrMobile">Username / Mobile / Login ID</span> *
+          </label>
+          <button type="button" class="switch-mode-btn" id="btn-toggle-direct-mode">
+            Direct Login
+          </button>
+        </div>
+        <input type="text" id="login-username" class="form-control" placeholder="Select your name above" required autocomplete="username">
+      </div>
+
+      <!-- 4. PASSWORD FIELD -->
+      <div class="form-group mb-3">
+        <label class="form-label" for="login-password">
+          <i class="bi bi-key-fill text-primary"></i> <span data-i18n="password">Password</span> *
+        </label>
+        <div class="input-icon-wrap">
+          <input type="password" id="login-password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+          <button type="button" class="toggle-pw-btn" onclick="togglePasswordVisibility('login-password', this)">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" id="btn-login-submit" class="btn-primary-custom" style="width: 100%; justify-content: center; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.95rem; font-weight: 700;">
+        <i class="bi bi-box-arrow-in-right"></i> <span data-i18n="login">Login to Portal</span>
+      </button>
+
+      <div style="text-align: center; margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px dashed #e2e8f0;">
+        <a href="/first-login.html" style="font-size: 0.8rem; color: #0284c7; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <i class="bi bi-shield-lock-fill"></i> First time logging in? Activate account & set password
+        </a>
+      </div>
+    </form>
+
+    <!-- Quick Demo Accounts (Linked to Dropdowns) -->
+    <div class="demo-credentials-box">
+      <div style="font-weight: 700; color: #334155; margin-bottom: 0.2rem; display: flex; align-items: center; justify-content: space-between;">
+        <span><i class="bi bi-stars text-warning"></i> Quick Demo Logins:</span>
+        <span style="font-size: 0.7rem; color: #64748b;">(Auto-selects name & fills password)</span>
+      </div>
+      <div class="demo-btn-grid">
+        <button type="button" class="demo-btn" id="btn-demo-president">
+          <i class="bi bi-award-fill text-danger"></i> <span>President</span>
+        </button>
+        <button type="button" class="demo-btn" id="btn-demo-secretary">
+          <i class="bi bi-file-earmark-text text-success"></i> <span>Secretary (सचिव)</span>
+        </button>
+        <button type="button" class="demo-btn" id="btn-demo-treasurer">
+          <i class="bi bi-cash-stack text-warning"></i> <span>Treasurer (खजिनदार)</span>
+        </button>
+        <button type="button" class="demo-btn" id="btn-demo-member">
+          <i class="bi bi-person-fill text-primary"></i> <span>Member (सदस्य)</span>
+        </button>
+        <button type="button" class="demo-btn demo-btn-super" id="btn-demo-superadmin">
+          <i class="bi bi-shield-shaded"></i> <span>System Super Admin</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let publicGroups = [];
+    let groupMembersMap = {};
+    let isDirectMode = false;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check if already authenticated, route directly
+      if (Auth.isAuthenticated()) {
+        const user = Auth.getUser();
+        if (user) {
+          routeByRole(user);
+          return;
+        }
+      }
+
+      // Initialize language selector
+      const currentLang = localStorage.getItem('app_lang') || 'en';
+      const langSelect = document.getElementById('lang-select');
+      if (langSelect) {
+        langSelect.value = currentLang;
+        langSelect.addEventListener('change', () => {
+          localStorage.setItem('app_lang', langSelect.value);
+          renderGroupOptions();
+          const selectedGroupId = document.getElementById('login-group-select').value;
+          if (selectedGroupId && groupMembersMap[selectedGroupId]) {
+            renderPersonOptions(groupMembersMap[selectedGroupId]);
+          }
+        });
+      }
+
+      // Group data is fetched only after the user searches. This avoids
+      // downloading every group on the login screen.
+      const searchButton = document.getElementById('btn-search-group');
+      const searchInput = document.getElementById('login-group-search');
+      searchButton.addEventListener('click', searchGroups);
+      searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          searchGroups();
+        }
+      });
+
+      // Group change event listener
+      const groupSelect = document.getElementById('login-group-select');
+      groupSelect.addEventListener('change', async (e) => {
+        const groupId = e.target.value;
+        if (groupId === '__SUPER_ADMIN__') {
+          enableDirectMode(false);
+          const personSelect = document.getElementById('login-person-select');
+          personSelect.innerHTML = '<option value="superadmin" data-username="superadmin" data-role="SUPER_ADMIN" data-roletitle="Super Admin">🛡️ System Super Admin (Platform Owner)</option>';
+          personSelect.disabled = false;
+          personSelect.value = 'superadmin';
+          const countBadge = document.getElementById('member-count-badge');
+          if (countBadge) {
+            countBadge.textContent = 'System Role';
+            countBadge.style.display = 'inline';
+          }
+          personSelect.dispatchEvent(new Event('change'));
+          document.getElementById('login-username').value = 'superadmin';
+          document.getElementById('login-password').value = 'admin123';
+        } else if (groupId === '__DIRECT__') {
+          enableDirectMode(true);
+        } else {
+          enableDirectMode(false);
+          await loadGroupMembers(groupId);
+        }
+      });
+
+      // Person change event listener
+      const personSelect = document.getElementById('login-person-select');
+      personSelect.addEventListener('change', (e) => {
+        const selectedVal = e.target.value;
+        const selectedOpt = personSelect.options[personSelect.selectedIndex];
+        if (!selectedVal) {
+          document.getElementById('selected-person-info').style.display = 'none';
+          document.getElementById('login-username').value = '';
+          return;
+        }
+
+        const username = selectedOpt.getAttribute('data-username') || selectedVal;
+        const role = (selectedOpt.getAttribute('data-role') || 'MEMBER').toUpperCase();
+        const roleTitle = selectedOpt.getAttribute('data-roletitle') || role;
+
+        document.getElementById('login-username').value = username;
+
+        // Show role badge
+        const badge = document.getElementById('person-role-badge');
+        badge.className = 'role-badge-pill';
+        badge.style.background = '';
+        badge.style.color = '';
+        if (role === 'SUPER_ADMIN') {
+          badge.classList.add('role-badge-president');
+          badge.style.background = '#4338ca';
+          badge.style.color = '#ffffff';
+          badge.innerHTML = `<i class="bi bi-shield-fill-check"></i> ${roleTitle}`;
+        } else if (role === 'PRESIDENT') {
+          badge.classList.add('role-badge-president');
+          badge.innerHTML = `<i class="bi bi-award-fill"></i> ${roleTitle}`;
+        } else if (role === 'SECRETARY') {
+          badge.classList.add('role-badge-secretary');
+          badge.innerHTML = `<i class="bi bi-file-earmark-text-fill"></i> ${roleTitle}`;
+        } else if (role === 'TREASURER') {
+          badge.classList.add('role-badge-treasurer');
+          badge.innerHTML = `<i class="bi bi-cash-stack"></i> ${roleTitle}`;
+        } else {
+          badge.classList.add('role-badge-member');
+          badge.innerHTML = `<i class="bi bi-person-fill"></i> ${roleTitle}`;
+        }
+        document.getElementById('selected-person-info').style.display = 'block';
+
+        // Set focus to password field
+        const pwdInput = document.getElementById('login-password');
+        if (pwdInput) pwdInput.focus();
+      });
+
+      // Toggle Direct Mode button
+      document.getElementById('btn-toggle-direct-mode').addEventListener('click', () => {
+        enableDirectMode(!isDirectMode);
+      });
+
+      // Common Login Form Submit
+      const form = document.getElementById('form-common-login');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value;
+        const groupSelect = document.getElementById('login-group-select');
+        const groupId = groupSelect ? groupSelect.value : null;
+        const personSelect = document.getElementById('login-person-select');
+        const isSuper = username.toLowerCase() === 'superadmin';
+        const memberId = (!isDirectMode && !isSuper && personSelect && personSelect.value !== 'superadmin') ? personSelect.value : null;
+        const cleanGroupId = (isDirectMode || isSuper || groupId === '__DIRECT__' || groupId === '__SUPER_ADMIN__') ? null : (groupId || null);
+        const btn = document.getElementById('btn-login-submit');
+
+        if (!username) {
+          showAlert('Please select your name or enter username.', 'warning');
+          document.getElementById('login-username').focus();
+          return;
+        }
+
+        if (!password) {
+          showAlert('Please enter your password.', 'warning');
+          document.getElementById('login-password').focus();
+          return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Signing In...';
+        hideAlert();
+
+        try {
+          const res = await api.login(
+            username,
+            password,
+            cleanGroupId,
+            memberId
+          );
+          handleLoginSuccess(res);
+        } catch (err) {
+          showAlert(err.message || 'Login failed. Please check your credentials.', 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i> <span data-i18n="login">Login to Portal</span>';
+        }
+      });
+
+      // Quick Demo Shortcuts
+      document.getElementById('btn-demo-president').addEventListener('click', async () => {
+        await selectDemoUser('PRESIDENT', 'president', 'admin123');
+      });
+      document.getElementById('btn-demo-secretary').addEventListener('click', async () => {
+        await selectDemoUser('SECRETARY', 'secretary', 'admin123');
+      });
+      document.getElementById('btn-demo-treasurer').addEventListener('click', async () => {
+        await selectDemoUser('TREASURER', 'treasurer', 'admin123');
+      });
+      document.getElementById('btn-demo-member').addEventListener('click', async () => {
+        await selectDemoUser('MEMBER', 'member', 'user123');
+      });
+      document.getElementById('btn-demo-superadmin').addEventListener('click', () => {
+        enableDirectMode(true);
+        document.getElementById('login-username').value = 'superadmin';
+        document.getElementById('login-password').value = 'admin123';
+        hideAlert();
+        const pwdInput = document.getElementById('login-password');
+        if (pwdInput) pwdInput.focus();
+      });
+    });
+
+    async function searchGroups() {
+      const groupSelect = document.getElementById('login-group-select');
+      const searchInput = document.getElementById('login-group-search');
+      const status = document.getElementById('group-search-status');
+      const searchButton = document.getElementById('btn-search-group');
+      const query = searchInput.value.trim();
+
+      if (!query) {
+        showAlert('Please enter a Bachat Gat name or Group ID.', 'warning');
+        searchInput.focus();
+        return;
+      }
+
+      searchButton.disabled = true;
+      status.textContent = 'Searching BachatGat...';
+      groupSelect.style.display = 'none';
+      groupSelect.disabled = true;
+      try {
+        publicGroups = await api.searchPublicGroups(query);
+        if (!publicGroups || publicGroups.length === 0) {
+          status.textContent = 'BachatGat not found. Please check the group name or Group ID.';
+          document.getElementById('login-person-select').innerHTML = '<option value="">← Search a Bachat Gat first</option>';
+          document.getElementById('login-person-select').disabled = true;
+          return;
+        }
+        renderGroupOptions();
+        groupSelect.style.display = 'block';
+        groupSelect.disabled = false;
+        groupSelect.value = publicGroups.length === 1 ? publicGroups[0].id : '';
+        status.textContent = `${publicGroups.length} Bachat Gat${publicGroups.length === 1 ? '' : 's'} found.`;
+        if (groupSelect.value) await loadGroupMembers(groupSelect.value);
+      } catch (err) {
+        console.error('Failed to search groups:', err);
+        status.textContent = 'Unable to search right now. Please try again later.';
+      } finally {
+        searchButton.disabled = false;
+      }
+    }
+
+    async function loadGroups() {
+      // Retained for compatibility with older bookmarks/scripts. The guided
+      // login intentionally does not call the unfiltered groups endpoint.
+      try {
+        publicGroups = await api.getPublicGroups();
+        renderGroupOptions();
+        // If there's at least one group, automatically pre-select it
+        if (publicGroups && publicGroups.length > 0) {
+          groupSelect.value = publicGroups[0].id;
+          await loadGroupMembers(publicGroups[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load groups:', err);
+        groupSelect.innerHTML = '<option value="">Error loading groups</option>';
+      }
+    }
+
+    function renderGroupOptions() {
+      const groupSelect = document.getElementById('login-group-select');
+      const curVal = groupSelect ? groupSelect.value : '';
+      const lang = localStorage.getItem('app_lang') || 'en';
+
+      groupSelect.innerHTML = '<option value="">-- Choose your Bachat Gat --</option>';
+      (publicGroups || []).forEach(g => {
+        let name = g.groupName;
+        if (lang === 'mr' && g.groupNameMr) name = g.groupNameMr;
+        else if (lang === 'hi' && g.groupNameHi) name = g.groupNameHi;
+
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        opt.textContent = `${name} (${g.groupCode || g.id})`;
+        groupSelect.appendChild(opt);
+      });
+
+      // Super Admin and Direct options at bottom
+      const superOpt = document.createElement('option');
+      superOpt.value = '__SUPER_ADMIN__';
+      superOpt.textContent = '🛡️ System Super Admin (Platform Owner)';
+      groupSelect.appendChild(superOpt);
+
+      const directOpt = document.createElement('option');
+      directOpt.value = '__DIRECT__';
+      directOpt.textContent = '⚡ Direct Login (Username & Password)';
+      groupSelect.appendChild(directOpt);
+
+      if (curVal) groupSelect.value = curVal;
+    }
+
+    async function loadGroupMembers(groupId) {
+      const personSelect = document.getElementById('login-person-select');
+      const countBadge = document.getElementById('member-count-badge');
+      if (!groupId || groupId === '__DIRECT__' || groupId === '__SUPER_ADMIN__') {
+        personSelect.innerHTML = '<option value="">← Please choose Bachat Gat first</option>';
+        personSelect.disabled = true;
+        countBadge.style.display = 'none';
+        return;
+      }
+
+      personSelect.disabled = true;
+      personSelect.innerHTML = '<option value="">Loading members & office bearers...</option>';
+
+      try {
+        if (!groupMembersMap[groupId]) {
+          groupMembersMap[groupId] = await api.getPublicGroupMembers(groupId);
+        }
+        renderPersonOptions(groupMembersMap[groupId]);
+      } catch (err) {
+        console.error('Failed to load group members:', err);
+        personSelect.innerHTML = '<option value="">Failed to load members</option>';
+      }
+    }
+
+    function renderPersonOptions(members) {
+      const personSelect = document.getElementById('login-person-select');
+      const countBadge = document.getElementById('member-count-badge');
+      const curVal = personSelect.value;
+      const lang = localStorage.getItem('app_lang') || 'en';
+
+      personSelect.innerHTML = '<option value="">-- Select Your Name & Role --</option>';
+
+      // Role translations
+      const roleLabels = {
+        en: { PRESIDENT: 'President', SECRETARY: 'Secretary', TREASURER: 'Treasurer', MEMBER: 'Member' },
+        mr: { PRESIDENT: 'अध्यक्ष', SECRETARY: 'सचिव', TREASURER: 'खजिनदार', MEMBER: 'सदस्य' },
+        hi: { PRESIDENT: 'अध्यक्ष', SECRETARY: 'सचिव', TREASURER: 'कोषाध्यक्ष', MEMBER: 'सदस्य' }
+      };
+      const curLabels = roleLabels[lang] || roleLabels.en;
+
+      // One common list for President, Secretary, Treasurer and Members.
+      // The role is display-only; the backend remains the authority.
+      (members || []).forEach(m => personSelect.appendChild(createPersonOption(m, lang, curLabels)));
+
+      personSelect.disabled = false;
+      countBadge.textContent = `${members.length} persons`;
+      countBadge.style.display = 'inline';
+
+      if (curVal) {
+        personSelect.value = curVal;
+        personSelect.dispatchEvent(new Event('change'));
+      }
+    }
+
+    function createPersonOption(m, lang, labels) {
+      let name = m.fullName;
+      if (lang === 'mr' && m.fullNameMr) name = m.fullNameMr;
+      else if (lang === 'hi' && m.fullNameHi) name = m.fullNameHi;
+
+      const role = (m.role || m.designation || 'MEMBER').toUpperCase();
+      const roleTitle = labels[role] || role;
+
+      const icon = role === 'PRESIDENT' ? '👑' : (role === 'SECRETARY' ? '📋' : (role === 'TREASURER' ? '💰' : '👤'));
+
+      const opt = document.createElement('option');
+      opt.value = m.memberId || m.id || m.username;
+      opt.setAttribute('data-username', m.username || m.mobileNumber || m.memberId || '');
+      opt.setAttribute('data-role', role);
+      opt.setAttribute('data-roletitle', roleTitle);
+      opt.textContent = `${icon} ${name} (${roleTitle})`;
+      return opt;
+    }
+
+    function enableDirectMode(enabled) {
+      isDirectMode = enabled;
+      const groupContainer = document.getElementById('group-select-container');
+      const personContainer = document.getElementById('person-select-container');
+      const groupSelect = document.getElementById('login-group-select');
+      const personSelect = document.getElementById('login-person-select');
+      const toggleBtn = document.getElementById('btn-toggle-direct-mode');
+      const titleText = document.getElementById('login-title-text');
+      const subtitleText = document.getElementById('login-subtitle-text');
+
+      if (enabled) {
+        if (groupContainer) groupContainer.style.display = 'none';
+        if (personContainer) personContainer.style.display = 'none';
+        if (groupSelect) groupSelect.disabled = true;
+        if (personSelect) personSelect.disabled = true;
+        if (toggleBtn) toggleBtn.textContent = '← Bachat Gat Guided Mode';
+        if (titleText) titleText.textContent = 'Direct Sign In';
+        if (subtitleText) subtitleText.textContent = 'Enter your Username / Mobile and Password directly';
+        document.getElementById('login-username').placeholder = 'e.g. superadmin, president, or mobile';
+        document.getElementById('login-username').focus();
+      } else {
+        if (groupContainer) groupContainer.style.display = 'block';
+        if (personContainer) personContainer.style.display = 'block';
+        if (groupSelect) groupSelect.disabled = false;
+        if (personSelect) {
+          personSelect.disabled = !groupSelect || !groupSelect.value || groupSelect.value === '__DIRECT__' || groupSelect.value === '__SUPER_ADMIN__';
+        }
+        if (toggleBtn) toggleBtn.textContent = 'Direct Login';
+        if (titleText) titleText.textContent = 'Sign In';
+        if (subtitleText) subtitleText.textContent = 'Choose your Bachat Gat & Name to sign in as President, Secretary, Treasurer, or Member';
+        document.getElementById('login-username').placeholder = 'Select your name above or enter username';
+      }
+    }
+
+    async function selectDemoUser(role, username, password) {
+      enableDirectMode(false);
+      const groupSelect = document.getElementById('login-group-select');
+      if (publicGroups && publicGroups.length > 0) {
+        groupSelect.value = publicGroups[0].id;
+        await loadGroupMembers(publicGroups[0].id);
+      }
+
+      // Find matching person option
+      const personSelect = document.getElementById('login-person-select');
+      let matched = false;
+      for (let i = 0; i < personSelect.options.length; i++) {
+        const opt = personSelect.options[i];
+        const optRole = opt.getAttribute('data-role');
+        const optUser = opt.getAttribute('data-username');
+        if (optRole === role || optUser === username) {
+          personSelect.selectedIndex = i;
+          personSelect.dispatchEvent(new Event('change'));
+          matched = true;
+          break;
+        }
+      }
+
+      // Set credentials
+      document.getElementById('login-username').value = username;
+      document.getElementById('login-password').value = password;
+      hideAlert();
+    }
+
+    function handleLoginSuccess(res) {
+      api.setToken(res.token);
+      Auth.setUser(res);
+
+      if (res.firstLogin === true) {
+        window.location.href = '/first-login.html';
+        return;
+      }
+
+      routeByRole(res);
+    }
+
+    function routeByRole(user) {
+      const role = ((user && user.role) || '').toUpperCase();
+      const designation = ((user && user.designation) || '').toUpperCase();
+
+      if (role === 'SUPER_ADMIN' || designation === 'SUPER_ADMIN') {
+        window.location.href = '/admin/super-dashboard.html';
+      } else if (
+        role === 'PRESIDENT' ||
+        role === 'SECRETARY' ||
+        role === 'TREASURER' ||
+        role === 'ADMIN' ||
+        designation === 'PRESIDENT' ||
+        designation === 'SECRETARY' ||
+        designation === 'TREASURER'
+      ) {
+        window.location.href = '/admin/dashboard.html';
+      } else {
+        window.location.href = '/user/dashboard.html';
+      }
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const icon = btn.querySelector('i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+      }
+    }
+
+    function showAlert(msg, type) {
+      const alertBox = document.getElementById('login-alert');
+      alertBox.style.display = 'block';
+      alertBox.textContent = msg;
+      if (type === 'danger') {
+        alertBox.style.background = '#fef2f2';
+        alertBox.style.color = '#ef4444';
+        alertBox.style.border = '1px solid #fecaca';
+      } else if (type === 'warning') {
+        alertBox.style.background = '#fffbeb';
+        alertBox.style.color = '#d97706';
+        alertBox.style.border = '1px solid #fde68a';
+      } else {
+        alertBox.style.background = '#f0fdf4';
+        alertBox.style.color = '#15803d';
+        alertBox.style.border = '1px solid #bbf7d0';
+      }
+    }
+
+    function hideAlert() {
+      const alertBox = document.getElementById('login-alert');
+      alertBox.style.display = 'none';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Documents - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item active"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-file-earmark-lock text-primary"></i> Encrypted KYC Vault
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="documents">My Verified Documents</h1>
+            <p class="page-subtitle">Your identity verifications, PAN document proofs, and signed loan agreements stored in Google Cloud Storage</p>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Doc ID</th>
+                  <th>File Name</th>
+                  <th>Document Type</th>
+                  <th>Upload Date</th>
+                  <th>Verification Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="user-docs-tbody">
+                <tr>
+                  <td colspan="6" class="text-center py-4 text-muted">Loading your documents...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+      try {
+        const docs = await api.getMyDocuments();
+        renderDocs(docs);
+      } catch (err) {
+        Common.showToast('Failed to load documents: ' + err.message, 'danger');
+      }
+    });
+
+    function renderDocs(docs) {
+      const tbody = document.getElementById('user-docs-tbody');
+      if (!docs || docs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No documents found in your vault.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = docs.map(d => `
+        <tr>
+          <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(d.id)}</strong></td>
+          <td><i class="bi bi-file-earmark-check text-primary me-1"></i> ${escapeHtml(d.fileName)}</td>
+          <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(d.documentType)}</span></td>
+          <td>${Common.formatDate(d.uploadedAt)}</td>
+          <td><span class="status-badge badge-active">${escapeHtml(d.status || 'VERIFIED')}</span></td>
+          <td style="text-align: right;">
+            <a href="/api/documents/view/${encodeURIComponent(d.id || d.documentId)}" target="_blank" class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+              <i class="bi bi-eye"></i> <span data-i18n="viewDoc">View</span>
+            </a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

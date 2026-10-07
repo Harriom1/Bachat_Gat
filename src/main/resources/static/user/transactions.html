@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Transactions - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item active"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-journal-check text-primary"></i> Personal Transaction History
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="transactions">My Financial Ledger</h1>
+            <p class="page-subtitle">Detailed history of your monthly savings deposits, loan repayments, and loan disbursements</p>
+          </div>
+          <div>
+            <button id="btn-export-csv" class="btn-outline-custom">
+              <i class="bi bi-download"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="content-card" style="padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <div style="width: 180px;">
+              <select id="user-filter-type" class="form-select">
+                <option value="">All Types</option>
+                <option value="MEMBER_SAVING">Monthly Savings</option>
+                <option value="LOAN_REPAYMENT">Loan EMI</option>
+                <option value="EXTRA_LOAN_PAYMENT">Extra Prepayment</option>
+                <option value="LOAN_DISBURSEMENT">Disbursement</option>
+              </select>
+            </div>
+            <div style="width: 130px;">
+              <select id="user-filter-month" class="form-select">
+                <option value="">All Months</option>
+                <option value="1">Jan</option>
+                <option value="2">Feb</option>
+                <option value="3">Mar</option>
+                <option value="4">Apr</option>
+                <option value="5">May</option>
+                <option value="6">Jun</option>
+                <option value="7">Jul</option>
+                <option value="8">Aug</option>
+                <option value="9">Sep</option>
+                <option value="10">Oct</option>
+                <option value="11">Nov</option>
+                <option value="12">Dec</option>
+              </select>
+            </div>
+            <div style="width: 120px;">
+              <select id="user-filter-year" class="form-select">
+                <option value="">All Years</option>
+                <option value="2026">2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+            <div style="margin-left: auto; color: var(--text-muted); font-size: 0.85rem;">
+              Showing <strong id="user-showing-count">0</strong> records
+            </div>
+          </div>
+        </div>
+
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Txn ID</th>
+                  <th>Date & Time</th>
+                  <th>Transaction Type</th>
+                  <th>Loan Ref</th>
+                  <th style="text-align: right;">Principal (₹)</th>
+                  <th style="text-align: right;">Interest (₹)</th>
+                  <th style="text-align: right;">Total Amount (₹)</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="user-txns-tbody">
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted">Loading your transactions...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let myTransactions = [];
+    let filteredTransactions = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+      try {
+        const [ledgerTransactions, collections] = await Promise.all([
+          api.getMyTransactions(),
+          api.getMyCollections()
+        ]);
+        myTransactions = ledgerTransactions || [];
+        // Legacy/demo records may have a collection record but no central
+        // transaction row. Show those payments here without creating ledger
+        // entries or changing financial totals. Avoid duplicates when both
+        // records exist.
+        const knownPayments = new Set(myTransactions.map(t => `${String(t.date || t.createdAt || '').slice(0, 10)}|${t.amount || 0}`));
+        (collections || []).filter(c => parseFloat(c.paidAmount || 0) > 0).forEach(c => {
+          const payment = {
+            id: c.referenceNumber || c.id,
+            date: c.paymentDate || c.updatedAt || c.createdAt,
+            type: 'MEMBER_SAVING',
+            amount: c.paidAmount,
+            principalAmount: c.paidAmount,
+            interestAmount: 0,
+            description: `Monthly Bachat - ${c.month}/${c.year}`,
+            paymentStatus: c.status
+          };
+          const key = `${String(payment.date || '').slice(0, 10)}|${payment.amount || 0}`;
+          if (!knownPayments.has(key)) myTransactions.push(payment);
+        });
+        filteredTransactions = [...myTransactions];
+        applyFilters();
+
+        document.getElementById('user-filter-type').addEventListener('change', applyFilters);
+        document.getElementById('user-filter-month').addEventListener('change', applyFilters);
+        document.getElementById('user-filter-year').addEventListener('change', applyFilters);
+        document.getElementById('btn-export-csv').addEventListener('click', exportToCsv);
+      } catch (err) {
+        Common.showToast('Failed to load transactions: ' + err.message, 'danger');
+      }
+    });
+
+    function applyFilters() {
+      const typeFilter = document.getElementById('user-filter-type').value;
+      const monthFilter = document.getElementById('user-filter-month').value;
+      const yearFilter = document.getElementById('user-filter-year').value;
+
+      filteredTransactions = myTransactions.filter(t => {
+        let matchesType = !typeFilter || t.type === typeFilter;
+        let matchesMonth = true;
+        let matchesYear = true;
+
+        if (monthFilter || yearFilter) {
+          const d = new Date(t.date || t.createdAt);
+          if (!isNaN(d.getTime())) {
+            if (monthFilter && (d.getMonth() + 1) !== parseInt(monthFilter)) matchesMonth = false;
+            if (yearFilter && d.getFullYear() !== parseInt(yearFilter)) matchesYear = false;
+          }
+        }
+        return matchesType && matchesMonth && matchesYear;
+      });
+
+      document.getElementById('user-showing-count').textContent = filteredTransactions.length;
+      renderTransactions(filteredTransactions);
+    }
+
+    function renderTransactions(txns) {
+      const tbody = document.getElementById('user-txns-tbody');
+      if (!txns || txns.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No transactions found for the selected filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = txns.map(t => {
+        const isInflow = ['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'LOAN_REPAYMENT', 'EXTRA_LOAN_PAYMENT'].includes(t.type);
+        const pFormatted = t.principalAmount ? Common.formatIndianCurrency(t.principalAmount) : '-';
+        const iFormatted = t.interestAmount ? Common.formatIndianCurrency(t.interestAmount) : '-';
+
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(t.id)}</strong></td>
+            <td>${Common.formatDateTime(t.date || t.createdAt)}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main); font-weight: 600;">${escapeHtml(t.type.replace(/_/g, ' '))}</span></td>
+            <td>${t.loanId ? `<span style="font-family: monospace;">${escapeHtml(t.loanId)}</span>` : '-'}</td>
+            <td style="text-align: right;">${pFormatted}</td>
+            <td style="text-align: right;">${iFormatted}</td>
+            <td style="text-align: right;">
+              <strong class="${isInflow ? 'text-success' : 'text-primary'}">
+                ${Common.formatIndianCurrency(t.amount)}
+              </strong>
+            </td>
+            <td><small class="text-muted">${escapeHtml(t.description || t.reference || '-')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function exportToCsv() {
+      if (!filteredTransactions || filteredTransactions.length === 0) {
+        Common.showToast('No transactions to export', 'warning');
+        return;
+      }
+      let csv = 'Transaction ID,Date,Type,Loan Ref,Principal,Interest,Total Amount,Description\n';
+      filteredTransactions.forEach(t => {
+        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `my_transactions_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

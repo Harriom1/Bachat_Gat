@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Admins - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Super Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">SUPER ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">ADMINISTRATION</li>
+        <li><a href="/admin/super-dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="superDashboard">Super Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="manageGroups">Manage Groups</span></a></li>
+        <li><a href="/admin/admins.html" class="menu-item active"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="clientAdmins">Client Admins</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">All Members</span></a></li>
+        <li class="menu-category">SYSTEM & SECURITY</li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <!-- Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="breadcrumb" style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">
+            <i class="bi bi-person-badge-fill" style="color: var(--primary); margin-right: 0.5rem;"></i>
+            <span data-i18n="manageAdmins">Client Admin Management</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">SA</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Super Admin</span>
+              <span id="current-user-role" class="user-role">SUPER_ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="manageAdmins">Client Admin Management</h1>
+            <p class="page-subtitle">Provision, assign, and manage Group Admins with password resets and multilingual names</p>
+          </div>
+          <div>
+            <button class="btn-primary-custom" id="btn-open-create-admin" onclick="openAdminModal()">
+              <i class="bi bi-person-plus-fill"></i> <span data-i18n="createAdminTitle">Create Group President</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem;">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #e0e7ff; color: #4338ca;"><i class="bi bi-people-fill"></i></div>
+            <div class="stat-details">
+              <span class="stat-title" data-i18n="totalClientAdmins">Total Client Admins</span>
+              <h3 class="stat-value" id="stat-total-admins">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #dcfce7; color: #15803d;"><i class="bi bi-check-circle-fill"></i></div>
+            <div class="stat-details">
+              <span class="stat-title">Active Admins</span>
+              <h3 class="stat-value" id="stat-active-admins">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #fef3c7; color: #b45309;"><i class="bi bi-clock-history"></i></div>
+            <div class="stat-details">
+              <span class="stat-title">First Login Pending</span>
+              <h3 class="stat-value" id="stat-first-login-admins">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admins Table Card -->
+        <div class="card" style="background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem;" data-i18n="clientAdmins">Client Administrators</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Admins manage day-to-day operations for their respective Bachat Gats</p>
+            </div>
+            <div style="position: relative;">
+              <input type="text" id="admin-search" class="form-control" placeholder="Search by name, username..." style="padding-left: 2rem; width: 260px;">
+              <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="admins-table">
+              <thead>
+                <tr>
+                  <th data-i18n="username">Username</th>
+                  <th>President / Admin Name</th>
+                  <th>Assigned Group</th>
+                  <th>Role</th>
+                  <th>Mobile / Email</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="action">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admins-table-body">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <span class="spinner-border spinner-border-sm"></span> Loading Client Admins...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Client Admin Modal -->
+  <div id="modal-create-admin" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: #fff; width: 100%; max-width: 650px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;" data-i18n="createAdminTitle">Create New Client Admin / President</h3>
+        <button type="button" class="btn-close-modal" onclick="closeAdminModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-create-admin" style="padding: 1.5rem; max-height: 80vh; overflow-y: auto;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.825rem; color: #1e40af;">
+          <i class="bi bi-shield-check"></i> <strong>President Account Provisioning:</strong> The President / Client Admin can be assigned to an existing group or can provision a new Self Help Group immediately with active credentials.
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="inp-admin-name" data-i18n="fullNameEn">President / Admin Full Name (English) *</label>
+            <input type="text" id="inp-admin-name" class="form-control" placeholder="e.g. Shalini Deshmukh" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-name-mr" data-i18n="fullNameMr">Full Name (मराठी)</label>
+              <input type="text" id="inp-admin-name-mr" class="form-control" placeholder="उदा. शालिनी देशमुख">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-name-hi" data-i18n="fullNameHi">Full Name (हिन्दी)</label>
+              <input type="text" id="inp-admin-name-hi" class="form-control" placeholder="उदा. शालिनी देशमुख">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-username" data-i18n="username">Username / Login ID *</label>
+              <input type="text" id="inp-admin-username" class="form-control" placeholder="e.g. shalinid" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-mobile" data-i18n="mobileNumber">Primary Mobile Number *</label>
+              <input type="tel" id="inp-admin-mobile" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inp-admin-email">Email Address</label>
+            <input type="email" id="inp-admin-email" class="form-control" placeholder="president@bachatgat.org">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-password">President Password *</label>
+              <div style="position: relative;">
+                <input type="password" id="inp-admin-password" class="form-control" placeholder="Min 6 characters" required minlength="6" value="admin123">
+                <button type="button" onclick="togglePasswordVisibility('inp-admin-password', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8;"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-confirmpassword">Confirm Password *</label>
+              <div style="position: relative;">
+                <input type="password" id="inp-admin-confirmpassword" class="form-control" placeholder="Re-enter password" required minlength="6" value="admin123">
+                <button type="button" onclick="togglePasswordVisibility('inp-admin-confirmpassword', this)" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #94a3b8;"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Group Assignment Mode</label>
+            <div style="display: flex; gap: 1.5rem; margin-bottom: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; cursor: pointer; font-weight: 600;">
+                <input type="radio" name="admin-group-choice" id="choice-assign-group" value="existing" checked onchange="toggleGroupChoice()">
+                Assign to Existing Group
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; cursor: pointer; font-weight: 600;">
+                <input type="radio" name="admin-group-choice" id="choice-create-group" value="new" onchange="toggleGroupChoice()">
+                Create New Self Help Group
+              </label>
+            </div>
+            <div id="section-assign-existing">
+              <select id="inp-admin-group" class="form-control">
+                <option value="">-- Select Existing Group --</option>
+              </select>
+            </div>
+            <div id="section-create-new-group" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1rem; margin-top: 0.5rem;">
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label">New Group Name (English) *</label>
+                <input type="text" id="inp-new-group-name" class="form-control" placeholder="e.g. Yashasvi Mahila Bachat Gat">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">New Group Name (मराठी)</label>
+                  <input type="text" id="inp-new-group-name-mr" class="form-control" placeholder="उदा. यशस्वी महिला बचत गट">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Group Name (हिन्दी)</label>
+                  <input type="text" id="inp-new-group-name-hi" class="form-control" placeholder="उदा. यशस्वी महिला बचत समूह">
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">Monthly Bachat (₹)</label>
+                  <input type="number" id="inp-new-group-share" class="form-control" value="3300" min="100">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Due Date (Day of Month)</label>
+                  <input type="number" id="inp-new-group-duedate" class="form-control" value="10" min="1" max="28">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn-secondary-custom" onclick="closeAdminModal()" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-save-admin">
+            <i class="bi bi-person-check-fill"></i> <span data-i18n="save">Create Client Admin / President</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let adminsList = [];
+    let groupsList = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const user = Auth.getUser();
+      if (!user || user.role !== 'SUPER_ADMIN') {
+        alert('Access denied: Super Admin privileges required.');
+        window.location.href = '/admin/dashboard.html';
+        return;
+      }
+
+      // Bind listeners immediately
+      const createBtn = document.getElementById('btn-open-create-admin');
+      if (createBtn) createBtn.addEventListener('click', openAdminModal);
+
+      const formCreate = document.getElementById('form-create-admin');
+      if (formCreate) formCreate.addEventListener('submit', handleCreateAdmin);
+
+      const searchInp = document.getElementById('admin-search');
+      if (searchInp) {
+        searchInp.addEventListener('input', (e) => {
+          filterAdmins(e.target.value);
+        });
+      }
+
+      window.addEventListener('languageChanged', () => {
+        renderAdminsTable(adminsList);
+      });
+
+      await loadAdminsData();
+
+      // Check URL query parameters for routing (e.g. ?action=create)
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'create' || urlParams.get('action') === 'create-president') {
+        openAdminModal();
+      }
+    });
+
+    async function loadAdminsData() {
+      try {
+        const [admins, groups] = await Promise.all([
+          api.getClientAdmins(),
+          api.getGroupDropdown().catch(() => [])
+        ]);
+
+        adminsList = admins || [];
+        groupsList = groups || [];
+
+        // Calculate stats
+        document.getElementById('stat-total-admins').textContent = adminsList.length;
+        const activeCount = adminsList.filter(a => a.enabled !== false).length;
+        document.getElementById('stat-active-admins').textContent = activeCount;
+        const pendingFirst = adminsList.filter(a => a.firstLogin === true).length;
+        document.getElementById('stat-first-login-admins').textContent = pendingFirst;
+
+        renderAdminsTable(adminsList);
+      } catch (err) {
+        console.error('Failed to load admins data:', err);
+        Common.showToast('Failed to load Client Admins: ' + err.message, 'danger');
+      }
+    }
+
+    function renderAdminsTable(admins) {
+      const tbody = document.getElementById('admins-table-body');
+      tbody.innerHTML = '';
+
+      if (!admins || admins.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No client admins found.</td></tr>`;
+        return;
+      }
+
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+      admins.forEach(adm => {
+        const tr = document.createElement('tr');
+
+        // Resolve President Name
+        let dispName = adm.presidentName || adm.fullName || adm.username;
+        if (currentLang === 'mr' && (adm.presidentNameMr || adm.fullNameMr)) dispName = adm.presidentNameMr || adm.fullNameMr;
+        if (currentLang === 'hi' && (adm.presidentNameHi || adm.fullNameHi)) dispName = adm.presidentNameHi || adm.fullNameHi;
+
+        // Assigned group
+        let groupDisplay = '<span style="color: #94a3b8;">Unassigned</span>';
+        if (adm.groupId) {
+          const matchedGroup = groupsList.find(g => g.id === adm.groupId);
+          const grpLocName = matchedGroup ? Common.getLocalizedGroupName(matchedGroup, currentLang) : (adm.groupName || adm.groupId);
+          const code = (matchedGroup && matchedGroup.groupCode) ? matchedGroup.groupCode : (adm.groupCode || '');
+          const count = adm.activeMembersCount || (matchedGroup ? matchedGroup.activeMembersCount : 0);
+          groupDisplay = `
+            <div>
+              <strong style="color: var(--primary);">${code ? code + ' - ' : ''}</strong>${grpLocName}
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; gap: 0.5rem; margin-top: 2px;">
+              <span><i class="bi bi-people"></i> ${count} members</span>
+              ${adm.collectionDueDay ? `<span><i class="bi bi-calendar-event"></i> Due: ${adm.collectionDueDay}th</span>` : ''}
+            </div>
+          `;
+        }
+
+        const isEnabled = adm.active !== false && adm.enabled !== false;
+        const statusBadge = isEnabled
+          ? `<span class="badge-status badge-paid">ACTIVE</span>`
+          : `<span class="badge-status badge-inactive">DISABLED</span>`;
+
+        tr.innerHTML = `
+          <td><span style="font-weight: 700; color: var(--text-main); font-family: monospace;">${Common.text(adm.username)}</span></td>
+          <td>
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.95rem;">
+              <span style="color: var(--primary); font-size: 0.75rem; text-transform: uppercase; font-weight: 600; display: block;">President / अध्यक्ष</span>
+              ${Common.text(dispName)}
+            </div>
+            ${adm.fullNameMr && currentLang !== 'mr' ? `<small style="color: #64748b; display: block;">${adm.fullNameMr}</small>` : ''}
+          </td>
+          <td>${groupDisplay}</td>
+          <td>${Common.getRoleBadge(adm, currentLang)}</td>
+          <td>
+            <div>${Common.text(adm.mobileNumber, '-')}</div>
+            <small style="color: var(--text-muted);">${Common.text(adm.email, '')}</small>
+          </td>
+          <td>${statusBadge}</td>
+          <td>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn-table-action" onclick="promptResetPassword('${adm.id}', '${adm.username}')" title="Reset Password">
+                <i class="bi bi-key-fill"></i> Reset
+              </button>
+              <button class="btn-table-action" onclick="toggleAdminStatus('${adm.id}', ${!isEnabled})" title="${isEnabled ? 'Disable Admin' : 'Enable Admin'}">
+                <i class="bi bi-${isEnabled ? 'slash-circle' : 'check-circle'}"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterAdmins(query) {
+      const q = (query || '').toLowerCase().trim();
+      if (!q) {
+        renderAdminsTable(adminsList);
+        return;
+      }
+      const filtered = adminsList.filter(a => {
+        return (a.username && a.username.toLowerCase().includes(q)) ||
+               (a.fullName && a.fullName.toLowerCase().includes(q)) ||
+               (a.presidentName && a.presidentName.toLowerCase().includes(q)) ||
+               (a.fullNameMr && a.fullNameMr.toLowerCase().includes(q)) ||
+               (a.fullNameHi && a.fullNameHi.toLowerCase().includes(q)) ||
+               (a.mobileNumber && a.mobileNumber.toLowerCase().includes(q));
+      });
+      renderAdminsTable(filtered);
+    }
+
+    function toggleGroupChoice() {
+      const isNew = document.getElementById('choice-create-group').checked;
+      document.getElementById('section-assign-existing').style.display = isNew ? 'none' : 'block';
+      document.getElementById('section-create-new-group').style.display = isNew ? 'block' : 'none';
+      const newNameInp = document.getElementById('inp-new-group-name');
+      if (isNew) {
+        newNameInp.setAttribute('required', 'true');
+      } else {
+        newNameInp.removeAttribute('required');
+      }
+    }
+
+    async function openAdminModal() {
+      const groupSelect = document.getElementById('inp-admin-group');
+      groupSelect.innerHTML = '<option value="">-- Select Existing Group --</option>';
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+      groupsList.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id;
+        const locName = Common.getLocalizedGroupName(g, currentLang);
+        const presName = g.president ? ` (Current President: ${g.president})` : '';
+        opt.textContent = `${g.groupCode ? g.groupCode + ' - ' : ''}${locName}${presName}`;
+        groupSelect.appendChild(opt);
+      });
+
+      document.getElementById('choice-assign-group').checked = true;
+      toggleGroupChoice();
+      Common.openModal('modal-create-admin');
+    }
+
+    function closeAdminModal() {
+      Common.closeModal('modal-create-admin');
+      document.getElementById('form-create-admin').reset();
+      toggleGroupChoice();
+    }
+
+    async function handleCreateAdmin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-save-admin');
+      const isNewGroup = document.getElementById('choice-create-group').checked;
+      const pw1 = document.getElementById('inp-admin-password').value;
+      const pw2 = document.getElementById('inp-admin-confirmpassword').value;
+
+      if (pw1 !== pw2) {
+        Common.showToast('Passwords do not match.', 'danger');
+        return;
+      }
+      if (pw1.length < 6) {
+        Common.showToast('Password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+
+      const payload = {
+        fullName: document.getElementById('inp-admin-name').value.trim(),
+        fullNameMr: document.getElementById('inp-admin-name-mr').value.trim(),
+        fullNameHi: document.getElementById('inp-admin-name-hi').value.trim(),
+        username: document.getElementById('inp-admin-username').value.trim(),
+        mobileNumber: document.getElementById('inp-admin-mobile').value.trim(),
+        email: document.getElementById('inp-admin-email').value.trim(),
+        temporaryPassword: pw1,
+        designation: "PRESIDENT",
+        createNewGroup: isNewGroup,
+        groupId: isNewGroup ? null : (document.getElementById('inp-admin-group').value || null),
+        groupName: isNewGroup ? document.getElementById('inp-new-group-name').value.trim() : null,
+        groupNameMr: isNewGroup ? document.getElementById('inp-new-group-name-mr').value.trim() : null,
+        groupNameHi: isNewGroup ? document.getElementById('inp-new-group-name-hi').value.trim() : null,
+        monthlyBachatAmount: isNewGroup ? parseFloat(document.getElementById('inp-new-group-share').value) : null,
+        collectionDueDay: isNewGroup ? parseInt(document.getElementById('inp-new-group-duedate').value) : 10
+      };
+
+      try {
+        await api.createClientAdmin(payload);
+        Common.showToast(`Client Admin / President "${payload.fullName}" created successfully!`, 'success');
+        closeAdminModal();
+        await loadAdminsData();
+      } catch (err) {
+        Common.showToast('Failed to create admin: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-person-check-fill"></i> Create Client Admin / President';
+      }
+    }
+
+    function promptResetPassword(userId, username) {
+      const newPass = prompt(`Reset Password for "${username}":\nEnter new temporary password (min 6 chars):`, 'admin123');
+      if (newPass !== null && newPass.trim() !== '') {
+        if (newPass.length < 6) {
+          alert('Password must be at least 6 characters.');
+          return;
+        }
+        api.resetClientAdminPassword(userId, newPass.trim())
+          .then(() => {
+            Common.showToast(`Password reset successfully for ${username}!`, 'success');
+            loadAdminsData();
+          })
+          .catch(err => {
+            Common.showToast('Failed to reset password: ' + err.message, 'danger');
+          });
+      }
+    }
+
+    function toggleAdminStatus(userId, targetState) {
+      const actionName = targetState ? 'Enable' : 'Disable';
+      if (!confirm(`Are you sure you want to ${actionName} this admin account?`)) return;
+
+      api.toggleClientAdminStatus(userId, targetState)
+        .then(() => {
+          Common.showToast(`Admin account status updated!`, 'success');
+          loadAdminsData();
+        })
+        .catch(err => {
+          Common.showToast('Failed to update status: ' + err.message, 'danger');
+        });
+    }
+  </script>
+</body>
+</html>

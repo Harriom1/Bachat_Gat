@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item active"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-person-circle" style="color: var(--primary);"></i> My Member Profile
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="profile">Member Profile & KYC</h1>
+            <p class="page-subtitle">Your official registration details, nominee information, and registered bank accounts</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+          <!-- Basic Info -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold;">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div>
+                <h2 id="prof-name" style="font-size: 1.25rem; font-weight: 700; margin: 0;">-</h2>
+                <span id="prof-status" class="status-badge badge-active">ACTIVE MEMBER</span>
+              </div>
+            </div>
+
+            <table style="width: 100%; font-size: 0.9rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Member ID:</td>
+                <td style="text-align: right; font-weight: 600;" id="prof-member-id">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Father / Husband:</td>
+                <td style="text-align: right;" id="prof-relative">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Mobile Number:</td>
+                <td style="text-align: right; font-weight: 600;" id="prof-mobile">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Joining Date:</td>
+                <td style="text-align: right;" id="prof-joining-date">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Occupation:</td>
+                <td style="text-align: right;" id="prof-occupation">-</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">Monthly Bachat:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success);" id="prof-monthly-share">₹5,000</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Nominee & Address -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-shield-heart-fill"></i> Nominee & Residential Address
+            </h3>
+
+            <table style="width: 100%; font-size: 0.9rem; margin-bottom: 1.25rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Nominee Name:</td>
+                <td style="text-align: right; font-weight: 600;" id="prof-nominee-name">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Relationship:</td>
+                <td style="text-align: right;" id="prof-nominee-relation">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Nominee Mobile:</td>
+                <td style="text-align: right;" id="prof-nominee-mobile">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Village / Town:</td>
+                <td style="text-align: right;" id="prof-village">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">District / State:</td>
+                <td style="text-align: right;" id="prof-district">-</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">PIN Code:</td>
+                <td style="text-align: right;" id="prof-pin">-</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Bank Account Details -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--info); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-bank2"></i> Registered Bank Account & KYC
+            </h3>
+
+            <table style="width: 100%; font-size: 0.9rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Bank Name:</td>
+                <td style="text-align: right; font-weight: 600;" id="prof-bank-name">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Account Number:</td>
+                <td style="text-align: right; font-family: monospace;" id="prof-acc-no">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">IFSC Code:</td>
+                <td style="text-align: right; font-family: monospace;" id="prof-ifsc">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Branch:</td>
+                <td style="text-align: right;" id="prof-branch">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">PAN Verification:</td>
+                <td style="text-align: right;"><span class="status-badge badge-active">VERIFIED</span></td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">Aadhaar Status:</td>
+                <td style="text-align: right;"><span class="status-badge badge-active">LINKED</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Card 4: Group Membership & Bachat Schedule -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: #8b5cf6; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-piggy-bank-fill"></i> My Bachat Gat & Savings Schedule
+            </h3>
+
+            <table style="width: 100%; font-size: 0.9rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Group Name:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--primary);" id="prof-group-name">Mahila Pragati Bachat Gat</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Total Savings Accumulated:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success);" id="prof-total-savings">₹0</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Bachat Target:</td>
+                <td style="text-align: right; font-weight: 600;" id="prof-target-savings">₹60,000</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Bachat Timeline:</td>
+                <td style="text-align: right;" id="prof-bachat-timeline">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Next Due Date:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--primary);" id="prof-next-due">10th of every month</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">Standing Status:</td>
+                <td style="text-align: right;" id="prof-standing-badge"><span class="badge" style="background:#ecfdf5; color:#065f46; font-weight: 600;"><i class="bi bi-shield-check"></i> REGULAR BACHAT</span></td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Card 5: Tab 9 - My Group Information -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: #0284c7; display: flex; align-items: center; gap: 0.5rem;" data-i18n="tabMyGroup">
+              <i class="bi bi-buildings-fill"></i> My Group Information (Tab 9)
+            </h3>
+
+            <table style="width: 100%; font-size: 0.9rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Group Name:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--primary);" id="grp-info-name">Loading...</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Group ID / Code:</td>
+                <td style="text-align: right; font-family: monospace;" id="grp-info-id">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">President (अध्यक्ष):</td>
+                <td style="text-align: right; font-weight: 600;" id="grp-info-president">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Treasurer (खजिनदार):</td>
+                <td style="text-align: right; font-weight: 600;" id="grp-info-treasurer">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Secretary (सचिव):</td>
+                <td style="text-align: right; font-weight: 600;" id="grp-info-secretary">-</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Monthly Bachat Due Date:</td>
+                <td style="text-align: right; font-weight: 600;" id="grp-info-meeting">-</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">Registration Date:</td>
+                <td style="text-align: right;" id="grp-info-created">-</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- Card 6: Tab 8 - Group Rules & Governance -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: #d97706; display: flex; align-items: center; gap: 0.5rem;" data-i18n="tabGroupRules">
+              <i class="bi bi-shield-check"></i> Group Rules & Governance (Tab 8)
+            </h3>
+
+            <table style="width: 100%; font-size: 0.9rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Monthly Bachat:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--success);" id="rule-info-share">Loading...</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Collection Due Date:</td>
+                <td style="text-align: right; font-weight: 600;" id="rule-info-due">10th of every month</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Late Payment Penalty:</td>
+                <td style="text-align: right; font-weight: 600; color: var(--danger);" id="rule-info-penalty">Loading...</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Loan Interest Rate:</td>
+                <td style="text-align: right; font-weight: 700; color: var(--primary);" id="rule-info-interest">Loading...</td>
+              </tr>
+              <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 0.5rem 0;" class="text-muted">Max Loan Limit:</td>
+                <td style="text-align: right; font-weight: 600;" id="rule-info-max-loan">Loading...</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.5rem 0;" class="text-muted">Dividend Allocation:</td>
+                <td style="text-align: right; font-weight: 600; color: #0284c7;">100% Interest shared with ALL members</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+      try {
+        const m = await api.getCurrentUserProfile();
+        document.getElementById('prof-name').textContent = m.fullName;
+        document.getElementById('prof-member-id').textContent = m.memberId;
+        document.getElementById('prof-relative').textContent = m.guardianName || m.relativeName || '-';
+        document.getElementById('prof-mobile').textContent = m.mobileNumber;
+        document.getElementById('prof-joining-date').textContent = Common.formatDate(m.joiningDate);
+        document.getElementById('prof-occupation').textContent = m.occupation || '-';
+        document.getElementById('prof-monthly-share').textContent = Common.formatIndianCurrency(m.monthlyBachatAmount);
+
+        document.getElementById('prof-nominee-name').textContent = m.nomineeName || '-';
+        document.getElementById('prof-nominee-relation').textContent = m.nomineeRelation || '-';
+        document.getElementById('prof-nominee-mobile').textContent = m.nomineeMobile || '-';
+        document.getElementById('prof-village').textContent = m.village || '-';
+        document.getElementById('prof-district').textContent = `${m.district || ''}, ${m.state || ''}`;
+        document.getElementById('prof-pin').textContent = m.pinCode || '-';
+
+        document.getElementById('prof-bank-name').textContent = m.bankName || '-';
+        document.getElementById('prof-acc-no').textContent = m.accountNumber ? `••••••••${m.accountNumber.slice(-4)}` : '-';
+        document.getElementById('prof-ifsc').textContent = m.ifsc || '-';
+        document.getElementById('prof-branch').textContent = m.branch || '-';
+
+        document.getElementById('current-user-name').textContent = m.fullName;
+
+        // Group & Bachat
+        document.getElementById('prof-group-name').textContent = m.groupName || 'Bachat Gat';
+        document.getElementById('prof-total-savings').textContent = Common.formatIndianCurrency(m.totalSavingsBalance || 0);
+        const commEl = document.getElementById('prof-committed-amount');
+        if (commEl) commEl.textContent = Common.formatIndianCurrency(m.monthlyBachatAmount || 0);
+        document.getElementById('prof-target-savings').textContent = Common.formatIndianCurrency(m.totalSavingsTarget || 60000);
+        const startStr = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : Common.formatDate(m.joiningDate);
+        const endStr = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
+        document.getElementById('prof-bachat-timeline').textContent = `${startStr} → ${endStr}`;
+        document.getElementById('prof-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of Month';
+
+        if (m.activeLoanId && parseFloat(m.currentLoanOutstanding || 0) > 0) {
+          document.getElementById('prof-standing-badge').innerHTML = `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight: 600;"><i class="bi bi-cash"></i> LOAN: ${Common.formatIndianCurrency(m.currentLoanOutstanding)}</span>`;
+        } else {
+          document.getElementById('prof-standing-badge').innerHTML = '<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight: 600;"><i class="bi bi-shield-check"></i> REGULAR BACHAT (NO LOAN)</span>';
+        }
+
+        // Fetch My Group Info (Tab 9)
+        try {
+          const grpResp = await api.getMyGroupInfo();
+          if (grpResp) {
+            const grp = grpResp.group || grpResp;
+            document.getElementById('grp-info-name').textContent = grp.groupName || grp.name || m.groupName || '-';
+            document.getElementById('grp-info-id').textContent = grp.groupCode || grp.id || grp.groupId || m.groupId || '-';
+            document.getElementById('grp-info-president').textContent = grp.president || grp.presidentName || 'Not Appointed';
+            document.getElementById('grp-info-treasurer').textContent = grp.treasurer || grp.treasurerName || 'Not Appointed';
+            document.getElementById('grp-info-secretary').textContent = grp.secretary || grp.secretaryName || 'Not Appointed';
+            document.getElementById('grp-info-meeting').textContent = grpResp.meetingSchedule || `Monthly Bachat Due Date: ${grp.collectionDueDay || 10}th of each month`;
+            document.getElementById('grp-info-created').textContent = grp.registrationDate ? Common.formatDate(grp.registrationDate) : (grp.formationDate ? Common.formatDate(grp.formationDate) : '2026-01-01');
+          }
+        } catch (e) {
+          console.warn('Could not load group info:', e);
+        }
+
+        // Fetch Group Rules (Tab 8)
+        try {
+          const rules = await api.getMyGroupRules();
+          if (rules) {
+            const share = rules.monthlyBachatAmount || rules.monthlySavingsAmount;
+            if (share) document.getElementById('rule-info-share').textContent = Common.formatIndianCurrency(share);
+
+            const dueDay = rules.collectionDueDay || 10;
+            document.getElementById('rule-info-due').textContent = `${dueDay}th of every month`;
+
+            const penalty = rules.latePaymentFee != null ? rules.latePaymentFee : 100;
+            document.getElementById('rule-info-penalty').textContent = `${Common.formatIndianCurrency(penalty)} / occurrence`;
+
+            const rawRate = rules.loanInterestRate != null ? rules.loanInterestRate : (rules.interestRate != null ? rules.interestRate : 12.0);
+            const rateNum = parseFloat(rawRate);
+            let monthlyRateStr;
+            let annualRateStr;
+            if (rateNum <= 5.0) {
+              monthlyRateStr = rateNum.toFixed(1).replace(/\.0$/, '');
+              annualRateStr = (rateNum * 12).toFixed(1).replace(/\.0$/, '');
+            } else {
+              monthlyRateStr = (rateNum / 12).toFixed(1).replace(/\.0$/, '');
+              annualRateStr = rateNum.toFixed(1).replace(/\.0$/, '');
+            }
+            const typeStr = (rules.loanInterestType || rules.interestType || 'REDUCING_BALANCE') === 'FLAT' ? 'Flat Interest' : 'Reducing Balance';
+            document.getElementById('rule-info-interest').textContent = `${monthlyRateStr}% / month (${annualRateStr}% p.a. ${typeStr})`;
+
+            const maxLoan = rules.maxLoanAmount != null ? rules.maxLoanAmount : 100000;
+            document.getElementById('rule-info-max-loan').textContent = Common.formatIndianCurrency(maxLoan);
+          }
+        } catch (e) {
+          console.warn('Could not load group rules:', e);
+        }
+      } catch (err) {
+        Common.showToast('Failed to load profile: ' + err.message, 'danger');
+      }
+    });
+  </script>
+</body>
+</html>

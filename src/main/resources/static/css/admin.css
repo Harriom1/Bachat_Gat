@@ -1,0 +1,175 @@
+/* ==========================================================================
+   Admin Portal Specific Stylesheet
+   Enhanced financial management, allocation badges, master data diffs
+   ========================================================================== */
+
+/* Allocation Reconciliation Widget (Section 3 & 67) */
+.allocation-reconciliation-panel {
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin: 1.25rem 0;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.alloc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: all 0.25s ease;
+}
+
+.alloc-status-pill.matched {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1.5px solid #6ee7b7;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.alloc-status-pill.mismatched {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1.5px solid #fca5a5;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+  animation: pulse-border 1.5s infinite;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Master Data Rules Cards */
+.master-rule-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.master-rule-card:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 6px 16px -2px rgba(2, 132, 199, 0.12);
+  transform: translateY(-2px);
+}
+
+.master-rule-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(180deg, #0284c7, #38bdf8);
+}
+
+/* Quick Pay Floating Row */
+.quick-pay-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white !important;
+  border: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.825rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quick-pay-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35);
+}
+
+/* Filter Row Polish */
+.filter-toolbar {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Metric Stat Cards Grid for Dashboards and Management Views */
+.stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 1.25rem !important;
+  margin-bottom: 2rem !important;
+}
+
+.stat-card {
+  background: #ffffff !important;
+  border-radius: var(--radius-lg, 12px) !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  padding: 1.25rem 1.5rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.stat-icon {
+  width: 52px !important;
+  height: 52px !important;
+  min-width: 52px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 1.5rem !important;
+}
+
+.stat-details {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.stat-title {
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  color: var(--text-muted, #64748b) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.03em !important;
+}
+
+.stat-value {
+  font-size: 1.6rem !important;
+  font-weight: 800 !important;
+  color: var(--text-main, #0f172a) !important;
+  margin: 0.2rem 0 !important;
+  line-height: 1.2 !important;
+}
+
+.stat-desc {
+  font-size: 0.75rem !important;
+  color: var(--text-muted, #64748b) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+}

@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin Dashboard - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Super Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">SUPER ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">ADMINISTRATION</li>
+        <li><a href="/admin/super-dashboard.html" class="menu-item active"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="superDashboard">Super Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="manageGroups">Manage Groups</span></a></li>
+        <li><a href="/admin/admins.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="clientAdmins">Group Presidents</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">All Members</span></a></li>
+        <li class="menu-category">SYSTEM & SECURITY</li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <!-- Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="breadcrumb" style="font-weight: 600; color: var(--text-main); font-size: 0.95rem;">
+            <i class="bi bi-shield-shaded" style="color: var(--primary); margin-right: 0.5rem;"></i>
+            <span data-i18n="superDashboard">Super Admin Portal</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">SA</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Super Admin</span>
+              <span id="current-user-role" class="user-role">SUPER_ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dashboard Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="superDashboard">Super Admin Dashboard</h1>
+            <p class="page-subtitle">Centralized oversight of all Bachat Gats, Group Presidents / Admins, and system health</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn-primary-custom" id="btn-open-create-group" onclick="openCreateModal()">
+              <i class="bi bi-plus-circle-fill"></i> <span data-i18n="createGroupTitle">New Group</span>
+            </button>
+            <button class="btn-primary-custom" style="background: #4f46e5; border-color: #4f46e5;" id="btn-open-create-admin" onclick="openAdminModal()">
+              <i class="bi bi-person-plus-fill"></i> <span data-i18n="createAdminTitle">Create Group President</span>
+            </button>
+            <a href="/admin/admins.html" class="btn-secondary-custom">
+              <i class="bi bi-person-badge-fill"></i> <span data-i18n="clientAdmins">Group Presidents</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- High-Level Metric Cards -->
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 2rem;">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #e0e7ff; color: #4338ca;"><i class="bi bi-buildings"></i></div>
+            <div class="stat-details">
+              <span class="stat-title" data-i18n="totalGroups">Total Groups</span>
+              <h3 class="stat-value" id="stat-total-groups">0</h3>
+              <span class="stat-desc" style="color: #10b981;"><i class="bi bi-check-circle"></i> Active in platform</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #fef3c7; color: #b45309;"><i class="bi bi-person-badge"></i></div>
+            <div class="stat-details">
+              <span class="stat-title" data-i18n="totalClientAdmins">Group Presidents</span>
+              <h3 class="stat-value" id="stat-total-admins">0</h3>
+              <span class="stat-desc">Group Admins / Leaders</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #dcfce7; color: #15803d;"><i class="bi bi-people"></i></div>
+            <div class="stat-details">
+              <span class="stat-title" data-i18n="totalMembers">Total Members</span>
+              <h3 class="stat-value" id="stat-total-members">0</h3>
+              <span class="stat-desc">Enrolled women</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background: #f1f5f9; color: #0284c7;"><i class="bi bi-piggy-bank"></i></div>
+            <div class="stat-details">
+              <span class="stat-title" data-i18n="totalSavings">Total Savings</span>
+              <h3 class="stat-value" id="stat-total-savings">₹0</h3>
+              <span class="stat-desc">Aggregated pool</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Listing Table -->
+        <div class="card" style="background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem;" data-i18n="manageGroups">Registered Self-Help Groups</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Immutable group codes, multilingual titles, and appointed Group Presidents</p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <div style="position: relative;">
+                <input type="text" id="group-search" class="form-control" placeholder="Search by name, code..." style="padding-left: 2rem; width: 260px;">
+                <i class="bi bi-search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: #94a3b8;"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table" id="groups-table">
+              <thead>
+                <tr>
+                  <th data-i18n="groupCode">Group Code</th>
+                  <th data-i18n="registrationId">Reg ID</th>
+                  <th>Group Name (Active Lang)</th>
+                  <th>Location</th>
+                  <th data-i18n="assignedAdmin">Group President / Admin</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="action">Action</th>
+                </tr>
+              </thead>
+              <tbody id="groups-table-body">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                    <span class="spinner-border spinner-border-sm"></span> Loading Groups...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Create Group Modal (Requirements 6, 7 & 8) -->
+  <div id="modal-create-group" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: #fff; width: 100%; max-width: 760px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;" data-i18n="createGroupTitle">Register New Bachat Gat / Self-Help Group</h3>
+          <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Group creation automatically provisions the Group President / Group Admin credentials</p>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeCreateModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-create-group" style="padding: 1.5rem; max-height: 80vh; overflow-y: auto;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.825rem; color: #1e40af;">
+          <i class="bi bi-info-circle-fill"></i> <strong>Automatic Generation:</strong> Unique <strong>Group Code</strong> (e.g. BG-2026-000001) and <strong>Registration ID</strong> are created automatically by the backend system.
+        </div>
+
+        <!-- Section 1: Bachat Gat Identity & Savings -->
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4rem;">
+          <i class="bi bi-building"></i> 1. Bachat Gat Identity & Savings
+        </h4>
+
+        <div style="margin-bottom: 1.25rem;">
+          <div class="form-group" style="margin-bottom: 0.9rem;">
+            <label class="form-label" for="inp-group-name" data-i18n="groupNameEn">Group Name (English) *</label>
+            <input type="text" id="inp-group-name" class="form-control" placeholder="e.g. Mahila Pragati Bachat Gat" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-group-name-mr" data-i18n="groupNameMr">Group Name (Marathi)</label>
+              <input type="text" id="inp-group-name-mr" class="form-control" placeholder="उदा. महिला प्रगती बचत गट">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-group-name-hi" data-i18n="groupNameHi">Group Name (Hindi)</label>
+              <input type="text" id="inp-group-name-hi" class="form-control" placeholder="उदा. महिला प्रगति बचत समूह">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.9rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-monthly-share" data-i18n="monthlyBachatAmount">Monthly Bachat (₹) *</label>
+              <input type="number" id="inp-monthly-share" class="form-control" value="5000" min="50" step="50" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-due-day">Collection Due Day (1-28)</label>
+              <input type="number" id="inp-due-day" class="form-control" value="10" min="1" max="28">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-formation-date">Formation Date</label>
+              <input type="date" id="inp-formation-date" class="form-control">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inp-max-loan-per-member" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹) *</label>
+            <input type="number" id="inp-max-loan-per-member" class="form-control" value="75000" min="1000" step="1" required>
+            <small class="text-muted" style="font-size: 0.75rem;" data-i18n="helpMemberLoanLimit">Per-member single loan ceiling limit.</small>
+          </div>
+        </div>
+
+        <!-- Section 2: Location & Designated Bank Details -->
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: #166534; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4rem;">
+          <i class="bi bi-bank2"></i> 2. Location & Designated Bank Details
+        </h4>
+
+        <div style="margin-bottom: 1.25rem;">
+          <!-- Location row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-village">Village / Town *</label>
+              <input type="text" id="inp-village" class="form-control" placeholder="e.g. Ahilyanagar" value="Ahilyanagar" required oninput="handleLocationInput('inp')">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-taluka">Taluka</label>
+              <input type="text" id="inp-taluka" class="form-control" placeholder="e.g. Ahilyanagar" value="Ahilyanagar" oninput="handleLocationInput('inp')">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-district">District *</label>
+              <input type="text" id="inp-district" class="form-control" placeholder="e.g. Ahilyanagar" value="Ahilyanagar" required oninput="handleLocationInput('inp')">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-pinCode">PIN Code</label>
+              <input type="text" id="inp-pinCode" class="form-control" placeholder="6-digit PIN" value="414003" maxlength="6" oninput="handleLocationInput('inp')">
+            </div>
+          </div>
+
+          <!-- Dynamic Location-Based Bank Selector Box -->
+          <div class="form-group" style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 0.9rem;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #166534; font-weight: 700; margin-bottom: 0.35rem;">
+              <span><i class="bi bi-bank2"></i> Nearby Bank Branches (Auto-detected for Entered Location)</span>
+              <span id="inp-bank-badge" style="font-size: 0.75rem; font-weight: 600; color: #15803d; display: none;">
+                <i class="bi bi-patch-check-fill"></i> Branch & IFSC Mapped
+              </span>
+            </label>
+            <select id="inp-bankSelect" class="form-select" onchange="onBankSelectChange('inp')" style="background-color: #fff; font-weight: 500;">
+              <option value="">-- Choose Bank Branch in Location --</option>
+            </select>
+            <small style="color: #166534; font-size: 0.75rem; display: block; margin-top: 5px;">
+              <i class="bi bi-lightbulb"></i> Auto-lists banks for the location above. If your branch is not in the list, select <strong>"✎ Other Bank (Enter Name & IFSC Manually)"</strong> to type custom details.
+            </small>
+          </div>
+
+          <!-- Bank Details Inputs -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-bankName">Bank Name</label>
+              <input type="text" id="inp-bankName" class="form-control" placeholder="e.g. State Bank of India">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-accountNumber">Account Number</label>
+              <input type="text" id="inp-accountNumber" class="form-control" placeholder="Designated group account">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>IFSC Code</span>
+                <span id="inp-ifsc-verified-tag" style="font-size: 0.75rem; font-weight: 700; color: #059669;"></span>
+              </label>
+              <div style="position: relative;">
+                <input type="text" id="inp-ifsc" class="form-control" placeholder="e.g. SBIN0000301" style="text-transform: uppercase;" maxlength="11" oninput="onIfscDirectInput('inp')">
+                <button type="button" onclick="verifyIfscManually('inp')" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 0.25rem 0.55rem; font-size: 0.75rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; color: #0284c7; cursor: pointer; font-weight: 600;">
+                  <i class="bi bi-search"></i> Verify
+                </button>
+              </div>
+              <small id="inp-ifsc-hint" style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
+                11-character code (auto-filled on branch select).
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Group President / Admin Credentials Setup -->
+        <h4 style="font-size: 0.95rem; font-weight: 700; color: #7c3aed; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.4rem;">
+          <i class="bi bi-person-badge-fill"></i> 3. Group President / Admin Credentials Setup (Mandatory)
+        </h4>
+
+        <div style="background: #fdf2f8; border: 1px solid #fbcfe8; border-radius: var(--radius-md); padding: 0.6rem 0.85rem; margin-bottom: 0.9rem; font-size: 0.8rem; color: #9d174d;">
+          <i class="bi bi-shield-lock-fill"></i> <strong>President = Group Admin:</strong> The President manages this group and uses these credentials to log in.
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <div class="form-group" style="margin-bottom: 0.9rem;">
+            <label class="form-label" for="inp-president-name" data-i18n="presidentName">President Name (English) *</label>
+            <input type="text" id="inp-president-name" class="form-control" placeholder="e.g. Shalini Ramesh Deshmukh" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-president-name-mr" data-i18n="presidentNameMr">President Name (Marathi)</label>
+              <input type="text" id="inp-president-name-mr" class="form-control" placeholder="उदा. शालिनी रमेश देशमुख">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-president-name-hi" data-i18n="presidentNameHi">President Name (Hindi)</label>
+              <input type="text" id="inp-president-name-hi" class="form-control" placeholder="उदा. शालिनी रमेश देशमुख">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; margin-bottom: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-president-mobile" data-i18n="presidentMobile">President Mobile Number *</label>
+              <input type="tel" id="inp-president-mobile" class="form-control" placeholder="10-digit mobile number" pattern="[0-9]{10}" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-president-email" data-i18n="presidentEmail">President Email</label>
+              <input type="email" id="inp-president-email" class="form-control" placeholder="president@bachatgat.org">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0.9rem;">
+            <label class="form-label" for="inp-president-username" data-i18n="presidentUsername">President Login Identifier / Username *</label>
+            <input type="text" id="inp-president-username" class="form-control" placeholder="e.g. shalini_president or mobile" required>
+            <small style="color: #64748b; font-size: 0.75rem;">This username will be used by the Group President to log in.</small>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-president-password" data-i18n="presidentPassword">Set President Password *</label>
+              <input type="password" id="inp-president-password" class="form-control" placeholder="Min 6 characters" required minlength="6">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-president-password-confirm" data-i18n="confirmPresidentPassword">Confirm Password *</label>
+              <input type="password" id="inp-president-password-confirm" class="form-control" placeholder="Re-enter password" required minlength="6">
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+          <button type="button" class="btn-secondary-custom" onclick="closeCreateModal()" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-save-group">
+            <i class="bi bi-check-circle"></i> <span data-i18n="save">Create Group & President</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Create Group President / Admin Modal -->
+  <div id="modal-create-admin" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: #fff; width: 100%; max-width: 650px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+      <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;" data-i18n="createAdminTitle">Create Group President / Admin</h3>
+        <button type="button" class="btn-close-modal" onclick="closeAdminModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form id="form-create-admin" style="padding: 1.5rem; max-height: 80vh; overflow-y: auto;">
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.825rem; color: #1e40af;">
+          <i class="bi bi-shield-check"></i> <strong>President Account Provisioning:</strong> The Group President can be assigned to an existing group or can provision a new Self Help Group immediately with active credentials.
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
+          <div class="form-group">
+            <label class="form-label" for="inp-admin-name" data-i18n="fullNameEn">President Full Name (English) *</label>
+            <input type="text" id="inp-admin-name" class="form-control" placeholder="e.g. Shalini Deshmukh" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-name-mr" data-i18n="fullNameMr">Full Name (मराठी)</label>
+              <input type="text" id="inp-admin-name-mr" class="form-control" placeholder="उदा. शालिनी देशमुख">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-name-hi" data-i18n="fullNameHi">Full Name (हिन्दी)</label>
+              <input type="text" id="inp-admin-name-hi" class="form-control" placeholder="उदा. शालिनी देशमुख">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-username" data-i18n="username">Username / Login ID *</label>
+              <input type="text" id="inp-admin-username" class="form-control" placeholder="e.g. shalinid" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-mobile" data-i18n="mobileNumber">Primary Mobile Number *</label>
+              <input type="tel" id="inp-admin-mobile" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="inp-admin-email">Email Address</label>
+            <input type="email" id="inp-admin-email" class="form-control" placeholder="president@bachatgat.org">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-password">President Password *</label>
+              <input type="password" id="inp-admin-password" class="form-control" placeholder="Min 6 characters" required minlength="6" value="admin123">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-admin-confirmpassword">Confirm Password *</label>
+              <input type="password" id="inp-admin-confirmpassword" class="form-control" placeholder="Re-enter password" required minlength="6" value="admin123">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Group Assignment Mode</label>
+            <div style="display: flex; gap: 1.5rem; margin-bottom: 0.75rem;">
+              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; cursor: pointer; font-weight: 600;">
+                <input type="radio" name="admin-group-choice" id="choice-assign-group" value="existing" checked onchange="toggleGroupChoice()">
+                Assign to Existing Group
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; cursor: pointer; font-weight: 600;">
+                <input type="radio" name="admin-group-choice" id="choice-create-group" value="new" onchange="toggleGroupChoice()">
+                Create New Self Help Group
+              </label>
+            </div>
+            <div id="section-assign-existing">
+              <select id="inp-admin-group" class="form-control">
+                <option value="">-- Select Existing Group --</option>
+              </select>
+            </div>
+            <div id="section-create-new-group" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1rem; margin-top: 0.5rem;">
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label">New Group Name (English) *</label>
+                <input type="text" id="inp-new-group-name" class="form-control" placeholder="e.g. Yashasvi Mahila Bachat Gat">
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">New Group Name (मराठी)</label>
+                  <input type="text" id="inp-new-group-name-mr" class="form-control" placeholder="उदा. यशस्वी महिला बचत गट">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">New Group Name (हिन्दी)</label>
+                  <input type="text" id="inp-new-group-name-hi" class="form-control" placeholder="उदा. यशस्वी महिला बचत समूह">
+                </div>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div class="form-group">
+                  <label class="form-label">Monthly Bachat (₹)</label>
+                  <input type="number" id="inp-new-group-share" class="form-control" value="3300" min="100">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Due Date (Day of Month)</label>
+                  <input type="number" id="inp-new-group-duedate" class="form-control" value="10" min="1" max="28">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn-secondary-custom" onclick="closeAdminModal()" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-save-admin">
+            <i class="bi bi-person-check-fill"></i> <span data-i18n="save">Create Group President</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Safe Account Information Success Modal (Requirement 8) -->
+  <div id="modal-group-created-success" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+    <div style="background: #fff; width: 100%; max-width: 520px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+      <div style="padding: 1.25rem 1.5rem; background: #ecfdf5; border-bottom: 1px solid #a7f3d0; display: flex; align-items: center; gap: 0.75rem;">
+        <i class="bi bi-check-circle-fill" style="font-size: 1.5rem; color: #059669;"></i>
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 700; color: #065f46; margin: 0;" data-i18n="groupCreatedSuccess">Bachat Gat Created Successfully</h3>
+          <p style="font-size: 0.8rem; color: #047857; margin: 0;" data-i18n="safeAccountDetails">Safe Account Details</p>
+        </div>
+      </div>
+
+      <div style="padding: 1.5rem;">
+        <table style="width: 100%; font-size: 0.9rem; border-collapse: collapse;">
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.6rem 0; color: #64748b;">Group Name:</td>
+            <td style="padding: 0.6rem 0; font-weight: 700; text-align: right;" id="success-group-name">-</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.6rem 0; color: #64748b;" data-i18n="groupCode">Group Code:</td>
+            <td style="padding: 0.6rem 0; font-weight: 700; text-align: right; color: var(--primary);" id="success-group-code">-</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.6rem 0; color: #64748b;" data-i18n="registrationId">Registration ID:</td>
+            <td style="padding: 0.6rem 0; font-weight: 600; text-align: right;" id="success-reg-id">-</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.6rem 0; color: #64748b;">President (Client Admin):</td>
+            <td style="padding: 0.6rem 0; font-weight: 600; text-align: right;" id="success-president-name">-</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.6rem 0; color: #64748b;">Login Identifier:</td>
+            <td style="padding: 0.6rem 0; font-weight: 700; text-align: right; color: #b45309;" id="success-login-id">-</td>
+          </tr>
+        </table>
+
+        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1.25rem; font-size: 0.8rem; color: #475569;">
+          <i class="bi bi-shield-check text-success"></i> <strong>Mandatory First Login:</strong> The password hash was securely stored. When the President logs in for the first time, they will be required to change their password before accessing the full Group Admin dashboard.
+        </div>
+
+        <div style="margin-top: 1.5rem; text-align: right;">
+          <button type="button" class="btn-primary-custom" onclick="closeSuccessModal()">
+            <i class="bi bi-check2"></i> Done / View Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/bank-directory.js"></script>
+  <script>
+    let allGroups = [];
+    let allAdmins = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+
+      const user = Auth.getUser();
+      const role = (user && user.role) ? String(user.role).toUpperCase() : '';
+      const designation = (user && user.designation) ? String(user.designation).toUpperCase() : '';
+      if (!user || (role !== 'SUPER_ADMIN' && designation !== 'SUPER_ADMIN')) {
+        alert('Access denied: Super Admin privileges required.');
+        window.location.href = '/admin/dashboard.html';
+        return;
+      }
+
+      // Populate header user info
+      const uName = document.getElementById('current-user-name');
+      if (uName) uName.textContent = user.fullName || user.username || 'System Super Admin';
+      const uRole = document.getElementById('current-user-role');
+      if (uRole) uRole.textContent = 'SUPER_ADMIN';
+
+      // Bind modal triggers immediately before any async calls
+      const btnOpenCreateGrp = document.getElementById('btn-open-create-group');
+      if (btnOpenCreateGrp) btnOpenCreateGrp.addEventListener('click', openCreateModal);
+
+      const btnOpenCreateAdm = document.getElementById('btn-open-create-admin');
+      if (btnOpenCreateAdm) btnOpenCreateAdm.addEventListener('click', openAdminModal);
+
+      const formGrp = document.getElementById('form-create-group');
+      if (formGrp) formGrp.addEventListener('submit', handleCreateGroup);
+
+      const formAdm = document.getElementById('form-create-admin');
+      if (formAdm) formAdm.addEventListener('submit', handleCreateAdmin);
+
+      const searchInp = document.getElementById('group-search');
+      if (searchInp) {
+        searchInp.addEventListener('input', (e) => {
+          filterGroups(e.target.value);
+        });
+      }
+
+      // Load data
+      await loadDashboardData();
+
+      // Handle direct routing query params (e.g., /admin/super-dashboard.html?action=create)
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+      if (action === 'create' || action === 'create-group') {
+        openCreateModal();
+      } else if (action === 'create-admin' || action === 'create-president') {
+        openAdminModal();
+      }
+    });
+
+    async function loadDashboardData() {
+      try {
+        const [groups, admins, members] = await Promise.all([
+          api.getGroups(),
+          api.getClientAdmins().catch(() => []),
+          api.getAllMembers().catch(() => [])
+        ]);
+
+        allGroups = groups || [];
+        allAdmins = admins || [];
+
+        // Update stats
+        document.getElementById('stat-total-groups').textContent = allGroups.length;
+        document.getElementById('stat-total-admins').textContent = allAdmins.length;
+        document.getElementById('stat-total-members').textContent = members ? members.length : 0;
+
+        let totalSavings = 0;
+        allGroups.forEach(g => {
+          totalSavings += (g.totalSavings || 0);
+        });
+        document.getElementById('stat-total-savings').textContent = Common.formatINR(totalSavings);
+
+        renderGroupsTable(allGroups);
+      } catch (err) {
+        console.error('Failed to load dashboard data:', err);
+        Common.showToast('Failed to load groups: ' + err.message, 'danger');
+      }
+    }
+
+    function renderGroupsTable(groups) {
+      const tbody = document.getElementById('groups-table-body');
+      tbody.innerHTML = '';
+
+      if (!groups || groups.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No groups found.</td></tr>`;
+        return;
+      }
+
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+      groups.forEach(g => {
+        const tr = document.createElement('tr');
+        const locName = Common.getLocalizedGroupName(g, currentLang);
+        const presName = g.president || g.assignedAdminName || '';
+        const presUser = g.presidentUsername || g.assignedAdminUsername || (g.presidentMobile ? g.presidentMobile : (g.contactNumber ? g.contactNumber : ''));
+        
+        let adminCell = '<span style="color: #94a3b8;">Unassigned</span>';
+        if (presName) {
+          adminCell = `
+            <div>
+              <div style="font-weight: 700; color: var(--text-main); font-size: 0.92rem;">${Common.text(presName)}</div>
+              <div style="font-size: 0.75rem; color: #4338ca; display: flex; align-items: center; gap: 0.3rem; margin-top: 2px;">
+                <i class="bi bi-person-badge"></i>
+                <span style="font-family: monospace; font-weight: 600;">@${Common.text(presUser || 'groupadmin')}</span>
+                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.65rem; padding: 1px 5px; border-radius: 4px; font-weight: 600;">Group President</span>
+              </div>
+            </div>
+          `;
+        }
+
+        tr.innerHTML = `
+          <td><span style="font-weight: 700; color: var(--primary); font-family: monospace;">${Common.text(g.groupCode, 'BG-PENDING')}</span></td>
+          <td><span style="font-size: 0.85rem; color: var(--text-muted); font-family: monospace;">${Common.text(g.registrationId, '-')}</span></td>
+          <td>
+            <div style="font-weight: 600; color: var(--text-main);">${Common.text(locName)}</div>
+            ${g.groupNameMr && currentLang !== 'mr' ? `<small style="color: #64748b; display: block;">${g.groupNameMr}</small>` : ''}
+          </td>
+          <td>${Common.text(g.village, '-')}${g.district ? ', ' + g.district : ''}</td>
+          <td>${adminCell}</td>
+          <td>${Common.getStatusBadge(g.status || 'ACTIVE')}</td>
+          <td>
+            <div style="display: flex; gap: 0.5rem;">
+              <a href="/admin/groups.html?id=${g.id}" class="btn-table-action" title="View Group Details">
+                <i class="bi bi-eye-fill"></i> View
+              </a>
+              <button class="btn-table-action" onclick="openAssignAdminModal('${g.id}')" title="Assign Group President">
+                <i class="bi bi-person-gear"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterGroups(query) {
+      const q = (query || '').toLowerCase().trim();
+      if (!q) {
+        renderGroupsTable(allGroups);
+        return;
+      }
+      const filtered = allGroups.filter(g => {
+        return (g.groupCode && g.groupCode.toLowerCase().includes(q)) ||
+               (g.registrationId && g.registrationId.toLowerCase().includes(q)) ||
+               (g.groupName && g.groupName.toLowerCase().includes(q)) ||
+               (g.groupNameMr && g.groupNameMr.toLowerCase().includes(q)) ||
+               (g.groupNameHi && g.groupNameHi.toLowerCase().includes(q)) ||
+               (g.village && g.village.toLowerCase().includes(q)) ||
+               (g.president && g.president.toLowerCase().includes(q));
+      });
+      renderGroupsTable(filtered);
+    }
+
+    // Modal 1: Create Group
+    function openCreateModal() {
+      Common.openModal('modal-create-group');
+      if (typeof handleLocationInput === 'function') {
+        handleLocationInput('inp');
+      }
+    }
+
+    function closeCreateModal() {
+      Common.closeModal('modal-create-group');
+      document.getElementById('form-create-group')?.reset();
+    }
+
+    async function handleCreateGroup(e) {
+      e.preventDefault();
+      const pw1 = document.getElementById('inp-president-password').value;
+      const pw2 = document.getElementById('inp-president-password-confirm').value;
+
+      if (pw1 !== pw2) {
+        Common.showToast('President password and confirmation password do not match.', 'danger');
+        return;
+      }
+
+      if (pw1.length < 6) {
+        Common.showToast('President password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-group');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+
+      const groupData = {
+        groupName: document.getElementById('inp-group-name').value.trim(),
+        groupNameMr: document.getElementById('inp-group-name-mr').value.trim(),
+        groupNameHi: document.getElementById('inp-group-name-hi').value.trim(),
+        village: document.getElementById('inp-village').value.trim(),
+        taluka: (document.getElementById('inp-taluka') ? document.getElementById('inp-taluka').value.trim() : ''),
+        district: document.getElementById('inp-district').value.trim() || 'Pune',
+        pinCode: (document.getElementById('inp-pinCode') ? document.getElementById('inp-pinCode').value.trim() : ''),
+        bankName: (document.getElementById('inp-bankName') ? document.getElementById('inp-bankName').value.trim() : ''),
+        accountNumber: (document.getElementById('inp-accountNumber') ? document.getElementById('inp-accountNumber').value.trim() : ''),
+        ifsc: (document.getElementById('inp-ifsc') ? document.getElementById('inp-ifsc').value.trim().toUpperCase() : ''),
+        meetingLocation: '',
+        monthlyBachatAmount: parseFloat(document.getElementById('inp-monthly-share').value) || 5000,
+        maxLoanAmount: 100000,
+        maxLoanAmountPerMember: parseFloat(document.getElementById('inp-max-loan-per-member')?.value) || 75000,
+        collectionDueDay: parseInt(document.getElementById('inp-due-day')?.value) || 10,
+        formationDate: document.getElementById('inp-formation-date').value || null,
+        president: document.getElementById('inp-president-name').value.trim(),
+        presidentNameMr: document.getElementById('inp-president-name-mr').value.trim(),
+        presidentNameHi: document.getElementById('inp-president-name-hi').value.trim(),
+        presidentMobile: document.getElementById('inp-president-mobile').value.trim(),
+        contactNumber: document.getElementById('inp-president-mobile').value.trim(),
+        presidentEmail: document.getElementById('inp-president-email').value.trim(),
+        email: document.getElementById('inp-president-email').value.trim(),
+        presidentUsername: document.getElementById('inp-president-username').value.trim(),
+        presidentPassword: pw1,
+        confirmPresidentPassword: pw2
+      };
+
+      try {
+        const created = await api.createGroup(groupData);
+        closeCreateModal();
+        Common.cachedGroups = null; // Invalidate dropdown cache
+
+        // Show Safe Account Information Modal
+        document.getElementById('success-group-name').textContent = created.groupName || groupData.groupName;
+        document.getElementById('success-group-code').textContent = created.groupCode || 'Generated';
+        document.getElementById('success-reg-id').textContent = created.registrationId || '-';
+        document.getElementById('success-president-name').textContent = created.assignedAdminName || created.president || groupData.president;
+        document.getElementById('success-login-id').textContent = created.presidentUsername || groupData.presidentUsername || groupData.presidentMobile;
+        
+        Common.openModal('modal-group-created-success');
+        await loadDashboardData();
+      } catch (err) {
+        Common.showToast('Failed to create group: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Create Group & President';
+      }
+    }
+
+    function closeSuccessModal() {
+      Common.closeModal('modal-group-created-success');
+      loadDashboardData();
+    }
+
+    // Modal 2: Create Group President / Admin
+    function openAdminModal() {
+      const groupSelect = document.getElementById('inp-admin-group');
+      if (groupSelect) {
+        groupSelect.innerHTML = '<option value="">-- Select Existing Group --</option>';
+        const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+        allGroups.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          const locName = Common.getLocalizedGroupName(g, currentLang);
+          const presName = g.president ? ` (Current President: ${g.president})` : '';
+          opt.textContent = `${g.groupCode ? g.groupCode + ' - ' : ''}${locName}${presName}`;
+          groupSelect.appendChild(opt);
+        });
+      }
+      const choiceAssign = document.getElementById('choice-assign-group');
+      if (choiceAssign) choiceAssign.checked = true;
+      toggleGroupChoice();
+      Common.openModal('modal-create-admin');
+    }
+
+    function closeAdminModal() {
+      Common.closeModal('modal-create-admin');
+      const form = document.getElementById('form-create-admin');
+      if (form) form.reset();
+      toggleGroupChoice();
+    }
+
+    function toggleGroupChoice() {
+      const choiceCreate = document.getElementById('choice-create-group');
+      const isNew = choiceCreate ? choiceCreate.checked : false;
+      const secAssign = document.getElementById('section-assign-existing');
+      const secNew = document.getElementById('section-create-new-group');
+      if (secAssign) secAssign.style.display = isNew ? 'none' : 'block';
+      if (secNew) secNew.style.display = isNew ? 'block' : 'none';
+      const newNameInp = document.getElementById('inp-new-group-name');
+      if (newNameInp) {
+        if (isNew) {
+          newNameInp.setAttribute('required', 'true');
+        } else {
+          newNameInp.removeAttribute('required');
+        }
+      }
+    }
+
+    async function handleCreateAdmin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-save-admin');
+      const isNewGroup = document.getElementById('choice-create-group')?.checked;
+      const pw1 = document.getElementById('inp-admin-password')?.value;
+      const pw2 = document.getElementById('inp-admin-confirmpassword')?.value;
+
+      if (pw1 !== pw2) {
+        Common.showToast('Passwords do not match.', 'danger');
+        return;
+      }
+      if (pw1 && pw1.length < 6) {
+        Common.showToast('Password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+      }
+
+      const payload = {
+        fullName: document.getElementById('inp-admin-name').value.trim(),
+        fullNameMr: document.getElementById('inp-admin-name-mr')?.value.trim() || '',
+        fullNameHi: document.getElementById('inp-admin-name-hi')?.value.trim() || '',
+        username: document.getElementById('inp-admin-username').value.trim(),
+        mobileNumber: document.getElementById('inp-admin-mobile').value.trim(),
+        email: document.getElementById('inp-admin-email')?.value.trim() || '',
+        temporaryPassword: pw1,
+        designation: "PRESIDENT",
+        createNewGroup: isNewGroup,
+        groupId: isNewGroup ? null : (document.getElementById('inp-admin-group')?.value || null),
+        groupName: isNewGroup ? document.getElementById('inp-new-group-name')?.value.trim() : null,
+        groupNameMr: isNewGroup ? document.getElementById('inp-new-group-name-mr')?.value.trim() : null,
+        groupNameHi: isNewGroup ? document.getElementById('inp-new-group-name-hi')?.value.trim() : null,
+        monthlyBachatAmount: isNewGroup ? parseFloat(document.getElementById('inp-new-group-share')?.value) : null,
+        collectionDueDay: isNewGroup ? parseInt(document.getElementById('inp-new-group-duedate')?.value) : 10
+      };
+
+      try {
+        await api.createClientAdmin(payload);
+        Common.showToast(`Group President "${payload.fullName}" created successfully!`, 'success');
+        closeAdminModal();
+        await loadDashboardData();
+      } catch (err) {
+        Common.showToast('Failed to create president: ' + err.message, 'danger');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-person-check-fill"></i> Create Group President';
+        }
+      }
+    }
+
+    // Location-Based Bank & IFSC Directory Handlers
+    function handleLocationInput(prefix) {
+      if (typeof BankDirectory === 'undefined') return;
+      const districtInput = document.getElementById(`${prefix}-district`);
+      const talukaInput = document.getElementById(`${prefix}-taluka`);
+      const district = (districtInput?.value || '').trim();
+      const taluka = (talukaInput?.value || '').trim();
+      const village = (document.getElementById(`${prefix}-village`)?.value || '').trim();
+      const pin = (document.getElementById(`${prefix}-pinCode`)?.value || '').trim();
+      const select = document.getElementById(`${prefix}-bankSelect`);
+      const statusEl = document.getElementById(`${prefix}-ifsc-hint`);
+
+      if (!select) return;
+
+      if (pin && pin.length === 6 && /^[1-9][0-9]{5}$/.test(pin)) {
+        BankDirectory.lookupByPinCode(pin, select, statusEl, { districtInput, talukaInput });
+      } else {
+        const query = [district, taluka, village, pin].filter(Boolean).join(' ');
+        BankDirectory.populateSelect(select, query);
+      }
+    }
+
+    function onBankSelectChange(prefix) {
+      const select = document.getElementById(`${prefix}-bankSelect`);
+      if (!select) return;
+      const opt = select.selectedOptions[0];
+      const bankNameInput = document.getElementById(`${prefix}-bankName`);
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      const badge = document.getElementById(`${prefix}-bank-badge`);
+      const verifiedTag = document.getElementById(`${prefix}-ifsc-verified-tag`);
+      const hint = document.getElementById(`${prefix}-ifsc-hint`);
+
+      if (!select.value || select.value === 'OTHER' || select.value === 'MANUAL') {
+        if (badge) badge.style.display = 'none';
+        if (select.value === 'OTHER' || select.value === 'MANUAL') {
+          if (verifiedTag) {
+            verifiedTag.textContent = '✎ Manual Bank Entry';
+            verifiedTag.style.color = '#7c3aed';
+          }
+          if (hint) hint.textContent = 'Enter your bank name, account number, and IFSC code manually.';
+          if (bankNameInput) {
+            bankNameInput.removeAttribute('readonly');
+            bankNameInput.focus();
+          }
+          if (ifscInput) ifscInput.removeAttribute('readonly');
+        } else {
+          if (verifiedTag) verifiedTag.textContent = '';
+          if (hint) hint.textContent = '11-character code (auto-filled on branch select).';
+        }
+        return;
+      }
+
+      const ifsc = opt.getAttribute('data-ifsc') || select.value;
+      const bankName = opt.getAttribute('data-bank') || opt.getAttribute('data-bank-name') || '';
+      const branch = opt.getAttribute('data-branch') || '';
+
+      if (bankNameInput) bankNameInput.value = bankName;
+      if (ifscInput) ifscInput.value = ifsc;
+      if (badge) badge.style.display = 'inline-block';
+      if (verifiedTag) {
+        verifiedTag.textContent = '✓ Verified Branch';
+        verifiedTag.style.color = '#059669';
+      }
+      if (hint) hint.textContent = `${bankName} (${branch}) - IFSC Verified`;
+    }
+
+    async function onIfscDirectInput(prefix) {
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      ifscInput.value = val;
+      if (val.length === 11) {
+        await verifyIfscManually(prefix);
+      }
+    }
+
+    async function verifyIfscManually(prefix) {
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      const bankNameInput = document.getElementById(`${prefix}-bankName`);
+      const verifiedTag = document.getElementById(`${prefix}-ifsc-verified-tag`);
+      const hint = document.getElementById(`${prefix}-ifsc-hint`);
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      if (val.length !== 11) {
+        if (verifiedTag) {
+          verifiedTag.textContent = 'Invalid IFSC Code (must be 11 characters)';
+          verifiedTag.style.color = '#dc2626';
+        }
+        return;
+      }
+      if (verifiedTag) {
+        verifiedTag.textContent = 'Checking IFSC...';
+        verifiedTag.style.color = '#0284c7';
+      }
+      if (typeof BankDirectory !== 'undefined') {
+        const res = await BankDirectory.verifyIFSC(val);
+        if (res && res.valid) {
+          if (bankNameInput && (!bankNameInput.value || bankNameInput.value.trim() === '')) {
+            bankNameInput.value = res.bank || '';
+          }
+          if (verifiedTag) {
+            verifiedTag.textContent = '✓ Verified: ' + (res.bank || 'Verified') + (res.branch ? ` (${res.branch})` : '');
+            verifiedTag.style.color = '#059669';
+          }
+          if (hint) {
+            hint.textContent = `${res.bank || ''} - ${res.branch || ''}, ${res.city || ''}`;
+          }
+        } else {
+          if (verifiedTag) {
+            verifiedTag.textContent = res.message || 'Invalid IFSC Code. Please enter a valid IFSC Code.';
+            verifiedTag.style.color = '#dc2626';
+          }
+          if (hint) {
+            hint.textContent = res.message || 'Invalid IFSC Code. Please enter a valid IFSC Code.';
+          }
+        }
+      }
+    }
+
+    function openAssignAdminModal(groupId) {
+      const g = allGroups.find(x => x.id === groupId);
+      if (!g) return;
+      const currentAdmin = g.president || g.assignedAdminName || 'None';
+      const promptText = `Assign Group President to "${g.groupName}" (${g.groupCode}):\nEnter Admin Username or User ID:`;
+      const input = prompt(promptText, g.assignedAdminId || '');
+      if (input !== null && input.trim() !== '') {
+        api.updateGroup(groupId, { ...g, assignedAdminId: input.trim() })
+          .then(() => {
+            Common.showToast('Group President assigned successfully!', 'success');
+            loadDashboardData();
+          })
+          .catch(err => {
+            Common.showToast('Failed to assign Group President: ' + err.message, 'danger');
+          });
+      }
+    }
+  </script>
+</body>
+</html>

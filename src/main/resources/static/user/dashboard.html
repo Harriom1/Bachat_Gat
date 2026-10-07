@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Dashboard - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/user.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User / Member Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item active"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+        <li><a href="/user/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">My Collections</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+        <li><a href="/guide.html" target="_blank" class="menu-item" style="color: #38bdf8;"><i class="bi bi-book-half menu-icon"></i><span>Project Guide</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <span id="top-group-name">Mahila Pragati Bachat Gat</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member Account</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Welcome Hero -->
+        <div class="content-card" style="padding: 1.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <span class="badge" style="background: rgba(255, 255, 255, 0.2); color: white; margin-bottom: 0.5rem;">SHG MEMBER PORTAL</span>
+              <h1 id="welcome-title" style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;">Welcome, Member</h1>
+              <p style="opacity: 0.9; font-size: 0.9rem; margin-bottom: 0;">
+                Member ID: <strong id="hero-member-id">-</strong> | Reg ID: <span id="hero-reg-id">-</span>
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem;">
+              <a href="/user/loan-application.html" class="btn-primary-custom" style="background: #ffffff; color: var(--primary); border: none; font-weight: 600;">
+                <i class="bi bi-plus-circle-fill"></i> Apply for Loan
+              </a>
+              <a href="/user/savings.html" class="btn-outline-custom" style="color: white; border-color: rgba(255, 255, 255, 0.6);">
+                <i class="bi bi-wallet2"></i> My Passbook
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metric Grid (Section 10 & 13) -->
+        <div class="metrics-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <!-- My Savings -->
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="mySavings">My Total Savings</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-piggy-bank-fill"></i></div>
+            </div>
+            <div id="u-total-savings" class="metric-value">₹0</div>
+            <div class="metric-sub"><i class="bi bi-check-circle-fill text-success"></i> Accumulated savings fund</div>
+          </div>
+
+          <!-- My Income From Group -->
+          <div class="metric-card" style="border-left: 4px solid #0284c7;">
+            <div class="metric-header">
+              <span class="metric-label">My Income From Group</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-graph-up-arrow"></i></div>
+            </div>
+            <div id="u-my-income" class="metric-value" style="color: #0284c7;">₹0</div>
+            <div class="metric-sub">Loan interest & group income dividends</div>
+          </div>
+
+          <!-- Active Loan Outstanding -->
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="myOutstanding">Loan Outstanding</span>
+              <div class="metric-icon-wrap icon-red"><i class="bi bi-cash-stack"></i></div>
+            </div>
+            <div id="u-loan-outstanding" class="metric-value">₹0</div>
+            <div class="metric-sub">
+              Sanctioned: <span id="u-loan-sanctioned">₹0</span> (<span id="u-loan-rate">12%</span>)
+            </div>
+          </div>
+
+          <!-- My Penalties / Dues -->
+          <div class="metric-card" style="border-left: 4px solid #f59e0b;">
+            <div class="metric-header">
+              <span class="metric-label">My Penalties / Dues</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            </div>
+            <div id="u-my-penalties" class="metric-value" style="color: #d97706;">₹0</div>
+            <div class="metric-sub">Late fee and penalties accrued</div>
+          </div>
+
+          <!-- My Total Financial Position -->
+          <div class="metric-card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
+            <div class="metric-header">
+              <span class="metric-label" style="font-weight: 700; color: #166534;">Net Financial Position</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-wallet-fill"></i></div>
+            </div>
+            <div id="u-net-position" class="metric-value" style="color: #15803d; font-weight: 800;">₹0</div>
+            <div class="metric-sub" style="color: #166534;">(Savings + Income) - (Loan + Dues)</div>
+          </div>
+
+          <!-- Next Payment Due -->
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="nextPayment">Next Installment Due</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-calendar-event"></i></div>
+            </div>
+            <div id="u-next-payment" class="metric-value">₹0</div>
+            <div class="metric-sub">
+              Due Date: <strong id="u-next-due-date">-</strong>
+            </div>
+          </div>
+
+          <!-- Group Remaining Funds -->
+          <div class="metric-card" style="border-left: 4px solid #6366f1; background: #faf5ff;">
+            <div class="metric-header">
+              <span class="metric-label" style="font-weight: 700; color: #4338ca;">Group Remaining Funds</span>
+              <div class="metric-icon-wrap" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;"><i class="bi bi-bank2"></i></div>
+            </div>
+            <div id="u-group-remaining-funds" class="metric-value" style="color: #4f46e5; font-weight: 800;">₹0</div>
+            <div class="metric-sub" style="color: #4338ca;">Total available treasury in group</div>
+          </div>
+
+          <!-- Group Loans Given / Distributed -->
+          <div class="metric-card" style="border-left: 4px solid #0891b2; background: #ecfeff;">
+            <div class="metric-header">
+              <span class="metric-label" style="font-weight: 700; color: #0e7490;">Loans Given / Distributed</span>
+              <div class="metric-icon-wrap" style="background: rgba(8, 145, 178, 0.15); color: #0891b2;"><i class="bi bi-send-check-fill"></i></div>
+            </div>
+            <div id="u-group-loans-disbursed" class="metric-value" style="color: #0891b2; font-weight: 800;">₹0</div>
+            <div class="metric-sub" style="color: #0e7490;">Total credit disbursed by group</div>
+          </div>
+        </div>
+
+        <!-- Two Columns: Active Loan Summary & Pending Collection Notice -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+          <!-- Active Loan Card -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+              <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                <i class="bi bi-credit-card-2-front text-primary me-1"></i> Active Loan Summary
+              </h2>
+              <span id="u-loan-status-badge" class="status-badge badge-active">ACTIVE</span>
+            </div>
+            <div id="loan-card-content">
+              <table style="width: 100%; font-size: 0.9rem;">
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 0.6rem 0;" class="text-muted">Loan ID:</td>
+                  <td style="text-align: right; font-weight: 600;" id="u-card-loan-id">-</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 0.6rem 0;" class="text-muted">Original Sanction:</td>
+                  <td style="text-align: right; font-weight: 600;" id="u-card-principal">₹0</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 0.6rem 0;" class="text-muted">Interest Rate:</td>
+                  <td style="text-align: right; font-weight: 600;" id="u-card-rate">12%</td>
+                </tr>
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                  <td style="padding: 0.6rem 0;" class="text-muted">Total Interest Paid:</td>
+                  <td style="text-align: right; font-weight: 600; color: var(--success);" id="u-card-interest-paid">₹0</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.6rem 0; font-weight: 600;">Net Balance Due:</td>
+                  <td style="text-align: right; font-weight: 700; color: var(--danger); font-size: 1.05rem;" id="u-card-net-due">₹0</td>
+                </tr>
+              </table>
+              <div style="margin-top: 1.25rem; text-align: right;">
+                <a href="/user/loan.html" class="btn-outline-custom" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                  <i class="bi bi-list-columns"></i> View Full Installment Schedule
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming Month Payment Card (Requirements 36, 37 & 38) -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h2 style="font-size: 1.1rem; font-weight: 700; color: var(--text-main); margin: 0;">
+                <i class="bi bi-calendar-check text-warning me-1"></i> <span data-i18n="upcomingPaymentCard">Upcoming Month Payment</span>
+              </h2>
+              <span id="u-upcoming-status-badge" class="status-badge badge-warning">UPCOMING</span>
+            </div>
+
+            <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);" id="u-upcoming-month-year">October 2026</span>
+                <span style="font-size: 0.8rem; color: #64748b;">Due Date: <strong id="u-upcoming-due-date">10 Oct 2026</strong></span>
+              </div>
+
+              <table style="width: 100%; font-size: 0.875rem;">
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 0.35rem 0;" class="text-muted">Monthly Bachat:</td>
+                  <td style="text-align: right; font-weight: 600;" id="u-upcoming-share">₹5,000</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 0.35rem 0;" class="text-muted">Loan EMI:</td>
+                  <td style="text-align: right; font-weight: 600;" id="u-upcoming-emi">₹0</td>
+                </tr>
+                <tr id="u-emi-breakdown-row" style="border-bottom: 1px solid #e2e8f0; display: none; font-size: 0.775rem; color: #64748b;">
+                  <td style="padding: 0.2rem 0; padding-left: 0.75rem;">↳ Principal: <span id="u-upcoming-principal">₹0</span> | Interest: <span id="u-upcoming-interest">₹0</span></td>
+                  <td></td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                  <td style="padding: 0.35rem 0;" class="text-muted">Late Fee / Penalty:</td>
+                  <td style="text-align: right; font-weight: 600; color: #64748b;" id="u-upcoming-late-fee">₹0</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.5rem 0; font-weight: 700; color: var(--text-main);">Total Expected Due:</td>
+                  <td style="text-align: right; font-weight: 800; font-size: 1.15rem; color: var(--primary);" id="u-upcoming-total">₹5,000</td>
+                </tr>
+              </table>
+            </div>
+
+            <button type="button" id="btn-pay-now" class="btn-primary-custom" onclick="openPaymentModal()" style="width: 100%; justify-content: center; padding: 0.65rem;">
+              <i class="bi bi-credit-card-2-front-fill"></i> <span data-i18n="payNow">Pay Now</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Member Online Payment Gateway Modal -->
+        <div id="modal-member-pay" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; padding: 1rem;">
+          <div style="background: #fff; width: 100%; max-width: 520px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+            <div style="padding: 1.25rem 1.5rem; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="bi bi-shield-check"></i> Secure Payment Gateway
+                </h3>
+                <small style="opacity: 0.9;">Bachat Gat Unified Payment Checkout</small>
+              </div>
+              <button type="button" class="btn-close-modal" onclick="closePaymentModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: white;">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <form id="form-member-pay" style="padding: 1.5rem;">
+              <!-- Itemized Allocation Breakdown -->
+              <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+                <div style="font-weight: 700; color: #334155; margin-bottom: 0.5rem; font-size: 0.875rem;">
+                  Payment Breakdown Details:
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                  <span class="text-muted">Monthly Savings Share:</span>
+                  <strong id="modal-breakdown-share">₹5,000</strong>
+                </div>
+                <div id="modal-breakdown-loan-row" style="display: none; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                  <span class="text-muted">Loan EMI (Principal + Interest):</span>
+                  <strong id="modal-breakdown-loan">₹0</strong>
+                </div>
+                <div id="modal-breakdown-penalty-row" style="display: none; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                  <span class="text-muted">Late Fee / Overdue Penalty:</span>
+                  <strong id="modal-breakdown-penalty" style="color: var(--danger);">₹0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1rem; font-weight: 800; border-top: 1px dashed #cbd5e1; padding-top: 0.5rem; margin-top: 0.5rem; color: var(--primary);">
+                  <span>Total Amount Payable:</span>
+                  <span id="modal-breakdown-total">₹5,000</span>
+                </div>
+              </div>
+
+              <!-- Payment Method Selection -->
+              <div class="form-group mb-3">
+                <label class="form-label required" style="font-weight: 600;">Choose Payment Mode</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                  <label style="border: 2px solid var(--primary); background: #f0f9ff; border-radius: 8px; padding: 0.75rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="pay-method-radio" value="UPI" checked>
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.9rem;">UPI / QR Code</div>
+                      <small style="color: #64748b;">GPay, PhonePe, Paytm</small>
+                    </div>
+                  </label>
+                  <label style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="pay-method-radio" value="NET_BANKING">
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.9rem;">Net Banking</div>
+                      <small style="color: #64748b;">SBI, HDFC, ICICI, etc.</small>
+                    </div>
+                  </label>
+                  <label style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="pay-method-radio" value="DEBIT_CARD">
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.9rem;">Debit / ATM Card</div>
+                      <small style="color: #64748b;">Visa, RuPay, Master</small>
+                    </div>
+                  </label>
+                  <label style="border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="pay-method-radio" value="CASH">
+                    <div>
+                      <div style="font-weight: 700; font-size: 0.9rem;">Cash Deposit</div>
+                      <small style="color: #64748b;">At monthly meeting</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Note / Remark -->
+              <div class="form-group mb-4">
+                <label class="form-label">Payment Remarks (Optional)</label>
+                <input type="text" id="pay-modal-remarks" class="form-control" placeholder="e.g. Monthly contribution deposited via UPI">
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn-outline-custom" onclick="closePaymentModal()">Cancel</button>
+                <button type="submit" class="btn-primary-custom" id="btn-confirm-pay" style="padding: 0.65rem 1.5rem; font-weight: 700;">
+                  <i class="bi bi-lock-fill"></i> Proceed to Pay
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Digital Payment Receipt Modal -->
+        <div id="modal-payment-receipt" class="modal-backdrop" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center; padding: 1rem;">
+          <div style="background: #fff; width: 100%; max-width: 580px; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); overflow: hidden; animation: slideIn 0.3s ease;">
+            <div style="padding: 1.25rem 1.5rem; background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="bi bi-patch-check-fill"></i> Official Payment Receipt
+                </h3>
+                <small style="opacity: 0.9;">Verified & Recorded in Group Ledger</small>
+              </div>
+              <button type="button" class="btn-close-modal" onclick="closeReceiptModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: white;">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+
+            <div id="printable-receipt" style="padding: 1.75rem; background: white;">
+              <!-- Receipt Header -->
+              <div style="text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.25rem;">
+                <h2 id="receipt-group-name" style="font-size: 1.25rem; font-weight: 800; color: var(--primary); margin: 0;">Bachat Gat</h2>
+                <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem;">
+                  Govt Reg No: <span id="receipt-reg-no">-</span>
+                </div>
+                <div style="display: inline-block; background: #ecfdf5; border: 1px solid #10b981; color: #047857; font-weight: 800; font-size: 0.8rem; padding: 0.25rem 0.75rem; border-radius: 9999px; margin-top: 0.5rem;">
+                  <i class="bi bi-shield-fill-check"></i> SERVER VERIFIED & PAID
+                </div>
+              </div>
+
+              <!-- Metadata Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.85rem; margin-bottom: 1.25rem; background: #f8fafc; padding: 0.75rem; border-radius: 6px;">
+                <div>
+                  <span class="text-muted">Receipt Number:</span><br>
+                  <strong id="receipt-number" style="font-family: monospace; color: var(--primary);">-</strong>
+                </div>
+                <div>
+                  <span class="text-muted">Transaction Date:</span><br>
+                  <strong id="receipt-date">-</strong>
+                </div>
+                <div>
+                  <span class="text-muted">Member Name:</span><br>
+                  <strong id="receipt-member-name">-</strong>
+                </div>
+                <div>
+                  <span class="text-muted">Member ID:</span><br>
+                  <strong id="receipt-member-id">-</strong>
+                </div>
+                <div>
+                  <span class="text-muted">Payment Mode:</span><br>
+                  <strong id="receipt-payment-mode">-</strong>
+                </div>
+                <div>
+                  <span class="text-muted">Reference / UTR:</span><br>
+                  <strong id="receipt-ref" style="font-family: monospace;">-</strong>
+                </div>
+              </div>
+
+              <!-- Itemized Receipt Table -->
+              <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse; margin-bottom: 1.25rem;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #cbd5e1; color: #475569;">
+                    <th style="text-align: left; padding: 0.5rem 0;">Component</th>
+                    <th style="text-align: right; padding: 0.5rem 0;">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody id="receipt-items-tbody">
+                  <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 0.4rem 0;">Monthly Savings Share Contribution</td>
+                    <td style="text-align: right; font-weight: 600;" id="receipt-item-share">₹5,000</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr style="border-top: 2px solid #0f172a; font-weight: 800; font-size: 1.05rem;">
+                    <td style="padding: 0.6rem 0;">Total Amount Paid</td>
+                    <td style="text-align: right; color: var(--primary);" id="receipt-total-paid">₹5,000</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div style="text-align: center; font-size: 0.75rem; color: #94a3b8; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
+                This is a computer-generated digital receipt issued by Bachat Gat Management Platform. No physical signature required.
+              </div>
+            </div>
+
+            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+              <button type="button" class="btn-outline-custom" onclick="window.print()">
+                <i class="bi bi-printer-fill"></i> Print Receipt
+              </button>
+              <button type="button" class="btn-primary-custom" onclick="closeReceiptModal()">
+                <i class="bi bi-check2"></i> Done
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Personal Transactions Table -->
+        <div class="content-card">
+          <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0;">
+              <i class="bi bi-clock-history text-primary me-1"></i> My Recent Transactions
+            </h2>
+            <a href="/user/transactions.html" style="font-size: 0.875rem; color: var(--primary); text-decoration: none; font-weight: 600;">
+              View All <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Txn ID</th>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th style="text-align: right;">Amount (₹)</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="user-recent-txns-tbody">
+                <tr>
+                  <td colspan="5" class="text-center py-3 text-muted">Loading your transactions...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Group Loan Transparency Overview: Visible to All Members (Strictly Read-Only) -->
+        <div class="content-card" style="margin-top: 1.5rem; padding: 1.25rem;">
+          <div style="border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <h2 style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);" data-i18n="groupCreditOverview">
+                  <i class="bi bi-shield-check text-success"></i> Group Loan Transparency Overview
+                </h2>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; font-size: 0.75rem; border-radius: 9999px; padding: 0.2rem 0.5rem;" data-i18n="strictlyReadOnly">
+                  READ-ONLY
+                </span>
+              </div>
+              <p class="text-muted" style="font-size: 0.8rem; margin: 0.2rem 0 0 0;" data-i18n="groupCreditSubtitle">
+                Visible to all members: Learn who in your group has taken loans and their monthly repayment commitments
+              </p>
+            </div>
+            <a href="/user/loan.html" style="font-size: 0.875rem; color: var(--primary); text-decoration: none; font-weight: 600;">
+              View Full Ledger <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tableMemberId">Member ID</th>
+                  <th data-i18n="tableBorrowerName">Borrower Name</th>
+                  <th data-i18n="tablePurpose">Purpose</th>
+                  <th style="text-align: right;" data-i18n="tablePrincipal">Sanctioned Principal (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableMonthlyEmi">Monthly Payment / EMI (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableOutstanding">Outstanding Due (₹)</th>
+                  <th data-i18n="tableNextDueDate">Next Due Date</th>
+                  <th data-i18n="tableStatus">Status</th>
+                </tr>
+              </thead>
+              <tbody id="user-dash-group-loans-tbody">
+                <tr>
+                  <td colspan="8" class="text-center py-3 text-muted">Loading group loan transparency records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let currentDashGroupLoans = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Guard: strictly require logged in user
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+      await Promise.all([
+        loadUserDashboard(),
+        loadGroupLoansOverview()
+      ]);
+    });
+
+    async function loadGroupLoansOverview() {
+      try {
+        currentDashGroupLoans = await api.getMyGroupLoans();
+        renderGroupLoansOverview(currentDashGroupLoans);
+      } catch (err) {
+        console.error('Failed to load group loans overview:', err);
+      }
+    }
+
+    function renderGroupLoansOverview(loans) {
+      const tbody = document.getElementById('user-dash-group-loans-tbody');
+      if (!tbody) return;
+      if (!loans || loans.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">No active loans in your group. All collective savings are intact.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = loans.map(l => {
+        const principal = parseFloat(l.principalAmount || 0);
+        const emi = parseFloat(l.monthlyInstallment || 0);
+        const outstanding = parseFloat(l.totalOutstanding || 0);
+        const dueDate = l.nextDueDate ? Common.formatDate(l.nextDueDate) : (l.status === 'CLOSED' ? 'Completed' : '-');
+        const statusBadge = Common.getStatusBadge(l.status);
+
+        return `
+          <tr>
+            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(l.memberId || '-')}</code></td>
+            <td><strong>${escapeHtml(l.memberName || '-')}</strong></td>
+            <td><span style="font-size: 0.85rem;">${escapeHtml(l.purpose || 'General / Business Need')}</span></td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
+            <td style="text-align: right; font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
+            <td style="text-align: right; font-weight: 700; color: ${outstanding > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(outstanding)}</td>
+            <td><strong>${dueDate}</strong></td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    window.addEventListener('languageChanged', () => {
+      if (currentDashGroupLoans && currentDashGroupLoans.length > 0) renderGroupLoansOverview(currentDashGroupLoans);
+    });
+
+    async function loadUserDashboard() {
+      try {
+        const d = await api.getUserDashboard();
+        
+        document.getElementById('welcome-title').textContent = `Welcome, ${d.memberName || 'Member'}`;
+        document.getElementById('hero-member-id').textContent = d.memberId;
+        document.getElementById('hero-reg-id').textContent = d.registrationId || 'BG-MH-2026-0001';
+        document.getElementById('top-group-name').textContent = d.groupName || 'Mahila Pragati Bachat Gat';
+        document.getElementById('current-user-name').textContent = d.memberName || 'Member';
+
+        // Savings & Shares
+        document.getElementById('u-total-savings').textContent = Common.formatIndianCurrency(d.myTotalSavings);
+        if (document.getElementById('u-my-income')) {
+          document.getElementById('u-my-income').textContent = Common.formatIndianCurrency(d.myIncome || 0);
+        }
+        if (document.getElementById('u-my-penalties')) {
+          document.getElementById('u-my-penalties').textContent = Common.formatIndianCurrency(d.myPenalties || 0);
+        }
+        if (document.getElementById('u-net-position')) {
+          document.getElementById('u-net-position').textContent = Common.formatIndianCurrency(d.netFinancialPosition || 0);
+        }
+
+        // Loans
+        document.getElementById('u-loan-outstanding').textContent = Common.formatIndianCurrency(d.myLoanOutstanding);
+        document.getElementById('u-loan-sanctioned').textContent = Common.formatIndianCurrency(d.myLoanAmount);
+        document.getElementById('u-loan-rate').textContent = (d.myInterestRate || 12) + '%';
+
+        // Next Payment
+        document.getElementById('u-next-payment').textContent = Common.formatIndianCurrency(d.nextPaymentAmount);
+        document.getElementById('u-next-due-date').textContent = d.nextPaymentDueDate ? Common.formatDate(d.nextPaymentDueDate) : 'No Dues';
+
+        // Group Transparency Metrics
+        if (document.getElementById('u-group-remaining-funds')) {
+          document.getElementById('u-group-remaining-funds').textContent = Common.formatIndianCurrency(d.groupRemainingFunds || 0);
+        }
+        if (document.getElementById('u-group-loans-disbursed')) {
+          document.getElementById('u-group-loans-disbursed').textContent = Common.formatIndianCurrency(d.groupLoansDisbursed || 0);
+        }
+
+        // Active Loan Card
+        if (d.activeLoan) {
+          document.getElementById('u-card-loan-id').textContent = d.activeLoan.id;
+          document.getElementById('u-card-principal').textContent = Common.formatIndianCurrency(d.activeLoan.principalAmount);
+          document.getElementById('u-card-rate').textContent = d.activeLoan.interestRate + '%';
+          document.getElementById('u-card-interest-paid').textContent = Common.formatIndianCurrency(d.activeLoan.interestPaid);
+          document.getElementById('u-card-net-due').textContent = Common.formatIndianCurrency(parseFloat(d.activeLoan.outstandingPrincipal || 0) + parseFloat(d.activeLoan.outstandingInterest || 0));
+          document.getElementById('u-loan-status-badge').textContent = d.activeLoan.status;
+        } else {
+          document.getElementById('loan-card-content').innerHTML = `
+            <div style="text-align: center; padding: 1.5rem 0;" class="text-muted">
+              <i class="bi bi-shield-check" style="font-size: 2rem; color: var(--success);"></i>
+              <p class="mt-2 mb-3">No active loans outstanding.</p>
+              <a href="/user/loan-application.html" class="btn-primary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+                Apply for New Loan
+              </a>
+            </div>
+          `;
+          document.getElementById('u-loan-status-badge').textContent = 'NIL';
+          document.getElementById('u-loan-status-badge').className = 'status-badge badge-active';
+        }
+
+        // Upcoming Month Payment Card (Requirements 36, 37, 38)
+        const now = new Date();
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const currentMonthName = monthNames[now.getMonth()];
+        const currentYear = now.getFullYear();
+
+        document.getElementById('u-upcoming-month-year').textContent = `${currentMonthName} ${currentYear}`;
+        
+        // The group's configured Monthly Bachat is the only source of truth.
+        // Never use a page-level fallback amount here.
+        const shareAmt = parseFloat(d.monthlyBachatAmount || 0);
+        document.getElementById('u-upcoming-share').textContent = Common.formatIndianCurrency(shareAmt);
+
+        let emiAmt = 0;
+        let princAmt = 0;
+        let intAmt = 0;
+        if (d.activeLoan && parseFloat(d.activeLoan.totalOutstanding || 0) > 0) {
+          emiAmt = parseFloat(d.activeLoan.monthlyInstallment || 0);
+          intAmt = Math.round((parseFloat(d.activeLoan.outstandingPrincipal || 0) * (parseFloat(d.activeLoan.interestRate || 12) / 1200)) * 100) / 100;
+          princAmt = Math.max(0, emiAmt - intAmt);
+
+          document.getElementById('u-upcoming-emi').textContent = Common.formatIndianCurrency(emiAmt);
+          document.getElementById('u-upcoming-principal').textContent = Common.formatIndianCurrency(princAmt);
+          document.getElementById('u-upcoming-interest').textContent = Common.formatIndianCurrency(intAmt);
+          document.getElementById('u-emi-breakdown-row').style.display = 'table-row';
+        } else {
+          document.getElementById('u-upcoming-emi').textContent = '₹0';
+          document.getElementById('u-emi-breakdown-row').style.display = 'none';
+        }
+
+        const lateFee = parseFloat(d.myPenalties || 0);
+        document.getElementById('u-upcoming-late-fee').textContent = Common.formatIndianCurrency(lateFee);
+
+        const totalDue = shareAmt + emiAmt + lateFee;
+        document.getElementById('u-upcoming-total').textContent = Common.formatIndianCurrency(totalDue);
+
+        // Store payment context
+        window.currentPaymentContext = {
+          totalDue: totalDue,
+          shareAmt: shareAmt,
+          emiAmt: emiAmt,
+          princAmt: princAmt,
+          intAmt: intAmt,
+          lateFee: lateFee,
+          activeLoanId: d.activeLoan ? d.activeLoan.id : null,
+          groupName: d.groupName || 'Mahila Pragati Bachat Gat',
+          regId: d.registrationId || 'BG-MH-2026-0001',
+          memberName: d.memberName || 'Member',
+          memberId: d.memberId
+        };
+
+        const nextDueDateStr = d.nextPaymentDueDate ? Common.formatDate(d.nextPaymentDueDate) : `10 ${currentMonthName.substring(0, 3)} ${currentYear}`;
+        document.getElementById('u-upcoming-due-date').textContent = nextDueDateStr;
+
+        const isCleared = parseFloat(d.pendingCollection || 0) <= 0;
+        const statusBadge = document.getElementById('u-upcoming-status-badge');
+        if (isCleared) {
+          statusBadge.textContent = 'PAID';
+          statusBadge.className = 'status-badge badge-active';
+          document.getElementById('btn-pay-now').disabled = true;
+          document.getElementById('btn-pay-now').innerHTML = '<i class="bi bi-check-circle-fill"></i> Paid for this Month';
+          document.getElementById('btn-pay-now').style.opacity = '0.6';
+        } else {
+          statusBadge.textContent = 'UPCOMING';
+          statusBadge.className = 'status-badge badge-warning';
+          document.getElementById('btn-pay-now').disabled = false;
+          document.getElementById('btn-pay-now').innerHTML = '<i class="bi bi-credit-card-2-front-fill"></i> Pay Now';
+          document.getElementById('btn-pay-now').style.opacity = '1';
+        }
+
+        // Transactions
+        renderRecentTransactions(d.recentTransactions || []);
+
+      } catch (err) {
+        Common.showToast('Failed to load dashboard: ' + err.message, 'danger');
+      }
+    }
+
+    function openPaymentModal() {
+      const ctx = window.currentPaymentContext;
+      if (!ctx) return;
+
+      document.getElementById('modal-breakdown-share').textContent = Common.formatIndianCurrency(ctx.shareAmt);
+      
+      const loanRow = document.getElementById('modal-breakdown-loan-row');
+      if (ctx.emiAmt > 0) {
+        loanRow.style.display = 'flex';
+        document.getElementById('modal-breakdown-loan').textContent = Common.formatIndianCurrency(ctx.emiAmt);
+      } else {
+        loanRow.style.display = 'none';
+      }
+
+      const penaltyRow = document.getElementById('modal-breakdown-penalty-row');
+      if (ctx.lateFee > 0) {
+        penaltyRow.style.display = 'flex';
+        document.getElementById('modal-breakdown-penalty').textContent = Common.formatIndianCurrency(ctx.lateFee);
+      } else {
+        penaltyRow.style.display = 'none';
+      }
+
+      document.getElementById('modal-breakdown-total').textContent = Common.formatIndianCurrency(ctx.totalDue);
+      Common.openModal('modal-member-pay');
+    }
+
+    function closePaymentModal() {
+      Common.closeModal('modal-member-pay');
+    }
+
+    function closeReceiptModal() {
+      Common.closeModal('modal-payment-receipt');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const payForm = document.getElementById('form-member-pay');
+      if (payForm) {
+        payForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const ctx = window.currentPaymentContext;
+          if (!ctx) return;
+
+          const methodRadio = document.querySelector('input[name="pay-method-radio"]:checked');
+          const method = methodRadio ? methodRadio.value : 'UPI';
+          const remarks = document.getElementById('pay-modal-remarks').value.trim();
+          const btn = document.getElementById('btn-confirm-pay');
+
+          btn.disabled = true;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating Order...';
+
+          try {
+            // Step 1: Create Server Payment Order
+            const orderPayload = {
+              amount: ctx.totalDue,
+              paymentType: ctx.emiAmt > 0 ? (ctx.shareAmt > 0 ? 'COMBINED' : 'LOAN_EMI') : 'MONTHLY_SAVINGS',
+              monthlyBachatAmount: ctx.shareAmt,
+              loanId: ctx.activeLoanId,
+              loanPrincipalAmount: ctx.princAmt,
+              loanInterestAmount: ctx.intAmt,
+              lateFeeAmount: ctx.lateFee,
+              idempotencyKey: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`
+            };
+
+            const order = await api.createPaymentOrder(orderPayload);
+
+            // Step 2: Gateway Simulation & Server Verification
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying with Gateway...';
+            
+            const verifyPayload = {
+              orderId: order.orderId,
+              gatewayPaymentId: `PAY-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+              gatewaySignatureToken: order.serverVerificationToken,
+              paymentMethod: method,
+              referenceNumber: `UTR-${Date.now()}`,
+              notes: remarks || 'Online member payment via portal'
+            };
+
+            const receipt = await api.verifyPayment(verifyPayload);
+
+            // Step 3: Show Success & Official Digital Receipt
+            Common.showToast('Payment verified successfully! Status marked as PAID.', 'success');
+            closePaymentModal();
+            displayDigitalReceipt(receipt);
+            await loadUserDashboard();
+
+          } catch (err) {
+            Common.showToast('Payment processing failed: ' + err.message, 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-lock-fill"></i> Proceed to Pay';
+          }
+        });
+      }
+    });
+
+    function displayDigitalReceipt(r) {
+      document.getElementById('receipt-group-name').textContent = r.groupName || 'Bachat Gat';
+      document.getElementById('receipt-reg-no').textContent = r.groupRegistrationNumber || 'MH-REG-2026-001';
+      document.getElementById('receipt-number').textContent = r.receiptNumber;
+      document.getElementById('receipt-date').textContent = Common.formatDateTime(new Date());
+      document.getElementById('receipt-member-name').textContent = r.memberName;
+      document.getElementById('receipt-member-id').textContent = r.memberId;
+      document.getElementById('receipt-payment-mode').textContent = r.paymentMethod;
+      document.getElementById('receipt-ref').textContent = r.referenceNumber || r.transactionId;
+
+      let itemsHtml = '';
+      if (r.monthlyBachatAmount && parseFloat(r.monthlyBachatAmount) > 0) {
+        itemsHtml += `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.4rem 0;">Monthly Savings Share Contribution</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(r.monthlyBachatAmount)}</td>
+          </tr>
+        `;
+      }
+      if (r.loanPrincipalAmount && parseFloat(r.loanPrincipalAmount) > 0) {
+        itemsHtml += `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.4rem 0;">Loan Installment (Principal Repayment)</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(r.loanPrincipalAmount)}</td>
+          </tr>
+        `;
+      }
+      if (r.loanInterestAmount && parseFloat(r.loanInterestAmount) > 0) {
+        itemsHtml += `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.4rem 0;">Loan Installment (Interest Component)</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(r.loanInterestAmount)}</td>
+          </tr>
+        `;
+      }
+      if (r.lateFeeAmount && parseFloat(r.lateFeeAmount) > 0) {
+        itemsHtml += `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.4rem 0; color: var(--danger);">Late Payment Fee / Overdue Penalty</td>
+            <td style="text-align: right; font-weight: 600; color: var(--danger);">${Common.formatIndianCurrency(r.lateFeeAmount)}</td>
+          </tr>
+        `;
+      }
+      if (!itemsHtml) {
+        itemsHtml = `
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 0.4rem 0;">Monthly Dues Cleared</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(r.amount)}</td>
+          </tr>
+        `;
+      }
+
+      document.getElementById('receipt-items-tbody').innerHTML = itemsHtml;
+      document.getElementById('receipt-total-paid').textContent = Common.formatIndianCurrency(r.amount);
+
+      document.getElementById('modal-payment-receipt').style.display = 'flex';
+    }
+
+    function renderRecentTransactions(txns) {
+      const tbody = document.getElementById('user-recent-txns-tbody');
+      if (!txns || txns.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">No transactions recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = txns.map(t => {
+        const isInflow = ['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'LOAN_REPAYMENT', 'EXTRA_LOAN_PAYMENT'].includes(t.type);
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(t.id)}</strong></td>
+            <td>${Common.formatDate(t.date || t.createdAt)}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.type.replace('_', ' '))}</span></td>
+            <td style="text-align: right;"><strong class="${isInflow ? 'text-success' : 'text-danger'}">${Common.formatIndianCurrency(t.amount)}</strong></td>
+            <td><small class="text-muted">${escapeHtml(t.description || '-')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

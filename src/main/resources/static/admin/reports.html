@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Reports - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .report-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 1.5rem;
+    }
+    .report-tab-btn {
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: var(--transition);
+    }
+    .report-tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    .printable-sheet {
+      background: #ffffff;
+      padding: 2.5rem;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .printable-sheet, .printable-sheet * {
+        visibility: visible;
+      }
+      .printable-sheet {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar no-print">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item active"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar no-print">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header no-print">
+          <div>
+            <h1 class="page-title" data-i18n="reports">Financial & Audit Reports</h1>
+            <p class="page-subtitle">Exportable financial summaries, monthly collection audits, and member passbook statements</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button onclick="window.print()" class="btn-primary-custom">
+              <i class="bi bi-printer-fill"></i> Print / PDF
+            </button>
+            <button onclick="exportCurrentReportCSV()" class="btn-outline-custom">
+              <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i> Export CSV
+            </button>
+            <button onclick="openWhatsAppModal()" class="btn-outline-custom">
+              <i class="bi bi-whatsapp" style="color: #25D366;"></i> WhatsApp
+            </button>
+            <button onclick="openEmailModal()" class="btn-outline-custom">
+              <i class="bi bi-envelope-fill" style="color: #0284c7;"></i> Email
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="report-tabs no-print">
+          <button class="report-tab-btn active" id="tab-btn-summary" onclick="switchReportTab('summary')">
+            <i class="bi bi-clipboard-data-fill"></i> Group Financial Summary
+          </button>
+          <button class="report-tab-btn" id="tab-btn-monthly" onclick="switchReportTab('monthly')">
+            <i class="bi bi-calendar-check-fill"></i> Monthly Collection Report
+          </button>
+          <button class="report-tab-btn" id="tab-btn-yearly" onclick="switchReportTab('yearly')">
+            <i class="bi bi-graph-up-arrow"></i> Yearly Statement
+          </button>
+          <button class="report-tab-btn" id="tab-btn-outstanding" onclick="switchReportTab('outstanding')">
+            <i class="bi bi-cash-stack"></i> Outstanding Loans
+          </button>
+          <button class="report-tab-btn" id="tab-btn-statement" onclick="switchReportTab('statement')">
+            <i class="bi bi-person-badge-fill"></i> Member Statement
+          </button>
+        </div>
+
+        <!-- Tab 1: Group Financial Summary -->
+        <div id="tab-summary" class="printable-sheet">
+          <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <div style="display: inline-block; width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; line-height: 48px; font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">₹</div>
+            <h2 id="sum-group-name" style="font-size: 1.5rem; font-weight: 700;">Mahila Pragati Bachat Gat</h2>
+            <p style="color: var(--text-muted); margin: 0.25rem 0;">Reg ID: <strong id="sum-reg-id">BG-MH-2026-0001</strong> | Code: MPBG001</p>
+            <p style="font-size: 0.875rem; color: var(--text-light);">Comprehensive Financial Ledger & Balance Overview (Generated: <span id="sum-gen-date"></span>)</p>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <!-- Assets / Fund Balances -->
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+              <h3 style="font-size: 1rem; color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-piggy-bank"></i> Total Savings & Shares
+              </h3>
+              <table style="width: 100%; font-size: 0.9rem;">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Total Member Savings</td>
+                  <td style="text-align: right; font-weight: 600;" id="sum-total-savings">₹0</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Total Share Capital</td>
+                  <td style="text-align: right; font-weight: 600;" id="sum-total-shares">₹0</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.5rem 0; font-weight: 600;">Net Group Savings Fund</td>
+                  <td style="text-align: right; font-weight: 700; color: var(--success);" id="sum-net-savings">₹0</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Loan Portfolio -->
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+              <h3 style="font-size: 1rem; color: var(--info); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-cash-coin"></i> Loan Portfolio & Recoveries
+              </h3>
+              <table style="width: 100%; font-size: 0.9rem;">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Total Loans Disbursed</td>
+                  <td style="text-align: right; font-weight: 600;" id="sum-loans-disbursed">₹0</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Principal Recovered</td>
+                  <td style="text-align: right; font-weight: 600; color: var(--success);" id="sum-principal-recovered">₹0</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Interest Income Earned</td>
+                  <td style="text-align: right; font-weight: 600; color: var(--success);" id="sum-interest-collected">₹0</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.5rem 0; font-weight: 600;">Outstanding Principal Due</td>
+                  <td style="text-align: right; font-weight: 700; color: var(--danger);" id="sum-outstanding-principal">₹0</td>
+                </tr>
+              </table>
+            </div>
+
+            <!-- Expenses & Balance -->
+            <div style="border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1.25rem;">
+              <h3 style="font-size: 1rem; color: var(--warning); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-wallet2"></i> Group Expenses & Receivables
+              </h3>
+              <table style="width: 100%; font-size: 0.9rem;">
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Total Administrative Expenses</td>
+                  <td style="text-align: right; font-weight: 600; color: var(--danger);" id="sum-total-expenses">₹0</td>
+                </tr>
+                <tr style="border-bottom: 1px dashed var(--border-color);">
+                  <td style="padding: 0.5rem 0;">Outstanding Interest Due</td>
+                  <td style="text-align: right; font-weight: 600; color: var(--danger);" id="sum-outstanding-interest">₹0</td>
+                </tr>
+                <tr>
+                  <td style="padding: 0.5rem 0; font-weight: 600;">Total Loan Exposure</td>
+                  <td style="text-align: right; font-weight: 700; color: var(--text-main);" id="sum-total-outstanding">₹0</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div style="margin-top: 3rem; display: flex; justify-content: space-between; text-align: center; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+            <div>
+              <div style="width: 160px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+              <small>Group President Signature</small>
+            </div>
+            <div>
+              <div style="width: 160px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+              <small>Secretary Signature</small>
+            </div>
+            <div>
+              <div style="width: 160px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+              <small>Treasurer / Auditor Signature</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Monthly Collection Report -->
+        <div id="tab-monthly" class="printable-sheet" style="display: none;">
+          <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+            <label style="font-weight: 600;">Select Period:</label>
+            <select id="monthly-report-month" class="form-select" style="max-width: 140px;">
+              <option value="1">January</option>
+              <option value="2">February</option>
+              <option value="3">March</option>
+              <option value="4" selected>April</option>
+              <option value="5">May</option>
+              <option value="6">June</option>
+              <option value="7">July</option>
+              <option value="8">August</option>
+              <option value="9">September</option>
+              <option value="10">October</option>
+              <option value="11">November</option>
+              <option value="12">December</option>
+            </select>
+            <select id="monthly-report-year" class="form-select" style="max-width: 120px;">
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+            </select>
+            <button onclick="loadMonthlyReport()" class="btn-primary-custom">
+              <i class="bi bi-filter"></i> Load Report
+            </button>
+          </div>
+
+          <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <h2 id="mr-title" style="font-size: 1.4rem; font-weight: 700;">Monthly Bachat Collection Audit - April 2026</h2>
+            <p style="color: var(--text-muted);">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</p>
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Total Expected Monthly Bachat</small>
+              <h3 id="mr-expected" style="color: var(--text-main); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Monthly Bachat Collected</small>
+              <h3 id="mr-collected" style="color: var(--success); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Monthly Bachat Pending</small>
+              <h3 id="mr-pending" style="color: var(--warning); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Monthly Bachat Penalty</small>
+              <h3 id="mr-penalty" style="color: var(--danger); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Opening Fund</small>
+              <h3 id="mr-opening-fund" style="color: var(--primary); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Remaining Fund</small>
+              <h3 id="mr-remaining-fund" style="color: var(--success); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Loan Principal Recovered</small>
+              <h3 id="mr-principal-recovered" style="color: var(--success); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Loan Interest Income</small>
+              <h3 id="mr-interest-income" style="color: var(--success); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Loan Disbursement</small>
+              <h3 id="mr-loan-disbursement" style="color: var(--danger); font-weight: 700;">₹0</h3>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: var(--bg-main); border-radius: var(--radius-md); text-align: center;">
+              <small class="text-muted">Monthly Expenses</small>
+              <h3 id="mr-expenses" style="color: var(--danger); font-weight: 700;">₹0</h3>
+            </div>
+          </div>
+
+          <div class="content-card report-summary-table-wrap" style="margin-bottom: 1.5rem;">
+            <h3 style="margin-bottom: 1rem;">Monthly Financial Summary</h3>
+            <div class="table-responsive">
+              <table class="data-table mobile-card-table">
+                <thead><tr><th>Financial Item</th><th style="text-align:right;">Amount</th></tr></thead>
+                <tbody id="monthly-summary-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Member ID</th>
+                <th>Member Name</th>
+                <th style="text-align: right;">Expected Share</th>
+                <th style="text-align: right;">Paid Amount</th>
+                <th style="text-align: right;">Pending</th>
+                <th>Status</th>
+                <th>Payment Date</th>
+                <th>Recorded By</th>
+              </tr>
+            </thead>
+            <tbody id="monthly-collections-tbody">
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">Select period and click Load Report</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Yearly Statement -->
+        <div id="tab-yearly" class="printable-sheet" style="display: none;">
+          <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+            <label style="font-weight: 600;">Select Financial Year:</label>
+            <select id="yearly-report-year" class="form-select" style="max-width: 140px;">
+              <option value="2026" selected>2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+            <button onclick="loadYearlyReport()" class="btn-primary-custom">
+              <i class="bi bi-filter"></i> Load Yearly Report
+            </button>
+          </div>
+
+          <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <h2 id="yr-title" style="font-size: 1.4rem; font-weight: 700;">Yearly Financial Statement - 2026</h2>
+            <p style="color: var(--text-muted);">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</p>
+          </div>
+
+          <div class="metrics-grid mb-4">
+            <div class="metric-card success">
+              <div class="metric-header">
+                <span class="metric-label">Total Inflows</span>
+                <div class="metric-icon-wrap icon-green"><i class="bi bi-arrow-down-left"></i></div>
+              </div>
+              <div id="yr-inflow" class="metric-value">₹0</div>
+              <div class="metric-sub">Savings + Recoveries + Other Income</div>
+            </div>
+
+            <div class="metric-card danger">
+              <div class="metric-header">
+                <span class="metric-label">Total Outflows</span>
+                <div class="metric-icon-wrap icon-red"><i class="bi bi-arrow-up-right"></i></div>
+              </div>
+              <div id="yr-outflow" class="metric-value">₹0</div>
+              <div class="metric-sub">Loan disbursements + Expenses</div>
+            </div>
+
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Net Surplus</span>
+                <div class="metric-icon-wrap icon-blue"><i class="bi bi-piggy-bank"></i></div>
+              </div>
+              <div id="yr-surplus" class="metric-value">₹0</div>
+              <div class="metric-sub">Inflow minus Outflow balance</div>
+            </div>
+
+            <div class="metric-card warning">
+              <div class="metric-header">
+                <span class="metric-label">Loans Disbursed</span>
+                <div class="metric-icon-wrap icon-yellow"><i class="bi bi-cash-stack"></i></div>
+              </div>
+              <div id="yr-loans-disbursed" class="metric-value">₹0</div>
+              <div class="metric-sub">Capital extended to members</div>
+            </div>
+          </div>
+
+          <table class="data-table mb-4">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th style="text-align: right;">Total Inflow (₹)</th>
+                <th style="text-align: right;">Total Outflow (₹)</th>
+                <th style="text-align: right;">Net Balance (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="yr-summary-tbody">
+              <tr>
+                <td><strong>1. Member Regular Share Collections</strong></td>
+                <td style="text-align: right; color: var(--success); font-weight: 600;" id="yr-cat-shares">₹0</td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; font-weight: 700;" id="yr-cat-shares-net">₹0</td>
+              </tr>
+              <tr>
+                <td><strong>2. Loan Operations (Disbursements & Recoveries)</strong></td>
+                <td style="text-align: right; color: var(--success);" id="yr-cat-loan-rec">₹0</td>
+                <td style="text-align: right; color: var(--danger);" id="yr-cat-loan-disb">₹0</td>
+                <td style="text-align: right; font-weight: 700;" id="yr-cat-loan-net">₹0</td>
+              </tr>
+              <tr>
+                <td><strong>3. Group Operating Expenses</strong></td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; color: var(--danger);" id="yr-cat-exp">₹0</td>
+                <td style="text-align: right; font-weight: 700; color: var(--danger);" id="yr-cat-exp-net">₹0</td>
+              </tr>
+              <tr>
+                <td><strong>4. Other Income & Grants</strong></td>
+                <td style="text-align: right; color: var(--success);" id="yr-cat-income">₹0</td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; font-weight: 700;" id="yr-cat-income-net">₹0</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Outstanding Loans & Recovery -->
+        <div id="tab-outstanding" class="printable-sheet" style="display: none;">
+          <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
+            <h2 style="font-size: 1.4rem; font-weight: 700;">Outstanding Loans & Recovery Audit</h2>
+            <p style="color: var(--text-muted);">Active borrower obligations and principal/interest debt aging</p>
+          </div>
+
+          <div class="metrics-grid mb-4">
+            <div class="metric-card">
+              <div class="metric-header">
+                <span class="metric-label">Active Loans Count</span>
+                <div class="metric-icon-wrap icon-blue"><i class="bi bi-people-fill"></i></div>
+              </div>
+              <div id="out-count" class="metric-value">0</div>
+              <div class="metric-sub">Borrowers with remaining balances</div>
+            </div>
+
+            <div class="metric-card warning">
+              <div class="metric-header">
+                <span class="metric-label">Total Principal Remaining</span>
+                <div class="metric-icon-wrap icon-yellow"><i class="bi bi-cash"></i></div>
+              </div>
+              <div id="out-principal" class="metric-value">₹0</div>
+              <div class="metric-sub">Active principal to be recovered</div>
+            </div>
+
+            <div class="metric-card danger">
+              <div class="metric-header">
+                <span class="metric-label">Total Outstanding Debt</span>
+                <div class="metric-icon-wrap icon-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+              </div>
+              <div id="out-total" class="metric-value">₹0</div>
+              <div class="metric-sub">Principal + Remaining Interest</div>
+            </div>
+
+            <div class="metric-card success">
+              <div class="metric-header">
+                <span class="metric-label">Total Recovered To Date</span>
+                <div class="metric-icon-wrap icon-green"><i class="bi bi-check2-circle"></i></div>
+              </div>
+              <div id="out-recovered" class="metric-value">₹0</div>
+              <div class="metric-sub">Principal + Interest received</div>
+            </div>
+          </div>
+
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Loan Code</th>
+                <th>Borrower</th>
+                <th style="text-align: right;">Sanctioned (₹)</th>
+                <th>Rate</th>
+                <th style="text-align: right;">Principal Paid (₹)</th>
+                <th style="text-align: right;">Interest Paid (₹)</th>
+                <th style="text-align: right;">Outstanding (₹)</th>
+                <th>Next Due Date</th>
+                <th>Status</th>
+                <th style="text-align: center;">Account</th>
+              </tr>
+            </thead>
+            <tbody id="outstanding-tbody">
+              <tr>
+                <td colspan="10" class="text-center py-4 text-muted">Loading outstanding loans...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Member Statement -->
+        <div id="tab-statement" class="printable-sheet" style="display: none;">
+          <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
+            <label style="font-weight: 600;">Choose Member:</label>
+            <select id="statement-member-select" class="form-select" style="max-width: 320px;">
+              <option value="">Loading members...</option>
+            </select>
+            <button onclick="loadMemberStatement()" class="btn-primary-custom">
+              <i class="bi bi-file-earmark-person"></i> Generate Passbook
+            </button>
+          </div>
+
+          <div id="statement-content" style="display: none;">
+            <div style="border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h2 style="font-size: 1.3rem; font-weight: 700; color: var(--primary);">Official Member Passbook Statement</h2>
+                <h3 id="stmt-group-name" style="font-size: 1.1rem; font-weight: 600;">Mahila Pragati Bachat Gat</h3>
+                <p style="color: var(--text-muted); font-size: 0.875rem;">Reg ID: <span id="stmt-group-reg">BG-MH-2026-0001</span></p>
+              </div>
+              <div style="text-align: right;">
+                <p style="font-size: 0.875rem; color: var(--text-muted);">Date: <strong id="stmt-date"></strong></p>
+                <span id="stmt-status-badge" class="status-badge badge-active">ACTIVE</span>
+              </div>
+            </div>
+
+            <!-- Member KYC Info Grid -->
+            <div style="background: var(--bg-main); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.875rem;">
+              <div>
+                <span class="text-muted">Member Name:</span><br>
+                <strong id="stmt-member-name">-</strong>
+              </div>
+              <div>
+                <span class="text-muted">Member ID:</span><br>
+                <strong id="stmt-member-id">-</strong>
+              </div>
+              <div>
+                <span class="text-muted">Mobile Number:</span><br>
+                <strong id="stmt-mobile">-</strong>
+              </div>
+              <div>
+                <span class="text-muted">PAN Number:</span><br>
+                <strong id="stmt-pan">-</strong>
+              </div>
+              <div>
+                <span class="text-muted">Nominee:</span><br>
+                <strong id="stmt-nominee">-</strong>
+              </div>
+              <div>
+                <span class="text-muted">Bank & Account:</span><br>
+                <strong id="stmt-bank">-</strong>
+              </div>
+            </div>
+
+            <!-- Savings & Share Balances -->
+            <h4 style="font-size: 1rem; margin-bottom: 0.75rem;"><i class="bi bi-wallet-fill text-primary"></i> Monthly Savings History</h4>
+            <table class="data-table" style="margin-bottom: 1.5rem;">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th style="text-align: right;">Expected</th>
+                  <th style="text-align: right;">Paid</th>
+                  <th style="text-align: right;">Pending</th>
+                  <th>Status</th>
+                  <th>Payment Date</th>
+                </tr>
+              </thead>
+              <tbody id="stmt-collections-tbody">
+              </tbody>
+            </table>
+
+            <!-- Loans & Repayments -->
+            <h4 style="font-size: 1rem; margin-bottom: 0.75rem;"><i class="bi bi-cash-stack text-info"></i> Loan Ledger</h4>
+            <table class="data-table" style="margin-bottom: 1.5rem;">
+              <thead>
+                <tr>
+                  <th>Loan ID</th>
+                  <th>Sanction Date</th>
+                  <th style="text-align: right;">Principal</th>
+                  <th style="text-align: right;">Interest Rate</th>
+                  <th style="text-align: right;">Principal Paid</th>
+                  <th style="text-align: right;">Interest Paid</th>
+                  <th style="text-align: right;">Outstanding</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="stmt-loans-tbody">
+              </tbody>
+            </table>
+
+            <div style="margin-top: 3rem; display: flex; justify-content: space-between; text-align: center; border-top: 1px solid var(--border-color); padding-top: 2rem;">
+              <div>
+                <div style="width: 140px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+                <small>Member Signature</small>
+              </div>
+              <div>
+                <div style="width: 140px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+                <small>Bachat Gat Secretary</small>
+              </div>
+              <div>
+                <div style="width: 140px; border-bottom: 1px solid #000; margin-bottom: 0.5rem;"></div>
+                <small>President / Authorized Signatory</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  <!-- WhatsApp Sharing Modal (Requirement 51 & 52) -->
+  <div id="modal-whatsapp" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-whatsapp" style="color: #25D366;"></i> Share Report via WhatsApp
+        </h3>
+        <button type="button" class="btn-close-modal" onclick="closeWhatsAppModal()">&times;</button>
+      </div>
+      <form id="form-share-whatsapp">
+        <div class="form-group mb-3">
+          <label class="form-label required">Report Type</label>
+          <select id="wa-report-type" class="form-select" required>
+            <option value="FINANCIAL_SUMMARY">Group Financial Summary</option>
+            <option value="MONTHLY_AUDIT">Monthly Bachat Collection Audit</option>
+            <option value="YEARLY_STATEMENT">Yearly Financial Statement</option>
+            <option value="OUTSTANDING_LOANS">Outstanding Loans & Recoveries</option>
+            <option value="MEMBER_STATEMENT">Member Passbook Statement</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Recipient WhatsApp Number</label>
+          <input type="tel" id="wa-phone" class="form-control" required placeholder="e.g. +91 9876543210 or 9876543210">
+          <div class="form-help">Enter 10-digit mobile number with or without country code.</div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Message / Cover Note</label>
+          <textarea id="wa-notes" class="form-control" rows="2" placeholder="e.g. Please find attached the monthly SHG audit report."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeWhatsAppModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-wa" style="background: #25D366; border-color: #25D366;">
+            <i class="bi bi-send-fill"></i> Share on WhatsApp
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Email Sharing Modal (Requirement 51 & 53) -->
+  <div id="modal-email" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem;">
+          <i class="bi bi-envelope-fill" style="color: #0284c7;"></i> Send Report via Email
+        </h3>
+        <button type="button" class="btn-close-modal" onclick="closeEmailModal()">&times;</button>
+      </div>
+      <form id="form-share-email">
+        <div class="form-group mb-3">
+          <label class="form-label required">Report Type</label>
+          <select id="em-report-type" class="form-select" required>
+            <option value="FINANCIAL_SUMMARY">Group Financial Summary</option>
+            <option value="MONTHLY_AUDIT">Monthly Bachat Collection Audit</option>
+            <option value="YEARLY_STATEMENT">Yearly Financial Statement</option>
+            <option value="OUTSTANDING_LOANS">Outstanding Loans & Recoveries</option>
+            <option value="MEMBER_STATEMENT">Member Passbook Statement</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Recipient Email Address</label>
+          <input type="email" id="em-email" class="form-control" required placeholder="e.g. member@example.com or auditor@ca.com">
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Subject</label>
+          <input type="text" id="em-subject" class="form-control" placeholder="e.g. Bachat Gat Financial Statement 2026">
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Email Message / Summary</label>
+          <textarea id="em-notes" class="form-control" rows="2" placeholder="e.g. Official audited financial statement for your records."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeEmailModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-em">
+            <i class="bi bi-send-fill"></i> Send Email
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let activeTabKey = 'summary';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      document.getElementById('sum-gen-date').textContent = new Date().toLocaleDateString(Common.getLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
+      await loadFinancialSummary();
+      await populateMemberDropdown();
+
+      document.getElementById('form-share-whatsapp').addEventListener('submit', handleSendWhatsApp);
+      document.getElementById('form-share-email').addEventListener('submit', handleSendEmail);
+    });
+
+    function switchReportTab(tabKey) {
+      activeTabKey = tabKey;
+      document.querySelectorAll('.report-tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      document.getElementById('tab-summary').style.display = tabKey === 'summary' ? 'block' : 'none';
+      document.getElementById('tab-monthly').style.display = tabKey === 'monthly' ? 'block' : 'none';
+      document.getElementById('tab-yearly').style.display = tabKey === 'yearly' ? 'block' : 'none';
+      document.getElementById('tab-outstanding').style.display = tabKey === 'outstanding' ? 'block' : 'none';
+      document.getElementById('tab-statement').style.display = tabKey === 'statement' ? 'block' : 'none';
+
+      if (tabKey === 'monthly') {
+        loadMonthlyReport();
+      } else if (tabKey === 'yearly') {
+        loadYearlyReport();
+      } else if (tabKey === 'outstanding') {
+        loadOutstandingReport();
+      }
+    }
+
+    async function loadFinancialSummary() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const data = await api.getFinancialSummary(groupId);
+        if (data.group) {
+          document.getElementById('sum-group-name').textContent = data.group.groupName || data.group.name || '-';
+          document.getElementById('sum-reg-id').textContent = data.group.registrationId || data.group.groupCode || '-';
+        }
+        document.getElementById('sum-total-savings').textContent = Common.formatIndianCurrency(data.totalSavings);
+        document.getElementById('sum-total-shares').textContent = Common.formatIndianCurrency(data.totalShareContributions);
+        document.getElementById('sum-net-savings').textContent = Common.formatIndianCurrency(parseFloat(data.totalSavings || 0) + parseFloat(data.totalShareContributions || 0));
+
+        document.getElementById('sum-loans-disbursed').textContent = Common.formatIndianCurrency(data.totalLoansDisbursed);
+        document.getElementById('sum-principal-recovered').textContent = Common.formatIndianCurrency(data.totalPrincipalRecovered);
+        document.getElementById('sum-interest-collected').textContent = Common.formatIndianCurrency(data.totalInterestCollected);
+        document.getElementById('sum-outstanding-principal').textContent = Common.formatIndianCurrency(data.outstandingPrincipal);
+
+        document.getElementById('sum-total-expenses').textContent = Common.formatIndianCurrency(data.totalExpenses);
+        document.getElementById('sum-outstanding-interest').textContent = Common.formatIndianCurrency(data.outstandingInterest);
+        document.getElementById('sum-total-outstanding').textContent = Common.formatIndianCurrency(data.totalOutstanding);
+      } catch (err) {
+        Common.showToast('Failed to load financial summary: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadMonthlyReport() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const month = document.getElementById('monthly-report-month').value;
+      const year = document.getElementById('monthly-report-year').value;
+
+      try {
+        const data = await api.getMonthlyReport(groupId, month, year);
+        const monthNames = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('mr-title').textContent = `Monthly Bachat Collection Audit - ${monthNames[month]} ${year}`;
+
+        document.getElementById('mr-expected').textContent = Common.formatIndianCurrency(data.totalExpected);
+        document.getElementById('mr-collected').textContent = Common.formatIndianCurrency(data.totalCollected);
+        document.getElementById('mr-pending').textContent = Common.formatIndianCurrency(data.totalPending);
+        document.getElementById('mr-penalty').textContent = Common.formatIndianCurrency(data.totalMonthlyBachatPenalty || 0);
+        document.getElementById('mr-opening-fund').textContent = Common.formatIndianCurrency(data.openingFund);
+        document.getElementById('mr-remaining-fund').textContent = Common.formatIndianCurrency(data.remainingFund);
+        document.getElementById('mr-principal-recovered').textContent = Common.formatIndianCurrency(data.loanPrincipalRecovered);
+        document.getElementById('mr-interest-income').textContent = Common.formatIndianCurrency(data.loanInterestIncome);
+        document.getElementById('mr-loan-disbursement').textContent = Common.formatIndianCurrency(data.loanDisbursement);
+        document.getElementById('mr-expenses').textContent = Common.formatIndianCurrency(data.monthlyExpenses);
+
+        const summaryRows = [
+          ['Total Expected Monthly Bachat', data.totalExpected],
+          ['Monthly Bachat Collected', data.totalCollected],
+          ['Monthly Bachat Pending', data.totalPending],
+          ['Monthly Bachat Penalty', data.totalMonthlyBachatPenalty || 0],
+          ['Opening Fund', data.openingFund],
+          ['Remaining Fund', data.remainingFund],
+          ['Loan Principal Recovered', data.loanPrincipalRecovered],
+          ['Loan Interest Income', data.loanInterestIncome],
+          ['Loan Disbursement', data.loanDisbursement],
+          ['Monthly Expenses', data.monthlyExpenses]
+        ];
+        document.getElementById('monthly-summary-tbody').innerHTML = summaryRows.map(([label, amount]) =>
+          `<tr><td data-label="Financial Item">${label}</td><td data-label="Amount" style="text-align:right;font-weight:700;">${Common.formatIndianCurrency(amount || 0)}</td></tr>`
+        ).join('');
+
+        const tbody = document.getElementById('monthly-collections-tbody');
+        if (!data.collections || data.collections.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No collections recorded for this period.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.collections.map(c => `
+          <tr>
+            <td><strong>${escapeHtml(c.memberId)}</strong></td>
+            <td>${escapeHtml(c.memberName || c.memberId)}</td>
+            <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
+            <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
+            <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
+            <td>${Common.formatDate(c.paymentDate)}</td>
+            <td><small>${escapeHtml(c.recordedBy || 'SYSTEM')}</small></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        Common.showToast('Failed to load monthly audit: ' + err.message, 'danger');
+      }
+    }
+
+    async function populateMemberDropdown() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const members = await api.getMembers(groupId);
+        const select = document.getElementById('statement-member-select');
+        select.innerHTML = '<option value="">-- Choose Member --</option>' +
+          members.map(m => `<option value="${m.memberId}">${escapeHtml(m.fullName)} (${m.memberId})</option>`).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function loadMemberStatement() {
+      const memberId = document.getElementById('statement-member-select').value;
+      if (!memberId) {
+        Common.showToast('Please select a member first', 'warning');
+        return;
+      }
+
+      try {
+        const data = await api.getMemberStatement(memberId);
+        document.getElementById('statement-content').style.display = 'block';
+        document.getElementById('stmt-date').textContent = new Date().toLocaleDateString(Common.getLocale());
+
+        const m = data.member;
+        document.getElementById('stmt-member-name').textContent = m.fullName;
+        document.getElementById('stmt-member-id').textContent = m.memberId;
+        document.getElementById('stmt-mobile').textContent = m.mobileNumber || '-';
+        document.getElementById('stmt-pan').textContent = m.panNumber || 'KYC Verified';
+        document.getElementById('stmt-nominee').textContent = m.nomineeName ? `${m.nomineeName} (${m.nomineeRelation || 'Relation'})` : '-';
+        document.getElementById('stmt-bank').textContent = m.bankName ? `${m.bankName} - ${m.accountNumber || ''}` : '-';
+
+        // Collections
+        const cBody = document.getElementById('stmt-collections-tbody');
+        if (!data.collections || data.collections.length === 0) {
+          cBody.innerHTML = `<tr><td colspan="6" class="text-center py-2 text-muted">No monthly savings records found.</td></tr>`;
+        } else {
+          cBody.innerHTML = data.collections.map(c => `
+            <tr>
+              <td>${c.month}/${c.year}</td>
+              <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+              <td style="text-align: right; color: var(--success);">${Common.formatIndianCurrency(c.paidAmount)}</td>
+              <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
+              <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
+              <td>${Common.formatDate(c.paymentDate)}</td>
+            </tr>
+          `).join('');
+        }
+
+        // Loans
+        const lBody = document.getElementById('stmt-loans-tbody');
+        if (!data.loans || data.loans.length === 0) {
+          lBody.innerHTML = `<tr><td colspan="8" class="text-center py-2 text-muted">No loan history for this member.</td></tr>`;
+        } else {
+          lBody.innerHTML = data.loans.map(l => `
+            <tr>
+              <td><strong>${escapeHtml(l.id)}</strong></td>
+              <td>${Common.formatDate(l.startDate)}</td>
+              <td style="text-align: right;">${Common.formatIndianCurrency(l.principalAmount)}</td>
+              <td style="text-align: right;">${l.interestRate}%</td>
+              <td style="text-align: right; color: var(--success);">${Common.formatIndianCurrency(l.principalPaid)}</td>
+              <td style="text-align: right; color: var(--success);">${Common.formatIndianCurrency(l.interestPaid)}</td>
+              <td style="text-align: right; color: var(--danger); font-weight: 600;">${Common.formatIndianCurrency(parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0))}</td>
+              <td><span class="status-badge badge-${l.status.toLowerCase()}">${escapeHtml(l.status)}</span></td>
+            </tr>
+          `).join('');
+        }
+
+      } catch (err) {
+        Common.showToast('Failed to load statement: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadYearlyReport() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const year = document.getElementById('yearly-report-year').value || '2026';
+
+      try {
+        const data = await api.getYearlyReport(groupId, year);
+        document.getElementById('yr-title').textContent = `Yearly Financial Statement - ${data.financialYear || year}`;
+        document.getElementById('yr-inflow').textContent = Common.formatIndianCurrency(data.totalInflow);
+        document.getElementById('yr-outflow').textContent = Common.formatIndianCurrency(data.totalOutflow);
+        document.getElementById('yr-surplus').textContent = Common.formatIndianCurrency(data.netSurplus);
+        document.getElementById('yr-loans-disbursed').textContent = Common.formatIndianCurrency(data.loansDisbursed);
+
+        document.getElementById('yr-cat-shares').textContent = Common.formatIndianCurrency(data.sharesCollected);
+        document.getElementById('yr-cat-shares-net').textContent = Common.formatIndianCurrency(data.sharesCollected);
+
+        const loanRec = parseFloat(data.principalRecovered || 0) + parseFloat(data.interestCollected || 0);
+        document.getElementById('yr-cat-loan-rec').textContent = Common.formatIndianCurrency(loanRec);
+        document.getElementById('yr-cat-loan-disb').textContent = Common.formatIndianCurrency(data.loansDisbursed);
+        const loanNet = loanRec - parseFloat(data.loansDisbursed || 0);
+        document.getElementById('yr-cat-loan-net').textContent = (loanNet >= 0 ? '+' : '') + Common.formatIndianCurrency(loanNet);
+
+        document.getElementById('yr-cat-exp').textContent = Common.formatIndianCurrency(data.expensesTotal);
+        document.getElementById('yr-cat-exp-net').textContent = '-' + Common.formatIndianCurrency(data.expensesTotal);
+
+        document.getElementById('yr-cat-income').textContent = Common.formatIndianCurrency(data.otherIncomeTotal);
+        document.getElementById('yr-cat-income-net').textContent = Common.formatIndianCurrency(data.otherIncomeTotal);
+      } catch (err) {
+        Common.showToast('Failed to load yearly statement: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadOutstandingReport() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const data = await api.getOutstandingReport(groupId);
+        document.getElementById('out-count').textContent = data.activeLoansCount || 0;
+        document.getElementById('out-principal').textContent = Common.formatIndianCurrency(data.totalOutstandingPrincipal);
+        document.getElementById('out-total').textContent = Common.formatIndianCurrency(data.totalOutstanding);
+        document.getElementById('out-recovered').textContent = Common.formatIndianCurrency(data.totalRecovered);
+
+        const tbody = document.getElementById('outstanding-tbody');
+        if (!data.loans || data.loans.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No active outstanding loans found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.loans.map(l => {
+          const outTotal = parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0);
+          return `
+            <tr>
+              <td><a href="/admin/loan-details.html?loanId=${l.id}" style="color: var(--primary); font-weight: 700;">${escapeHtml(l.loanId || l.id)}</a></td>
+              <td><strong>${escapeHtml(l.memberName || l.memberId)}</strong></td>
+              <td style="text-align: right;">${Common.formatIndianCurrency(l.principalAmount)}</td>
+              <td>${l.interestRate}%</td>
+              <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(l.principalPaid)}</td>
+              <td style="text-align: right; color: var(--success);">${Common.formatIndianCurrency(l.interestPaid)}</td>
+              <td style="text-align: right; color: var(--danger); font-weight: 700;">${Common.formatIndianCurrency(outTotal)}</td>
+              <td>${Common.formatDate(l.nextDueDate)}</td>
+              <td><span class="badge status-badge badge-${(l.status || 'active').toLowerCase()}">${escapeHtml(l.status)}</span></td>
+              <td style="text-align: center;">
+                <a href="/admin/loan-details.html?loanId=${l.id}" class="btn-sm btn-outline-custom">View</a>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        Common.showToast('Failed to load outstanding loans: ' + err.message, 'danger');
+      }
+    }
+
+    // WhatsApp and Email Modals
+    function openWhatsAppModal() {
+      document.getElementById('modal-whatsapp').classList.add('show');
+    }
+    function closeWhatsAppModal() {
+      document.getElementById('modal-whatsapp').classList.remove('show');
+    }
+
+    function openEmailModal() {
+      document.getElementById('modal-email').classList.add('show');
+    }
+    function closeEmailModal() {
+      document.getElementById('modal-email').classList.remove('show');
+    }
+
+    async function handleSendWhatsApp(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const btn = document.getElementById('btn-submit-wa');
+      btn.disabled = true;
+
+      const payload = {
+        reportType: document.getElementById('wa-report-type').value,
+        recipientPhone: document.getElementById('wa-phone').value.trim(),
+        notes: document.getElementById('wa-notes').value.trim()
+      };
+
+      try {
+        const res = await api.shareReportWhatsApp(groupId, payload);
+        Common.showToast(res.message || 'WhatsApp report delivery queued successfully!', 'success');
+        closeWhatsAppModal();
+      } catch (err) {
+        Common.showToast('WhatsApp dispatch failed: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function handleSendEmail(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const btn = document.getElementById('btn-submit-em');
+      btn.disabled = true;
+
+      const payload = {
+        reportType: document.getElementById('em-report-type').value,
+        recipientEmail: document.getElementById('em-email').value.trim(),
+        subject: document.getElementById('em-subject').value.trim(),
+        notes: document.getElementById('em-notes').value.trim()
+      };
+
+      try {
+        const res = await api.sendReportEmail(groupId, payload);
+        Common.showToast(res.message || 'Report emailed successfully to recipient!', 'success');
+        closeEmailModal();
+      } catch (err) {
+        Common.showToast('Email dispatch failed: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function exportCurrentReportCSV() {
+      const activeSheet = document.getElementById(`tab-${activeTabKey}`);
+      if (!activeSheet) return;
+
+      const table = activeSheet.querySelector('table');
+      if (!table) {
+        Common.showToast('No table data to export in the current view.', 'warning');
+        return;
+      }
+
+      let csv = [];
+      const rows = table.querySelectorAll('tr');
+      rows.forEach(r => {
+        const cols = r.querySelectorAll('th, td');
+        const rowData = [];
+        cols.forEach(c => {
+          let text = c.innerText.replace(/"/g, '""').replace(/\n/g, ' ').trim();
+          rowData.push(`"${text}"`);
+        });
+        csv.push(rowData.join(','));
+      });
+
+      const csvContent = "data:text/csv;charset=utf-8," + csv.join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `BachatGat_Report_${activeTabKey}_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      Common.showToast('Report CSV exported successfully!', 'success');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

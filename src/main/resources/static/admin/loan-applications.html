@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Applications - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item active"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="loanApplications">Member Loan Applications</h1>
+            <p class="page-subtitle">Review incoming member loan requests, adjust sanctioned amounts, and disburse</p>
+          </div>
+        </div>
+
+        <div class="card-box">
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>App ID</th>
+                  <th data-i18n="date">Submitted Date</th>
+                  <th data-i18n="memberId">Member ID</th>
+                  <th data-i18n="fullName">Member Name</th>
+                  <th>Requested Amount</th>
+                  <th>Purpose</th>
+                  <th>Term</th>
+                  <th>Sanctioned Amount</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="action">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="loan-apps-tbody">
+                <tr><td colspan="10" style="text-align: center;">Loading loan applications...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Review Loan Application Modal -->
+  <div id="review-app-modal" class="modal-overlay">
+    <div class="modal-content-custom">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom">Review & Sanction Loan Application</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-review-modal">&times;</button>
+      </div>
+      <form id="review-app-form">
+        <input type="hidden" id="rev-appId">
+        <div class="modal-body-custom">
+          <!-- Member & Request Summary -->
+          <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted);">Applicant:</span>
+              <strong id="rev-memberName" style="color: var(--text-main);">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted);">Requested Amount:</span>
+              <strong id="rev-requestedAmt" style="color: var(--primary); font-size: 1.1rem;">₹0</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted);">Purpose:</span>
+              <span id="rev-purpose" style="font-weight: 500;">-</span>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Preferred Duration:</span>
+              <span id="rev-duration" style="font-weight: 500;">-</span>
+            </div>
+          </div>
+
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem;">
+            Admin Sanction Configuration
+          </h4>
+
+          <div class="form-group">
+            <label class="form-label">Approved Sanction Amount (₹) *</label>
+            <div class="input-currency-group">
+              <span class="currency-prefix">₹</span>
+              <input type="number" id="rev-approvedAmount" class="form-control" required min="1000">
+            </div>
+            <div class="form-help">You can approve an amount lower than the requested amount.</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Monthly Interest Rate (% / month)</label>
+              <div class="input-currency-group">
+                <input type="number" id="rev-monthlyInterestRate" class="form-control" step="0.05" min="0.1" max="15" placeholder="e.g. 2.0" oninput="syncRevFromMonthly()">
+              </div>
+              <div class="form-help">e.g. 2% / month (२ रुपये शेकडा)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Annual Interest Rate (%) *</label>
+              <div class="input-currency-group">
+                <input type="number" id="rev-interestRate" class="form-control" value="12" step="0.25" min="1" max="60" required oninput="syncRevFromAnnual()">
+              </div>
+              <div class="form-help">Annual equivalent rate</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Approved Duration (Months) *</label>
+            <input type="number" id="rev-durationMonths" class="form-control" value="12" min="1" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Interest Calculation Type</label>
+            <select id="rev-interestType" class="form-select">
+              <option value="FLAT">Flat Interest</option>
+              <option value="REDUCING">Reducing Balance</option>
+            </select>
+          </div>
+
+          <div id="rev-interest-details" style="padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.825rem; line-height: 1.4; border-left: 4px solid var(--primary); background: #f8fafc;">
+            <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.25rem;" id="rev-interest-title">
+              Flat Interest Method (स्थिर व्याज)
+            </div>
+            <div id="rev-interest-desc" style="color: var(--text-muted); margin-bottom: 0.35rem;">
+              Interest is calculated on the entire initial sanction amount for the full term.
+            </div>
+            <div style="display: flex; gap: 1rem; font-weight: 600; color: var(--text-main);" id="rev-emi-preview">
+              <span>Estimated EMI: <span id="rev-est-emi" style="color: var(--primary);">₹0</span>/mo</span>
+              <span>Total Interest: <span id="rev-est-total-int" style="color: #d97706;">₹0</span></span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Admin Approval Notes / Minutes Reference</label>
+            <textarea id="rev-adminNotes" class="form-control" rows="2" placeholder="e.g. Approved in Monthly Meeting #12 on 1st March"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer-custom" style="justify-content: space-between;">
+          <button type="button" class="btn-outline-custom text-danger" id="btn-reject-app" style="border-color: #fca5a5;">
+            <i class="bi bi-x-circle-fill"></i> Reject Application
+          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn-outline-custom" id="btn-cancel-review">Cancel</button>
+            <button type="submit" id="btn-approve-app" class="btn-primary-custom">
+              <i class="bi bi-check-circle-fill"></i> Sanction & Disburse Loan
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let currentApplications = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.requireAuth('ADMIN')) return;
+      const groupId = document.getElementById('active-group-select').value;
+      await loadApplications(groupId);
+
+      const modal = document.getElementById('review-app-modal');
+      document.getElementById('btn-close-review-modal').addEventListener('click', () => modal.classList.remove('active'));
+      document.getElementById('btn-cancel-review').addEventListener('click', () => modal.classList.remove('active'));
+
+      // Approve Submit
+      document.getElementById('review-app-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('rev-appId').value;
+        const approveBtn = document.getElementById('btn-approve-app');
+        approveBtn.disabled = true;
+        approveBtn.textContent = 'Sanctioning & Disbursing...';
+
+        const payload = {
+          approvedAmount: Number(document.getElementById('rev-approvedAmount').value),
+          interestRate: Number(document.getElementById('rev-interestRate').value),
+          durationMonths: Number(document.getElementById('rev-durationMonths').value),
+          interestType: document.getElementById('rev-interestType').value,
+          adminNotes: document.getElementById('rev-adminNotes').value
+        };
+
+        try {
+          const res = await api.approveLoanApplication(id, payload);
+          Common.showToast(`Loan ${res.loanId} sanctioned and disbursed successfully!`, 'success');
+          modal.classList.remove('active');
+          await loadApplications(groupId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        } finally {
+          approveBtn.disabled = false;
+          approveBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Sanction & Disburse Loan';
+        }
+      });
+
+      // Reject Submit
+      document.getElementById('btn-reject-app').addEventListener('click', async () => {
+        const id = document.getElementById('rev-appId').value;
+        const reason = prompt('Please enter the reason for rejecting this loan application:');
+        if (!reason) return;
+
+        try {
+          await api.rejectLoanApplication(id, reason);
+          Common.showToast('Loan application rejected.', 'warning');
+          modal.classList.remove('active');
+          await loadApplications(groupId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        }
+      });
+    });
+
+    async function loadApplications(groupId) {
+      try {
+        currentApplications = await api.getLoanApplications(groupId);
+        renderApplications(currentApplications);
+      } catch (err) {
+        console.error('Error fetching loan applications:', err);
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    function renderApplications(apps) {
+      const tbody = document.getElementById('loan-apps-tbody');
+      if (!apps || apps.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No loan applications received.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = apps.map(a => `
+        <tr>
+          <td><code>${a.applicationId}</code></td>
+          <td>${Common.formatDate(a.createdAt)}</td>
+          <td><code>${a.memberId}</code></td>
+          <td><strong>${a.memberName}</strong></td>
+          <td class="table-currency" style="color: var(--primary); font-weight: 700;">${Common.formatINR(a.requestedAmount)}</td>
+          <td>${a.purpose}</td>
+          <td>${a.preferredDurationMonths} mos</td>
+          <td class="table-currency text-success">${a.approvedAmount ? Common.formatINR(a.approvedAmount) : '-'}</td>
+          <td>${Common.getStatusBadge(a.status)}</td>
+          <td>
+            ${a.status === 'PENDING' ? `
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="openReviewModal('${a.id}')">
+                Review & Sanction
+              </button>
+            ` : `
+              <span style="font-size: 0.8rem; color: var(--text-muted);">${a.generatedLoanId ? 'Loan: ' + a.generatedLoanId : a.status}</span>
+            `}
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function syncRevFromMonthly() {
+      const m = parseFloat(document.getElementById('rev-monthlyInterestRate').value);
+      if (!isNaN(m)) {
+        document.getElementById('rev-interestRate').value = (m * 12).toFixed(2).replace(/\.00$/, '');
+        if (typeof recalculateInterestDetails === 'function') recalculateInterestDetails();
+      }
+    }
+
+    function syncRevFromAnnual() {
+      const a = parseFloat(document.getElementById('rev-interestRate').value);
+      if (!isNaN(a)) {
+        document.getElementById('rev-monthlyInterestRate').value = (a / 12).toFixed(2).replace(/\.00$/, '');
+        if (typeof recalculateInterestDetails === 'function') recalculateInterestDetails();
+      }
+    }
+
+    let recalculateInterestDetails = null;
+
+    function openReviewModal(appId) {
+      const app = currentApplications.find(a => a.id === appId);
+      if (!app) return;
+
+      document.getElementById('rev-appId').value = app.id;
+      document.getElementById('rev-memberName').textContent = `${app.memberName} (${app.memberId})`;
+      document.getElementById('rev-requestedAmt').textContent = Common.formatINR(app.requestedAmount);
+      document.getElementById('rev-purpose').textContent = app.purpose;
+      document.getElementById('rev-duration').textContent = `${app.preferredDurationMonths} Months`;
+      
+      // Default approved amount = requested amount, but admin can adjust downwards!
+      document.getElementById('rev-approvedAmount').value = app.requestedAmount;
+      document.getElementById('rev-durationMonths').value = app.preferredDurationMonths || 12;
+
+      // Dynamic interest calculation listener (Requirement 5)
+      recalculateInterestDetails = function() {
+        const type = document.getElementById('rev-interestType').value;
+        const P = parseFloat(document.getElementById('rev-approvedAmount').value || 0);
+        const annualRate = parseFloat(document.getElementById('rev-interestRate').value || 0);
+        const months = parseInt(document.getElementById('rev-durationMonths').value || 1, 10);
+
+        const titleEl = document.getElementById('rev-interest-title');
+        const descEl = document.getElementById('rev-interest-desc');
+        const emiEl = document.getElementById('rev-est-emi');
+        const totalIntEl = document.getElementById('rev-est-total-int');
+
+        if (type === 'FLAT') {
+          titleEl.textContent = 'Flat Interest Method (स्थिर व्याज)';
+          titleEl.style.color = 'var(--primary)';
+          descEl.textContent = 'Interest is computed on the full sanction amount for the entire tenure. Equal principal + fixed interest split.';
+          const totalInt = Math.round(P * (annualRate / 100) * (months / 12));
+          const emi = months > 0 ? Math.round((P + totalInt) / months) : 0;
+          emiEl.textContent = Common.formatINR(emi);
+          totalIntEl.textContent = Common.formatINR(totalInt);
+        } else {
+          titleEl.textContent = 'Reducing Balance Method (घटती शिल्लक व्याज)';
+          titleEl.style.color = '#059669';
+          descEl.textContent = 'Interest is computed each month on the remaining unpaid principal. Lower cumulative interest burden for member.';
+          const monthlyRate = annualRate / 12 / 100;
+          let emi = 0;
+          let totalInt = 0;
+          if (monthlyRate > 0 && months > 0) {
+            const factor = Math.pow(1 + monthlyRate, months);
+            emi = Math.round((P * monthlyRate * factor) / (factor - 1));
+            totalInt = Math.max(0, (emi * months) - P);
+          } else {
+            emi = months > 0 ? Math.round(P / months) : 0;
+          }
+          emiEl.textContent = Common.formatINR(emi);
+          totalIntEl.textContent = Common.formatINR(totalInt);
+        }
+      };
+
+      // Prefill interest rate and calculation type from group master data
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      api.getMasterData(groupId).then(md => {
+        if (md) {
+          if (md.loanInterestRate != null) {
+            document.getElementById('rev-interestRate').value = md.loanInterestRate;
+            document.getElementById('rev-monthlyInterestRate').value = (md.loanInterestRate / 12).toFixed(2).replace(/\.00$/, '');
+          }
+          if (md.loanInterestType) {
+            document.getElementById('rev-interestType').value = md.loanInterestType.includes('FLAT') ? 'FLAT' : 'REDUCING';
+          }
+          recalculateInterestDetails();
+        }
+      }).catch(e => {
+        const rate = parseFloat(document.getElementById('rev-interestRate').value || 12);
+        document.getElementById('rev-monthlyInterestRate').value = (rate / 12).toFixed(2).replace(/\.00$/, '');
+        recalculateInterestDetails();
+      });
+
+      document.getElementById('rev-interestType').addEventListener('change', recalculateInterestDetails);
+      document.getElementById('rev-approvedAmount').addEventListener('input', recalculateInterestDetails);
+      document.getElementById('rev-interestRate').addEventListener('input', recalculateInterestDetails);
+      document.getElementById('rev-durationMonths').addEventListener('input', recalculateInterestDetails);
+
+      recalculateInterestDetails();
+      document.getElementById('review-app-modal').classList.add('active');
+    }
+  </script>
+</body>
+</html>

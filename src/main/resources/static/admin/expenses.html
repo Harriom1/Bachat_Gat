@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Expenses - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item active"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Group Expenses & Outflows</h1>
+            <p class="page-subtitle">Track administrative expenses, stationery, audit fees, and meeting logistics</p>
+          </div>
+          <button id="btn-add-expense" class="btn-primary-custom">
+            <i class="bi bi-plus-circle-fill"></i> Record Expense
+          </button>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-label">Total Group Expenses</span>
+              <div class="metric-icon-wrap icon-red"><i class="bi bi-wallet2"></i></div>
+            </div>
+            <div id="metric-total-exp" class="metric-value">₹0</div>
+            <div class="metric-sub">Deducted from cash/bank reserve</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Stationery & Books</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-book-fill"></i></div>
+            </div>
+            <div id="metric-stationery-exp" class="metric-value">₹0</div>
+            <div class="metric-sub">Registers, passbooks & stamp pads</div>
+          </div>
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-label">Audit & Legal Fees</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-shield-check"></i></div>
+            </div>
+            <div id="metric-audit-exp" class="metric-value">₹0</div>
+            <div class="metric-sub">Annual CA audit & compliance</div>
+          </div>
+          <div class="metric-card secondary">
+            <div class="metric-header">
+              <span class="metric-label">Meetings & Logistics</span>
+              <div class="metric-icon-wrap icon-teal"><i class="bi bi-cup-hot-fill"></i></div>
+            </div>
+            <div id="metric-other-exp" class="metric-value">₹0</div>
+            <div class="metric-sub">Tea, travel & hall rent</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Expense ID</th>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Description</th>
+                  <th style="text-align: right;">Amount (₹)</th>
+                  <th>Payment Mode</th>
+                  <th>Distribution Status</th>
+                  <th>Paid To</th>
+                  <th>Recorded By</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="expenses-tbody">
+                <tr>
+                  <td colspan="10" class="text-center py-4 text-muted">Loading expenses...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Record Expense Modal -->
+  <div id="modal-record-expense" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Group Expense</h3>
+        <button type="button" class="btn-close-modal" onclick="closeExpenseModal()">&times;</button>
+      </div>
+      <form id="form-record-expense">
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Category</label>
+            <select id="exp-category" class="form-select" required>
+              <option value="STATIONERY">Stationery & Registers</option>
+              <option value="AUDIT_FEE">Auditing & Legal Fee</option>
+              <option value="TEA_SNACKS">Meeting Refreshments / Tea</option>
+              <option value="TRAVEL">Conveyance / Travel</option>
+              <option value="BANK_CHARGES">Bank Charges / SMS</option>
+              <option value="OTHER">Other Expense</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Amount (₹)</label>
+            <input type="number" id="exp-amount" class="form-control" min="1" step="0.5" required placeholder="e.g. 500">
+          </div>
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Expense Date</label>
+            <input type="date" id="exp-date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Payment Mode</label>
+            <select id="exp-mode" class="form-select" required>
+              <option value="CASH">Cash in Hand</option>
+              <option value="BANK_TRANSFER">Bank Account / UPI</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Paid To (Vendor / Person)</label>
+          <input type="text" id="exp-paid-to" class="form-control" placeholder="e.g. Anand Stationery Store">
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Reference / Receipt No.</label>
+          <input type="text" id="exp-ref" class="form-control" placeholder="e.g. BILL-1042">
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label required">Description / Note</label>
+          <textarea id="exp-desc" class="form-control" rows="2" required placeholder="e.g. Purchase of 20 member passbooks and minute book"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeExpenseModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-exp">Save Expense</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Distribute Expense Modal (Requirement 16) -->
+  <div id="modal-distribute-expense" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Distribute Expense to Members</h3>
+        <button type="button" class="btn-close-modal" onclick="closeDistributeExpenseModal()">&times;</button>
+      </div>
+      <form id="form-distribute-expense">
+        <input type="hidden" id="dist-exp-id">
+        <div class="info-banner mb-3" style="background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--danger); padding: 0.75rem; border-radius: 4px;">
+          <div>Expense: <strong id="dist-exp-title">-</strong></div>
+          <div>Total Outflow: <strong id="dist-exp-amount" style="color: var(--danger); font-size: 1.15rem;">₹0</strong></div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Distribution Method</label>
+          <select id="dist-exp-method" class="form-select" required>
+            <option value="EQUAL">1. Equal deduction across all active members</option>
+            <option value="PROPORTIONAL">2. Proportional to member's current savings share</option>
+            <option value="GROUP_LEVEL">3. Group-level reserve only (No member adjustment)</option>
+          </select>
+          <div class="form-help" id="dist-exp-help">Deducts an equal share from each active member's savings share balance.</div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Audit Note / Resolution Reference</label>
+          <input type="text" id="dist-exp-note" class="form-control" placeholder="e.g. Resolution passed in Meeting #12">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeDistributeExpenseModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-dist-exp" style="background: var(--danger); border-color: var(--danger);">
+            <i class="bi bi-diagram-3-fill"></i> Apply Distribution
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let expensesList = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      document.getElementById('exp-date').value = new Date().toISOString().slice(0, 10);
+      await loadExpenses();
+
+      document.getElementById('btn-add-expense').addEventListener('click', () => {
+        document.getElementById('modal-record-expense').classList.add('show');
+      });
+      document.getElementById('form-record-expense').addEventListener('submit', handleSaveExpense);
+      document.getElementById('form-distribute-expense').addEventListener('submit', handleConfirmExpenseDistribution);
+
+      document.getElementById('dist-exp-method').addEventListener('change', (e) => {
+        const help = document.getElementById('dist-exp-help');
+        if (e.target.value === 'EQUAL') {
+          help.textContent = 'Deducts an equal share from each active member\'s savings share balance.';
+        } else if (e.target.value === 'PROPORTIONAL') {
+          help.textContent = 'Deducts proportionately more from members with higher current savings share balances.';
+        } else {
+          help.textContent = 'Retains entire expense as group overhead without altering individual member share balances.';
+        }
+      });
+    });
+
+    function closeExpenseModal() {
+      document.getElementById('modal-record-expense').classList.remove('show');
+    }
+
+    function closeDistributeExpenseModal() {
+      document.getElementById('modal-distribute-expense').classList.remove('show');
+    }
+
+    async function loadExpenses() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        expensesList = await api.getExpenses(groupId);
+        calculateMetrics(expensesList);
+        renderExpenses(expensesList);
+      } catch (err) {
+        Common.showToast('Failed to load expenses: ' + err.message, 'danger');
+      }
+    }
+
+    function calculateMetrics(list) {
+      let total = 0, stat = 0, audit = 0, other = 0;
+      list.forEach(e => {
+        const amt = parseFloat(e.amount || 0);
+        total += amt;
+        if (e.category === 'STATIONERY') stat += amt;
+        else if (e.category === 'AUDIT_FEE') audit += amt;
+        else other += amt;
+      });
+
+      document.getElementById('metric-total-exp').textContent = Common.formatIndianCurrency(total);
+      document.getElementById('metric-stationery-exp').textContent = Common.formatIndianCurrency(stat);
+      document.getElementById('metric-audit-exp').textContent = Common.formatIndianCurrency(audit);
+      document.getElementById('metric-other-exp').textContent = Common.formatIndianCurrency(other);
+    }
+
+    function renderExpenses(list) {
+      const tbody = document.getElementById('expenses-tbody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No expenses recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(e => {
+        const isDist = e.distributed;
+        const statusBadge = isDist
+          ? `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #dc2626; font-weight: 600;"><i class="bi bi-check-circle"></i> Distributed (${escapeHtml(e.distributionRule || 'EQUAL')})</span>`
+          : `<span class="badge" style="background: rgba(100, 116, 139, 0.15); color: #475569; font-weight: 600;">Group Reserve</span>`;
+
+        const actionBtn = isDist
+          ? `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-lock-fill"></i> Completed</span>`
+          : `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-hourglass-split"></i> Pending legacy record</span>`;
+
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(e.id)}</strong></td>
+            <td>${Common.formatDate(e.expenseDate)}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main); font-weight: 600;">${escapeHtml(e.category)}</span></td>
+            <td>${escapeHtml(e.description || '-')}</td>
+            <td style="text-align: right; color: var(--danger); font-weight: 700;">-${Common.formatIndianCurrency(e.amount)}</td>
+            <td><small>${escapeHtml(e.paymentMode || 'CASH')}</small></td>
+            <td>${statusBadge}</td>
+            <td>${escapeHtml(e.paidTo || '-')}</td>
+            <td><small>${escapeHtml(e.recordedBy || 'ADMIN')}</small></td>
+            <td style="text-align: center;">${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleSaveExpense(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const expenseData = {
+        category: document.getElementById('exp-category').value,
+        amount: parseFloat(document.getElementById('exp-amount').value),
+        expenseDate: document.getElementById('exp-date').value,
+        paymentMode: document.getElementById('exp-mode').value,
+        paidTo: document.getElementById('exp-paid-to').value.trim(),
+        reference: document.getElementById('exp-ref').value.trim(),
+        description: document.getElementById('exp-desc').value.trim()
+      };
+
+      try {
+        await api.recordExpense(groupId, expenseData);
+        Common.showToast('Group expense recorded and logged in financial ledger!', 'success');
+        closeExpenseModal();
+        document.getElementById('form-record-expense').reset();
+        document.getElementById('exp-date').value = new Date().toISOString().slice(0, 10);
+        await loadExpenses();
+      } catch (err) {
+        Common.showToast('Failed to record expense: ' + err.message, 'danger');
+      }
+    }
+
+    function openDistributeExpenseModal(expenseId) {
+      const item = expensesList.find(x => x.id === expenseId);
+      if (!item) return;
+
+      document.getElementById('dist-exp-id').value = item.id;
+      document.getElementById('dist-exp-title').textContent = `${item.category} (${item.id})`;
+      document.getElementById('dist-exp-amount').textContent = Common.formatIndianCurrency(item.amount);
+      document.getElementById('modal-distribute-expense').classList.add('show');
+    }
+
+    async function handleConfirmExpenseDistribution(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const expenseId = document.getElementById('dist-exp-id').value;
+      const method = document.getElementById('dist-exp-method').value;
+      const note = document.getElementById('dist-exp-note').value.trim();
+
+      const payload = {
+        distributionRule: method,
+        note: note
+      };
+
+      try {
+        await api.distributeExpense(groupId, expenseId, payload);
+        Common.showToast('Expense distributed and member share balances adjusted!', 'success');
+        closeDistributeExpenseModal();
+        await loadExpenses();
+      } catch (err) {
+        Common.showToast('Expense distribution failed: ' + err.message, 'danger');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

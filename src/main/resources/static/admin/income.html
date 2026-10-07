@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="incomePageTitle">Other Group Income - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item active"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="incomePageTitle">Other Group Income & Inflows</h1>
+            <p class="page-subtitle" data-i18n="incomePageSubtitle">Record donations, grants, bank interest, penalty charges, and member distribution</p>
+          </div>
+          <button id="btn-add-income" class="btn-primary-custom">
+            <i class="bi bi-plus-circle-fill"></i> <span data-i18n="recordOtherIncome">Record Other Income</span>
+          </button>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="totalOtherIncomeCard">Total Other Income</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-cash-stack"></i></div>
+            </div>
+            <div id="metric-total-income" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="totalOtherIncomeSub">All non-share revenue</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="retainedGroupFund">Retained in Group Fund</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-bank"></i></div>
+            </div>
+            <div id="metric-retained-income" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="retainedGroupFundSub">Kept in group reserve</div>
+          </div>
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="distributedMembers">Distributed to Members</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div id="metric-distributed-income" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="distributedMembersSub">Added to member shares</div>
+          </div>
+          <div class="metric-card secondary">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="bankInterestReceived">Bank Interest Received</span>
+              <div class="metric-icon-wrap icon-teal"><i class="bi bi-percent"></i></div>
+            </div>
+            <div id="metric-bank-interest" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="bankInterestReceivedSub">Savings account yield</div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="incomeId">Income ID</th>
+                  <th data-i18n="date">Date</th>
+                  <th data-i18n="sourceCategory">Source / Category</th>
+                  <th data-i18n="description">Description</th>
+                  <th style="text-align: right;" data-i18n="amount">Amount (₹)</th>
+                  <th data-i18n="paymentMode">Payment Mode</th>
+                  <th data-i18n="distributionStatus">Distribution Status</th>
+                  <th data-i18n="recordedBy">Recorded By</th>
+                  <th style="text-align: center;" data-i18n="actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="income-tbody">
+                <tr>
+                  <td colspan="9" class="text-center py-4 text-muted" data-i18n="loadingIncome">Loading income records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Record Income Modal -->
+  <div id="modal-record-income" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="recordOtherGroupIncome">Record Other Group Income</h3>
+        <button type="button" class="btn-close-modal" onclick="closeIncomeModal()">&times;</button>
+      </div>
+      <form id="form-record-income">
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required" data-i18n="incomeSourceCategory">Income Source / Category</label>
+            <select id="inc-source" class="form-select" required>
+              <option value="BANK_INTEREST" data-i18n="sourceBankInterest">Bank Savings Account Interest</option>
+              <option value="DONATION" data-i18n="sourceDonation">External Donation / Philanthropy</option>
+              <option value="GOVERNMENT_GRANT" data-i18n="sourceGovernmentGrant">Government / NGO Grant</option>
+              <option value="PENALTY" data-i18n="sourcePenalty">Late / Meeting Absence Penalty</option>
+              <option value="MEMBERSHIP_FEE" data-i18n="sourceMembershipFee">New Membership Registration Fee</option>
+              <option value="MISCELLANEOUS" data-i18n="sourceMiscellaneous">Miscellaneous Income</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required" data-i18n="amount">Amount (₹)</label>
+            <input type="number" id="inc-amount" class="form-control" min="1" step="0.5" required placeholder="e.g. 2000">
+          </div>
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required" data-i18n="receiptDate">Receipt Date</label>
+            <input type="date" id="inc-date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required" data-i18n="paymentMode">Payment Mode</label>
+            <select id="inc-mode" class="form-select" required>
+              <option value="BANK_TRANSFER" data-i18n="modeBankTransfer">Bank Direct Credit / NEFT</option>
+              <option value="CASH" data-i18n="modeCash">Cash in Hand</option>
+              <option value="UPI" data-i18n="modeUpi">UPI / QR</option>
+              <option value="CHEQUE" data-i18n="modeCheque">Cheque / Demand Draft</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label" data-i18n="referenceReceipt">Reference / UTR / Receipt No.</label>
+          <input type="text" id="inc-ref" class="form-control" placeholder="e.g. UTR-SBI-829100 or REC#45">
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required" data-i18n="descriptionPurpose">Description / Purpose</label>
+          <textarea id="inc-desc" class="form-control" rows="2" required placeholder="e.g. Quarterly savings account interest credit from SBI"></textarea>
+        </div>
+
+        <input type="hidden" id="inc-rule" value="EQUAL_ACTIVE_MEMBERS">
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeIncomeModal()" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-inc" data-i18n="saveIncome">Save Income</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Distribute Income Modal -->
+  <div id="modal-distribute-income" class="modal-backdrop" style="display:none;">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="distributeIncomeTitle">Distribute Income to Members</h3>
+        <button type="button" class="btn-close-modal" onclick="closeDistributeModal()">&times;</button>
+      </div>
+      <form id="form-distribute-income">
+        <input type="hidden" id="dist-income-id">
+        <div class="info-banner mb-3" style="background: rgba(16, 185, 129, 0.1); border-left: 4px solid var(--success); padding: 0.75rem; border-radius: 4px;">
+          <div>Distributing: <strong id="dist-income-title">-</strong></div>
+          <div>Available Amount: <strong id="dist-income-amount" style="color: var(--success); font-size: 1.15rem;">₹0</strong></div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Distribution Method</label>
+          <select id="dist-method" class="form-select" required>
+            <option value="EQUAL">1. Equal share among all active members</option>
+            <option value="PROPORTIONAL">2. Proportional to member's current savings share</option>
+            <option value="GROUP_LEVEL">3. Group-level only (Mark as retained in group)</option>
+          </select>
+          <div class="form-help" id="dist-method-help">Each active member will receive an equal credit added to their share balance.</div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Audit Note / Resolution Reference</label>
+          <input type="text" id="dist-note" class="form-control" placeholder="e.g. Approved in Monthly Meeting Minute #14">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeDistributeModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-dist">
+            <i class="bi bi-check2-circle"></i> Confirm Distribution
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let incomeList = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      await Common.initGroupSelector('active-group-select');
+      document.getElementById('inc-date').value = new Date().toISOString().slice(0, 10);
+      await loadIncome();
+
+      window.addEventListener('groupChanged', async () => {
+        await loadIncome();
+      });
+
+      document.getElementById('btn-add-income').addEventListener('click', () => {
+        Common.openModal('modal-record-income');
+      });
+      document.getElementById('form-record-income').addEventListener('submit', handleSaveIncome);
+      document.getElementById('form-distribute-income').addEventListener('submit', handleConfirmDistribution);
+
+      document.getElementById('dist-method').addEventListener('change', updateDistributionHelp);
+      window.addEventListener('languageChanged', () => {
+        renderIncome(incomeList);
+        updateDistributionHelp();
+      });
+      updateDistributionHelp();
+    });
+
+    function updateDistributionHelp() {
+      const method = document.getElementById('dist-method')?.value;
+        const help = document.getElementById('dist-method-help');
+        if (!help) return;
+        if (method === 'EQUAL') {
+          help.textContent = Common.t('equalDistributionHelp', 'Each active member will receive an equal credit added directly to their share balance.');
+        } else if (method === 'PROPORTIONAL') {
+          help.textContent = Common.t('proportionalDistributionHelp', 'Members with higher current share balances receive proportionately higher dividend credit.');
+        } else {
+          help.textContent = Common.t('groupLevelDistributionHelp', 'Retains entire amount in group reserve fund without member share adjustments.');
+        }
+    }
+
+    function closeIncomeModal() {
+      Common.closeModal('modal-record-income');
+    }
+
+    function closeDistributeModal() {
+      Common.closeModal('modal-distribute-income');
+    }
+
+    async function loadIncome() {
+      const groupId = Common.getSelectedGroupId();
+      try {
+        incomeList = await api.getIncome(groupId);
+        calculateMetrics(incomeList);
+        renderIncome(incomeList);
+      } catch (err) {
+        Common.showToast(Common.t('incomeLoadFailed', 'Failed to load other income:') + ' ' + err.message, 'danger');
+      }
+    }
+
+    function calculateMetrics(list) {
+      let total = 0, distributed = 0, retained = 0, bankInterest = 0;
+      list.forEach(i => {
+        const amt = parseFloat(i.amount || 0);
+        total += amt;
+        if (i.distributed) {
+          distributed += parseFloat(i.distributedAmount || amt);
+        } else {
+          retained += amt;
+        }
+        if (i.source === 'BANK_INTEREST') {
+          bankInterest += amt;
+        }
+      });
+
+      document.getElementById('metric-total-income').textContent = Common.formatIndianCurrency(total);
+      document.getElementById('metric-retained-income').textContent = Common.formatIndianCurrency(retained);
+      document.getElementById('metric-distributed-income').textContent = Common.formatIndianCurrency(distributed);
+      document.getElementById('metric-bank-interest').textContent = Common.formatIndianCurrency(bankInterest);
+    }
+
+    function renderIncome(list) {
+      const tbody = document.getElementById('income-tbody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">${escapeHtml(Common.t('noIncomeRecords', 'No other income records found.'))}</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(i => {
+        const isDist = i.distributed;
+        const translateEnum = (value, fallback) => window.i18n?.translateEnum(value, fallback) || fallback || value;
+        const statusBadge = isDist
+          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;"><i class="bi bi-check-circle"></i> ${escapeHtml(Common.t('distributed', 'Distributed'))} (${escapeHtml(translateEnum(i.distributionRule || 'EQUAL', i.distributionRule || 'EQUAL'))})</span>`
+          : `<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; font-weight: 600;">${escapeHtml(Common.t('groupReserve', 'Group Reserve'))}</span>`;
+
+        const actionBtn = isDist
+          ? `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-lock-fill"></i> ${escapeHtml(Common.t('completed', 'Completed'))}</span>`
+          : `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-hourglass-split"></i> ${escapeHtml(Common.t('pendingLegacyRecord', 'Pending legacy record'))}</span>`;
+
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(i.id)}</strong></td>
+            <td>${Common.formatDate(i.incomeDate)}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main); font-weight: 600;">${escapeHtml(translateEnum(i.source, i.source))}</span></td>
+            <td>${escapeHtml(i.description || '-')}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 700;">+${Common.formatIndianCurrency(i.amount)}</td>
+            <td><small>${escapeHtml(translateEnum(i.paymentMethod || 'BANK_TRANSFER', i.paymentMethod || 'BANK_TRANSFER'))}</small></td>
+            <td>${statusBadge}</td>
+            <td><small>${escapeHtml(i.recordedBy || 'ADMIN')}</small></td>
+            <td style="text-align: center;">${actionBtn}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleSaveIncome(e) {
+      e.preventDefault();
+      const groupId = Common.getSelectedGroupId();
+      const incomePayload = {
+        source: document.getElementById('inc-source').value,
+        amount: parseFloat(document.getElementById('inc-amount').value),
+        incomeDate: document.getElementById('inc-date').value,
+        paymentMethod: document.getElementById('inc-mode').value,
+        reference: document.getElementById('inc-ref').value.trim(),
+        description: document.getElementById('inc-desc').value.trim(),
+      };
+
+      try {
+        await api.recordIncome(groupId, incomePayload);
+        Common.showToast(Common.t('incomeSaved', 'Other income recorded successfully and distributed!'), 'success');
+        closeIncomeModal();
+        document.getElementById('form-record-income').reset();
+        document.getElementById('inc-date').value = new Date().toISOString().slice(0, 10);
+        await loadIncome();
+      } catch (err) {
+        Common.showToast(Common.t('incomeSaveFailed', 'Failed to record income:') + ' ' + err.message, 'danger');
+      }
+    }
+
+    function openDistributeModal(incomeId) {
+      const item = incomeList.find(x => x.id === incomeId);
+      if (!item) return;
+
+      document.getElementById('dist-income-id').value = item.id;
+      const sourceLabel = window.i18n?.translateEnum(item.source, item.source) || item.source;
+      document.getElementById('dist-income-title').textContent = `${sourceLabel} (${item.id})`;
+      document.getElementById('dist-income-amount').textContent = Common.formatIndianCurrency(item.amount);
+      Common.openModal('modal-distribute-income');
+    }
+
+    async function handleConfirmDistribution(e) {
+      e.preventDefault();
+      const groupId = Common.getSelectedGroupId();
+      const incomeId = document.getElementById('dist-income-id').value;
+      const method = document.getElementById('dist-method').value;
+      const note = document.getElementById('dist-note').value.trim();
+
+      const payload = {
+        distributionRule: method,
+        note: note
+      };
+
+      try {
+        await api.distributeIncome(groupId, incomeId, payload);
+        Common.showToast(Common.t('incomeDistributionSaved', 'Income distributed successfully to members and share balances adjusted!'), 'success');
+        closeDistributeModal();
+        await loadIncome();
+      } catch (err) {
+        Common.showToast(Common.t('incomeDistributionFailed', 'Distribution failed:') + ' ' + err.message, 'danger');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

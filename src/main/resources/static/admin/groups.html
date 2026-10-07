@@ -1,0 +1,1977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group Profile & Member Management - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .tab-nav {
+      display: flex;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 1.25rem;
+      gap: 0.5rem;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background-color: var(--primary-light);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .tab-pane {
+      display: none;
+    }
+    .tab-pane.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item active"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span>Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select"></select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Page Header with Primary Actions -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="groupProfileTitle">Bachat Gat Profile & Member Management</h1>
+            <p class="page-subtitle" data-i18n="groupProfileSubtitle">Official registration numbers, office bearers, meeting schedule, designated bank accounts, and member roster</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button id="btn-create-group" class="btn-primary-custom" onclick="openCreateGroupModal()" data-i18n="newGroupBtn">
+              <i class="bi bi-plus-circle-fill"></i> New Group Creation
+            </button>
+            <button id="btn-edit-group" class="btn-outline-custom" onclick="openEditModal()" data-i18n="editGroupBtn">
+              <i class="bi bi-pencil-square"></i> Edit Group Profile
+            </button>
+          </div>
+        </div>
+
+        <!-- Group Profile Card Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+          <!-- Card 1: Identifiers & Legal Details -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+              <div class="brand-icon" style="border-radius: var(--radius-md);">₹</div>
+              <div>
+                <h2 id="card-group-name" style="font-size: 1.2rem; font-weight: 700;">Loading Group...</h2>
+                <span class="status-badge badge-active" id="card-status-badge">REGISTERED SHG</span>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Group Registration ID:</span>
+                <strong id="card-reg-id" style="font-family: monospace; color: var(--primary);">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Govt Bachat Gat Reg No:</span>
+                <strong id="card-gov-reg-no">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Group Code:</span>
+                <strong id="card-group-code">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Formation Date:</span>
+                <span id="card-formation-date">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Monthly Bachat:</span>
+                <strong id="card-monthly-share" style="color: var(--success); font-size: 1.05rem;">₹5,000</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Office Bearers & Contacts -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+              <i class="bi bi-person-lines-fill"></i> Designated Office Bearers
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">President (अध्यक्ष):</span>
+                <strong id="card-president">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Secretary (सचिव):</span>
+                <strong id="card-secretary">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Treasurer (खजिनदार):</span>
+                <strong id="card-treasurer">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Primary Phone:</span>
+                <span id="card-phone">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Email:</span>
+                <span id="card-email">-</span>
+              </div>
+              <div style="margin-top: 0.5rem; pt: 0.5rem; border-top: 1px dashed var(--border-color);">
+                <button type="button" class="btn-primary-custom" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.4rem;" onclick="openDesignateBearerModal()">
+                  <i class="bi bi-person-badge"></i> <span data-i18n="designateOfficeBearer">Designate Secretary / Treasurer</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Location & Meeting Schedule -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--secondary);">
+              <i class="bi bi-geo-alt-fill"></i> Location & Schedule
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Village / Town:</span>
+                <strong id="card-village">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Taluka & District:</span>
+                <span id="card-taluka-dist">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">State & PIN:</span>
+                <span id="card-state-pin">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted" data-i18n="dueDate">Monthly Collection Due Day:</span>
+                <strong id="card-collection-due-day" style="color: var(--primary); font-weight: 700;">-</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 4: Bank Account & UPI -->
+          <div class="content-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: var(--info);">
+              <i class="bi bi-bank2"></i> Designated Bank Account
+            </h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Bank Name:</span>
+                <strong id="card-bank-name">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Branch:</span>
+                <span id="card-branch">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">Account Number:</span>
+                <strong id="card-account-no" style="font-family: monospace;">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                <span class="text-muted">IFSC Code:</span>
+                <strong id="card-ifsc" style="font-family: monospace;">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">UPI ID:</span>
+                <span id="card-upi">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dedicated Section: Group Members & Bachat Ledger -->
+        <div class="content-card" style="padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);" data-i18n="enrolledMembers">
+                <i class="bi bi-people-fill" style="color: var(--primary);"></i> Enrolled Group Members & Bachat Ledger
+              </h2>
+              <p class="text-muted" style="font-size: 0.85rem; margin: 0.25rem 0 0 0;" data-i18n="enrolledSubtitle">
+                Comprehensive financial ledger tracking monthly bachat, committed amounts, accumulated Bachat savings, and repayment status
+              </p>
+            </div>
+            <button id="btn-add-member-to-group" class="btn-primary-custom" onclick="openAddMemberModal()" data-i18n="addMemberBtn">
+              <i class="bi bi-person-plus-fill"></i> Add Member to Group
+            </button>
+          </div>
+
+          <!-- Group Ledger Metrics Summary -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-main); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div>
+              <span class="text-muted" style="font-size: 0.775rem; font-weight: 600;" data-i18n="statEnrolledMembers">ENROLLED ACTIVE MEMBERS</span>
+              <h4 id="grp-stat-members" style="font-size: 1.35rem; font-weight: 700; color: var(--primary); margin: 0.25rem 0 0 0;">0</h4>
+            </div>
+            <div>
+              <span class="text-muted" style="font-size: 0.775rem; font-weight: 600;" data-i18n="statMonthlyTarget">MONTHLY COLLECTION TARGET</span>
+              <h4 id="grp-stat-target" style="font-size: 1.35rem; font-weight: 700; color: var(--success); margin: 0.25rem 0 0 0;">₹0</h4>
+            </div>
+            <div>
+              <span class="text-muted" style="font-size: 0.775rem; font-weight: 600;" data-i18n="statTotalSavings">TOTAL ACCUMULATED SAVINGS</span>
+              <h4 id="grp-stat-savings" style="font-size: 1.35rem; font-weight: 700; color: var(--info); margin: 0.25rem 0 0 0;">₹0</h4>
+            </div>
+            <div>
+              <span class="text-muted" style="font-size: 0.775rem; font-weight: 600;" data-i18n="statNoLoans">MEMBERS WITH NO LOANS</span>
+              <h4 id="grp-stat-no-loans" style="font-size: 1.35rem; font-weight: 700; color: #8b5cf6; margin: 0.25rem 0 0 0;">0</h4>
+            </div>
+          </div>
+
+          <!-- Enrolled Members Table -->
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tableMemberId">Member ID</th>
+                  <th data-i18n="tableMemberName">Member Name</th>
+                  <th data-i18n="tableMonthlyShare">Monthly Bachat</th>
+                  <th data-i18n="tableTotalSavings">Total Savings</th>
+                  <th data-i18n="tablePaidAmount">Paid Amount</th>
+                  <th data-i18n="tablePendingAmount">Pending Amount</th>
+                  <th data-i18n="tableStartDate">Start Date</th>
+                  <th data-i18n="tableEndDate">End Date</th>
+                  <th data-i18n="tableNextDueDate">Next Due Date</th>
+                  <th data-i18n="tableStatus">Status</th>
+                  <th style="text-align: right;" data-i18n="tableAction">Action</th>
+                </tr>
+              </thead>
+              <tbody id="group-members-tbody">
+                <tr><td colspan="11" style="text-align: center; padding: 2rem;">Loading group members...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dedicated Section: Group Loan Transparency Ledger (Strictly Read-Only Community Disclosure) -->
+        <div class="content-card" style="padding: 1.5rem; margin-top: 1.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);" data-i18n="groupLoanLedgerTitle">
+                  <i class="bi bi-shield-check" style="color: var(--success);"></i> SHG Loan Transparency Ledger
+                </h2>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 9999px; font-size: 0.75rem;" data-i18n="strictlyReadOnly">
+                  COMMUNITY AUDIT • STRICTLY READ-ONLY
+                </span>
+              </div>
+              <p class="text-muted" style="font-size: 0.85rem; margin: 0.25rem 0 0 0;" data-i18n="groupLoanLedgerSubtitle">
+                Transparent credit disclosure: Who has taken loans, sanctioned principal, required monthly EMI payments, and outstanding balances
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.75rem; align-items: center;">
+              <span class="text-muted" style="font-size: 0.85rem;"><span data-i18n="statActiveBorrowers">Active Borrowers</span>: <strong id="grp-loan-active-count" style="color: var(--primary);">0</strong></span>
+              <span class="text-muted" style="font-size: 0.85rem;">| <span data-i18n="statTotalSanctioned">Total Sanctioned</span>: <strong id="grp-loan-total-sanctioned" style="color: var(--success);">₹0</strong></span>
+            </div>
+          </div>
+
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tableMemberId">Member ID</th>
+                  <th data-i18n="tableBorrowerName">Borrower Name</th>
+                  <th data-i18n="tableLoanId">Loan ID</th>
+                  <th data-i18n="tablePurpose">Purpose / Use</th>
+                  <th style="text-align: right;" data-i18n="tablePrincipal">Sanctioned Amount (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableInterestRate">Interest Rate</th>
+                  <th style="text-align: right;" data-i18n="tableMonthlyEmi">Monthly Payment / EMI (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableRepaid">Repaid So Far (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableOutstanding">Outstanding Due (₹)</th>
+                  <th data-i18n="tableNextDueDate">Next Due Date</th>
+                  <th data-i18n="tableStatus">Status</th>
+                </tr>
+              </thead>
+              <tbody id="group-loans-tbody">
+                <tr><td colspan="11" style="text-align: center; padding: 2rem;">Loading group loan transparency records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="margin-top: 1rem; background: var(--bg-main); padding: 0.75rem 1rem; border-radius: var(--radius-md); font-size: 0.825rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; border: 1px solid var(--border-color);">
+            <i class="bi bi-info-circle-fill" style="color: var(--primary);"></i>
+            <span data-i18n="auditNotice">This ledger is strictly view-only for all members and administrators to ensure collective transparency in group fund utilization. No member or external party can modify closed records.</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal 1: Create New Group Modal -->
+  <div id="modal-create-group" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 760px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Register New Bachat Gat / Self-Help Group</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+            Create group official profile, set monthly bachat amount, and configure office bearers
+          </p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-create-group" onclick="closeCreateGroupModal()">&times;</button>
+      </div>
+      <form id="form-create-group" novalidate>
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(85vh - 130px); overflow-y: auto;">
+          <div id="create-group-error" style="display: none; background: #fee2e2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 0.75rem 1rem; color: #991b1b; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+            1. Group Identity & Share Capital
+          </h4>
+          <div class="form-grid">
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label required">Group Name (English)</label>
+              <input type="text" id="cg-groupName" class="form-control" placeholder="e.g. Mahila Pragati Bachat Gat" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Group Name (मराठी)</label>
+              <input type="text" id="cg-groupNameMr" class="form-control" placeholder="उदा. महिला प्रगती बचत गट">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Group Name (हिन्दी)</label>
+              <input type="text" id="cg-groupNameHi" class="form-control" placeholder="उदा. महिला प्रगति बचत समूह">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Registration ID (Auto-generated if empty)</label>
+              <input type="text" id="cg-registrationId" class="form-control" placeholder="e.g. BG-MH-2026-0002">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Govt Bachat Gat Reg No</label>
+              <input type="text" id="cg-bachatGatRegNumber" class="form-control" placeholder="e.g. MH/SHG/12346">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Group Code Prefix</label>
+              <input type="text" id="cg-groupCode" class="form-control" placeholder="e.g. KMBG02" style="text-transform: uppercase;">
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Monthly Bachat (₹) <i class="bi bi-info-circle text-primary" title="Regular monthly savings/monthly bachat contributed by each member (e.g. 20 members × ₹3,300 = ₹66,000 monthly collection)"></i></label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="cg-monthlyBachatAmount" class="form-control" value="5000" min="100" required>
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px; display: block;">Regular monthly savings/share contributed by each member (e.g. 20 × ₹3,300 = ₹66,000 monthly).</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Formation Date</label>
+              <input type="date" id="cg-formationDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" data-i18n="collectionDueDay">Monthly Due Date (Day of Month: 1-28)</label>
+              <input type="number" id="cg-collectionDueDay" class="form-control" value="10" min="1" max="28" required>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Day of month by which members must submit monthly savings.</small>
+            </div>
+          </div>
+
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--secondary); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+            2. President Information & Account Credentials (Mandatory)
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">President Name (English)</label>
+              <input type="text" id="cg-president" class="form-control" placeholder="President full name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">President Name (मराठी)</label>
+              <input type="text" id="cg-presidentNameMr" class="form-control" placeholder="अध्यक्ष पूर्ण नाव">
+            </div>
+            <div class="form-group">
+              <label class="form-label">President Name (हिन्दी)</label>
+              <input type="text" id="cg-presidentNameHi" class="form-control" placeholder="अध्यक्ष पूरा नाम">
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Primary Mobile Number / Username</label>
+              <input type="tel" id="cg-contactNumber" class="form-control" placeholder="10-digit phone" maxlength="10" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Set President Password</label>
+              <input type="password" id="cg-presidentPassword" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Confirm President Password</label>
+              <input type="password" id="cg-confirmPresidentPassword" class="form-control" placeholder="Re-enter password" minlength="6" required>
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="cg-email" class="form-control" placeholder="group@shg.in">
+            </div>
+          </div>
+
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--info); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+            3. Location & Designated Bank Details
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Village / Town</label>
+              <input type="text" id="cg-village" class="form-control" value="Ahilyanagar" oninput="handleLocationInput('cg')">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Taluka</label>
+              <input type="text" id="cg-taluka" class="form-control" value="Ahilyanagar" oninput="handleLocationInput('cg')">
+            </div>
+            <div class="form-group">
+              <label class="form-label">District</label>
+              <input type="text" id="cg-district" class="form-control" value="Ahilyanagar" oninput="handleLocationInput('cg')">
+            </div>
+            <div class="form-group">
+              <label class="form-label">PIN Code</label>
+              <input type="text" id="cg-pinCode" class="form-control" value="414003" maxlength="6" oninput="handleLocationInput('cg')">
+            </div>
+
+            <!-- Dynamic Location-Based Bank Selector -->
+            <div class="form-group" style="grid-column: span 2; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #166534; font-weight: 700;">
+                <span><i class="bi bi-bank2"></i> Select Bank Branch (Available in Selected District)</span>
+                <span id="cg-bank-badge" style="font-size: 0.75rem; font-weight: 600; color: #15803d; display: none;">
+                  <i class="bi bi-patch-check-fill"></i> Branch & IFSC Mapped
+                </span>
+              </label>
+              <select id="cg-bankSelect" class="form-select" onchange="onBankSelectChange('cg')" style="background-color: #fff; font-weight: 500;">
+                <option value="">-- Choose Bank Branch in Location --</option>
+              </select>
+              <small style="color: #166534; font-size: 0.75rem; display: block; margin-top: 4px;">
+                Selecting a bank automatically populates Bank Name and IFSC code. You can also select "Other Bank" to enter manually.
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Bank Name</label>
+              <input type="text" id="cg-bankName" class="form-control" placeholder="e.g. State Bank of India">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Account Number</label>
+              <input type="text" id="cg-accountNumber" class="form-control" placeholder="Designated group account">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>IFSC Code</span>
+                <span id="cg-ifsc-verified-tag" style="font-size: 0.75rem; font-weight: 700; color: #059669;"></span>
+              </label>
+              <div style="position: relative;">
+                <input type="text" id="cg-ifsc" class="form-control" placeholder="e.g. SBIN0000301" style="text-transform: uppercase;" maxlength="11" oninput="onIfscDirectInput('cg')">
+                <button type="button" onclick="verifyIfscManually('cg')" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 0.25rem 0.55rem; font-size: 0.75rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; color: #0284c7; cursor: pointer; font-weight: 600;">
+                  <i class="bi bi-search"></i> Verify
+                </button>
+              </div>
+              <small id="cg-ifsc-hint" style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
+                11-character code (e.g. SBIN0000301, MAHB0000007).
+              </small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-create-group">Cancel</button>
+          <button type="submit" id="btn-submit-create-group" class="btn-primary-custom">
+            <i class="bi bi-check-circle-fill"></i> Create Group & Proceed to Add Members
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Add Members to Group Modal (Supports Tab 1: Existing Member & Tab 2: New Member) -->
+  <div id="modal-add-member" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 760px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Add Member to Group</h3>
+          <p id="add-member-subtitle" style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+            Enrolling member into <strong id="add-member-group-name" style="color: var(--primary);">Active Group</strong>
+          </p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-add-member" onclick="closeAddMemberModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(85vh - 130px); overflow-y: auto;">
+        <!-- Tabs -->
+        <div class="tab-nav">
+          <button type="button" class="tab-btn active" id="tab-btn-existing" onclick="switchAddMemberTab('existing')">
+            <i class="bi bi-person-check-fill"></i> Select Existing Member
+          </button>
+          <button type="button" class="tab-btn" id="tab-btn-new" onclick="switchAddMemberTab('new')">
+            <i class="bi bi-person-plus-fill"></i> Register New Member
+          </button>
+        </div>
+
+        <div id="add-member-error" style="display: none; background: #fee2e2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 0.75rem 1rem; color: #991b1b; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+        <!-- Tab 1: Select Existing Member -->
+        <div id="tab-pane-existing" class="tab-pane active">
+          <form id="form-enroll-existing">
+            <div class="form-group">
+              <label class="form-label required">Select Registered Member</label>
+              <select id="enroll-member-select" class="form-select" required>
+                <option value="">-- Choose Member --</option>
+              </select>
+              <div id="member-already-enrolled-warn" style="display: none; color: var(--danger); font-size: 0.8rem; font-weight: 600; margin-top: 0.35rem;">
+                ⚠ This member is already enrolled in this group.
+              </div>
+            </div>
+
+            <!-- Member Selected Details Preview -->
+            <div id="selected-member-preview" style="display: none; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.875rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span class="text-muted">Member Name:</span>
+                <strong id="prev-name">-</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+                <span class="text-muted">Mobile / PAN:</span>
+                <span id="prev-contact">-</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <span class="text-muted">Current Group / Status:</span>
+                <span id="prev-status">-</span>
+              </div>
+            </div>
+
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+              Configure Member's Group Bachat / Savings Details
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Monthly Bachat (₹) <i class="bi bi-info-circle text-primary" title="Regular monthly savings/monthly bachat contributed by each member (e.g. 20 members × ₹3,300 = ₹66,000 monthly collection)"></i></label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="enroll-monthlyBachat" class="form-control" value="5000" min="100" required readonly>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px; display: block;">Regular monthly savings/monthly bachat contributed by each member.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Bachat Start Date</label>
+                <input type="date" id="enroll-startDate" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Bachat End / Maturity Date</label>
+                <input type="date" id="enroll-endDate" class="form-control" required>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+              <button type="button" class="btn-outline-custom" onclick="closeAddMemberModal()">Cancel</button>
+              <button type="submit" id="btn-submit-enroll-existing" class="btn-primary-custom">
+                <i class="bi bi-person-check-fill"></i> Save & Enroll Member
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Tab 2: Register New Member into Group -->
+        <div id="tab-pane-new" class="tab-pane">
+          <form id="form-enroll-new" novalidate>
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+              Personal Details (All Marked * are Mandatory)
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Member Full Name</label>
+                <input type="text" id="new-fullName" class="form-control" placeholder="e.g. Kavita Ramesh Gaikwad" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Father's / Husband's Name</label>
+                <input type="text" id="new-guardianName" class="form-control" placeholder="e.g. Ramesh Gaikwad" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Gender</label>
+                <select id="new-gender" class="form-select">
+                  <option value="FEMALE" selected>Female</option>
+                  <option value="MALE">Male</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Date of Birth</label>
+                <input type="date" id="new-dob" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Mobile Number</label>
+                <input type="tel" id="new-mobileNumber" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Village / Town</label>
+                <input type="text" id="new-village" class="form-control" value="Koregaon" required>
+              </div>
+              <div class="form-group" style="grid-column: span 2;">
+                <label class="form-label required">Residential Address</label>
+                <input type="text" id="new-address" class="form-control" value="House No 12, Main Road" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Taluka</label>
+                <input type="text" id="new-taluka" class="form-control" value="Haveli" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">District</label>
+                <input type="text" id="new-district" class="form-control" value="Pune" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">PIN Code</label>
+                <input type="text" id="new-pinCode" class="form-control" value="411028" maxlength="6" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">PAN Card Number</label>
+                <input type="text" id="new-panNumber" class="form-control" placeholder="ABCDE1234F" style="text-transform: uppercase;" maxlength="10" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Aadhaar Reference / ID</label>
+                <input type="text" id="new-aadhaarReference" class="form-control" placeholder="12-digit Aadhaar / ID" maxlength="16" required>
+              </div>
+            </div>
+
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--secondary); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+              Bachat & Savings Configuration
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Monthly Bachat (₹) <i class="bi bi-info-circle text-primary" title="Regular monthly savings/monthly bachat contributed by each member (e.g. 20 members × ₹3,300 = ₹66,000 monthly collection)"></i></label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="new-monthlyBachat" class="form-control" value="5000" min="100" required readonly>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px; display: block;">Regular monthly savings/monthly bachat contributed by each member.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Bachat Start Date</label>
+                <input type="date" id="new-startDate" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Bachat End Date</label>
+                <input type="date" id="new-endDate" class="form-control" required>
+              </div>
+            </div>
+
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--info); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;">
+              Nominee & Bank Information
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Nominee Name</label>
+                <input type="text" id="new-nomineeName" class="form-control" placeholder="Nominee name" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Nominee Relationship</label>
+                <input type="text" id="new-nomineeRelation" class="form-control" placeholder="e.g. Spouse / Son" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Nominee Mobile</label>
+                <input type="tel" id="new-nomineeMobile" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Bank Name</label>
+                <input type="text" id="new-bankName" class="form-control" value="Bank of Maharashtra" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Account Number</label>
+                <input type="text" id="new-accountNumber" class="form-control" placeholder="Bank account number" maxlength="18" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">IFSC Code</label>
+                <input type="text" id="new-ifsc" class="form-control" value="MAHB0000452" style="text-transform: uppercase;" maxlength="11" required>
+              </div>
+            </div>
+
+            <!-- Mandatory Member Portal Password Setup (Requirement 1 & 2) -->
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: #16a34a; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-shield-lock-fill"></i> Member Login Credentials Setup (Mandatory)
+            </h4>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label required">Member Password *</label>
+                <div style="position: relative;">
+                  <input type="password" id="new-password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+                  <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('new-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b;">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">The member will use their Mobile Number / Member ID and this password to log in.</small>
+              </div>
+              <div class="form-group">
+                <label class="form-label required">Confirm Password *</label>
+                <div style="position: relative;">
+                  <input type="password" id="new-confirmPassword" class="form-control" placeholder="Re-enter password" minlength="6" required>
+                  <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('new-confirmPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b;">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <div id="new-pw-match-error" style="display: none; color: var(--danger); font-size: 0.75rem; font-weight: 600; margin-top: 4px;">Passwords do not match</div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+              <button type="button" class="btn-outline-custom" onclick="closeAddMemberModal()">Cancel</button>
+              <button type="submit" id="btn-submit-enroll-new" class="btn-primary-custom">
+                <i class="bi bi-person-plus-fill"></i> Save & Register Member
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Edit Group Details Modal -->
+  <div id="modal-edit-group" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Bachat Gat Details</h3>
+        <button type="button" class="btn-close-modal" onclick="closeEditModal()">&times;</button>
+      </div>
+      <form id="form-edit-group">
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(85vh - 130px); overflow-y: auto;">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label class="form-label required">Group Name</label>
+              <input type="text" id="edit-name" class="form-control" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label required">Monthly Bachat (₹)</label>
+              <input type="number" id="edit-monthly-share" class="form-control" required min="100">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Govt Reg No</label>
+              <input type="text" id="edit-gov-reg" class="form-control">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label" data-i18n="dueDate">Monthly Collection Due Day</label>
+              <input type="number" id="edit-collection-due-day" class="form-control" min="1" max="28" placeholder="e.g. 10">
+              <div class="form-help">Day of month (1-28) when savings are due.</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">President Name</label>
+              <input type="text" id="edit-president" class="form-control">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Secretary Name</label>
+              <input type="text" id="edit-secretary" class="form-control">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Treasurer Name</label>
+              <input type="text" id="edit-treasurer" class="form-control">
+            </div>
+          </div>
+
+          <!-- Location-based Bank Branch Selector -->
+          <div class="form-group mb-3" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+            <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #166534; font-weight: 700;">
+              <span><i class="bi bi-bank2"></i> Select Bank Branch (Available in District)</span>
+              <span id="edit-bank-badge" style="font-size: 0.75rem; font-weight: 600; color: #15803d; display: none;">
+                <i class="bi bi-patch-check-fill"></i> Branch & IFSC Mapped
+              </span>
+            </label>
+            <select id="edit-bankSelect" class="form-select" onchange="onBankSelectChange('edit')" style="background-color: #fff; font-weight: 500;">
+              <option value="">-- Choose Bank Branch in Location --</option>
+            </select>
+            <small style="color: #166534; font-size: 0.75rem; display: block; margin-top: 4px;">
+              Selecting a bank branch auto-populates Bank Name and IFSC code.
+            </small>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Bank Name</label>
+              <input type="text" id="edit-bank" class="form-control">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Account Number</label>
+              <input type="text" id="edit-account" class="form-control">
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">IFSC Code</label>
+              <input type="text" id="edit-ifsc" class="form-control">
+            </div>
+          </div>
+
+          <!-- Section: Group Loan Interest Rate & Lending Rules -->
+          <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-percent"></i> Group Loan Interest Rate & Sanction Rules (व्याज दर व नियम)
+            </h4>
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label required">Monthly Interest Rate (% / month)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="edit-monthly-interest-rate" class="form-control" step="0.05" min="0.1" max="15" placeholder="e.g. 2.0" oninput="syncInterestRateFromMonthly()">
+                </div>
+                <div class="form-help">e.g. 2% / month (२ रुपये शेकडा)</div>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label required">Annual Interest Rate (% p.a.)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="edit-interest-rate" class="form-control" required step="0.25" min="1" max="60" placeholder="e.g. 24.0" oninput="syncInterestRateFromAnnual()">
+                </div>
+                <div class="form-help">Annual equivalent percentage</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="flex: 1.1;">
+                <label class="form-label required" data-i18n="interestCalcMethod">Interest Calculation Method</label>
+                <select id="edit-interest-type" class="form-select">
+                  <option value="REDUCING_BALANCE" data-i18n="reducingBalance">Reducing Balance (घटती शिल्लक - Standard)</option>
+                  <option value="FLAT" data-i18n="flatInterest">Flat Interest (स्थिर व्याज)</option>
+                </select>
+                <div class="form-help" data-i18n="helpInterestType">Reducing balance calculates on remaining principal only.</div>
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label required" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹)</label>
+                <input type="number" id="edit-max-loan-per-member" class="form-control" min="1000" step="1" placeholder="75000">
+                <input type="hidden" id="edit-max-loan" value="100000">
+                <div class="form-help" data-i18n="helpMemberLoanLimit">Per-member single loan ceiling limit.</div>
+              </div>
+              <div class="form-group" style="flex: 0.8;">
+                <label class="form-label" data-i18n="latePenalty">Late Penalty (₹)</label>
+                <input type="number" id="edit-late-fee" class="form-control" min="0" step="10" placeholder="100">
+                <div class="form-help" data-i18n="helpLatePenalty">Fee per delayed month.</div>
+              </div>
+            </div>
+
+            <!-- Multiple Active Loans Configuration (Requirements 26, 27, 28) -->
+            <div class="form-row" style="margin-top: 0.75rem;">
+              <div class="form-group" style="flex: 1;">
+                <label class="form-label" data-i18n="allowMultipleLoans">Allow Multiple Active Loans?</label>
+                <select id="edit-allow-multiple-loans" class="form-select" onchange="toggleMultipleLoanEditFields()">
+                  <option value="false" data-i18n="noSingleLoan">NO (Single Active Loan Only)</option>
+                  <option value="true" data-i18n="yesMultipleLoans">YES (Multiple Loans Permitted)</option>
+                </select>
+                <div class="form-help" data-i18n="helpMultipleLoans">Whether members can hold >1 active loan concurrently.</div>
+              </div>
+              <div class="form-group" style="flex: 1;" id="edit-max-active-loans-box">
+                <label class="form-label" data-i18n="maxActiveLoans">Max Active Loans per Member</label>
+                <input type="number" id="edit-max-active-loans" class="form-control" min="1" max="5" value="2">
+                <div class="form-help" data-i18n="helpMaxActiveLoans">Max concurrent loans (e.g. 2 or 3).</div>
+              </div>
+              <div class="form-group" style="flex: 1;" id="edit-max-outstanding-loan-box">
+                <label class="form-label" data-i18n="maxOutstandingLoanAmount">Max Outstanding Cap per Member (₹)</label>
+                <input type="number" id="edit-max-outstanding-loan" class="form-control" min="10000" step="1" placeholder="150000">
+                <div class="form-help" data-i18n="helpMaxOutstanding">Total cumulative debt allowed across loans.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Designate Secretary / Treasurer Modal -->
+  <div id="modal-designate-bearer" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 580px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title" data-i18n="designateOfficeBearer">Designate Secretary / Treasurer</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+            Assign leadership role and provision portal login credentials
+          </p>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeDesignateBearerModal()">&times;</button>
+      </div>
+      <form id="form-designate-bearer">
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(85vh - 130px); overflow-y: auto;">
+          <div id="designate-error" style="display: none; background: #fee2e2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 0.75rem 1rem; color: #991b1b; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label required">Select Role to Assign</label>
+            <select id="desig-role" class="form-select" required>
+              <option value="SECRETARY">Secretary (सचिव)</option>
+              <option value="TREASURER">Treasurer (खजिनदार)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label class="form-label">Link to Existing Group Member (Optional)</label>
+            <select id="desig-existing-member" class="form-select" onchange="handleDesignateMemberSelect()">
+              <option value="">-- Or enter new office bearer details below --</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label required">Full Name (English)</label>
+              <input type="text" id="desig-fullName" class="form-control" placeholder="e.g. Rekha Patil" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Name (मराठी)</label>
+              <input type="text" id="desig-fullNameMr" class="form-control" placeholder="उदा. रेखा पाटील">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label required">Mobile Number / Username</label>
+              <input type="tel" id="desig-mobileNumber" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label">Email Address</label>
+              <input type="email" id="desig-email" class="form-control" placeholder="name@shg.in">
+            </div>
+          </div>
+
+          <h4 style="font-size: 0.92rem; font-weight: 700; color: #16a34a; margin-top: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-shield-lock-fill"></i> Login Credentials Setup (Mandatory)
+          </h4>
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label required">Set Password</label>
+              <input type="password" id="desig-password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label class="form-label required">Confirm Password</label>
+              <input type="password" id="desig-confirmPassword" class="form-control" placeholder="Re-enter password" minlength="6" required>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" onclick="closeDesignateBearerModal()">Cancel</button>
+          <button type="submit" id="btn-submit-designate" class="btn-primary-custom">
+            <i class="bi bi-check-circle-fill"></i> Save & Assign Role
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/bank-directory.js"></script>
+  <script>
+    let currentGroup = null;
+    let allGroups = [];
+    let groupMembers = [];
+    let systemMembers = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        if (window.Auth && typeof Auth.requireAdmin === 'function') {
+          Auth.requireAdmin();
+        }
+      } catch (e) {
+        console.warn('Auth check skipped:', e);
+      }
+
+      // Setup default dates safely
+      const today = new Date().toISOString().split('T')[0];
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      const nextYearStr = nextYear.toISOString().split('T')[0];
+
+      const dobDefault = new Date();
+      dobDefault.setFullYear(dobDefault.getFullYear() - 30);
+
+      const safeSet = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+
+      safeSet('cg-formationDate', today);
+      safeSet('enroll-startDate', today);
+      safeSet('enroll-endDate', nextYearStr);
+      safeSet('new-startDate', today);
+      safeSet('new-endDate', nextYearStr);
+      safeSet('new-dob', dobDefault.toISOString().split('T')[0]);
+
+      // Modals setup (Bind immediately before network calls)
+      const bindClick = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', fn);
+      };
+      const bindSubmit = (id, fn) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('submit', fn);
+      };
+
+      bindClick('btn-create-group', openCreateGroupModal);
+      bindClick('btn-close-create-group', closeCreateGroupModal);
+      bindClick('btn-cancel-create-group', closeCreateGroupModal);
+      bindSubmit('form-create-group', handleCreateGroup);
+
+      bindClick('btn-edit-group', openEditModal);
+      bindSubmit('form-edit-group', handleUpdateGroup);
+
+      bindClick('btn-add-member-to-group', openAddMemberModal);
+      bindClick('btn-close-add-member', closeAddMemberModal);
+
+      bindSubmit('form-enroll-existing', handleEnrollExistingMember);
+      bindSubmit('form-enroll-new', handleRegisterAndEnrollMember);
+      bindSubmit('form-designate-bearer', handleDesignateOfficeBearer);
+
+      const enrollSelect = document.getElementById('enroll-member-select');
+      if (enrollSelect) {
+        enrollSelect.addEventListener('change', handleExistingMemberSelection);
+      }
+
+      // Topbar group change
+      const groupSelect = document.getElementById('active-group-select');
+      if (groupSelect) {
+        groupSelect.addEventListener('change', async (e) => {
+          await switchGroup(e.target.value);
+        });
+      }
+
+      try {
+        await loadAllGroups();
+      } catch (err) {
+        console.error('Error in loadAllGroups:', err);
+      }
+    });
+
+    async function loadAllGroups() {
+      try {
+        allGroups = await api.getGroups();
+        const select = document.getElementById('active-group-select');
+        select.innerHTML = '';
+        const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+        allGroups.forEach(g => {
+          const locName = Common.getLocalizedGroupName(g, currentLang);
+          const opt = document.createElement('option');
+          opt.value = g.id;
+          opt.textContent = `${g.groupCode ? g.groupCode + ' - ' : ''}${locName}`;
+          select.appendChild(opt);
+        });
+
+        // Target group from URL param, stored activeGroupId, or first group
+        const urlParamId = new URLSearchParams(window.location.search).get('id');
+        const savedGroupId = localStorage.getItem('activeGroupId');
+        let targetId = null;
+
+        if (urlParamId && allGroups.some(g => g.id === urlParamId)) {
+          targetId = urlParamId;
+        } else if (savedGroupId && allGroups.some(g => g.id === savedGroupId)) {
+          targetId = savedGroupId;
+        } else if (allGroups.length > 0) {
+          targetId = allGroups[0].id;
+        }
+
+        if (targetId) {
+          localStorage.setItem('activeGroupId', targetId);
+          await switchGroup(targetId);
+        }
+      } catch (err) {
+        Common.showToast('Failed to load groups: ' + err.message, 'danger');
+      }
+    }
+
+    let currentGroupLoans = [];
+
+    async function switchGroup(groupId) {
+      localStorage.setItem('activeGroupId', groupId);
+      const sel = document.getElementById('active-group-select');
+      if (sel) sel.value = groupId;
+      try {
+        currentGroup = await api.getGroupById(groupId);
+        populateCard(currentGroup);
+        await Promise.all([
+          loadGroupMembers(groupId),
+          loadGroupLoans(groupId)
+        ]);
+      } catch (err) {
+        Common.showToast('Failed to load group details: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadGroupLoans(groupId) {
+      try {
+        currentGroupLoans = await api.getLoans(groupId);
+        renderGroupLoans(currentGroupLoans);
+      } catch (err) {
+        console.error('Error fetching group loans:', err);
+      }
+    }
+
+    function renderGroupLoans(loans) {
+      const tbody = document.getElementById('group-loans-tbody');
+      if (!tbody) return;
+      if (!loans || loans.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="empty-state" style="text-align: center; padding: 2rem;">No loans taken in this group yet. Collective savings are 100% intact.</td></tr>`;
+        const countEl = document.getElementById('grp-loan-active-count');
+        const sancEl = document.getElementById('grp-loan-total-sanctioned');
+        if (countEl) countEl.textContent = '0';
+        if (sancEl) sancEl.textContent = '₹0';
+        return;
+      }
+
+      const activeLoans = loans.filter(l => l.status === 'ACTIVE');
+      const totalSanctioned = loans.reduce((sum, l) => sum + (parseFloat(l.principalAmount) || 0), 0);
+      const countEl = document.getElementById('grp-loan-active-count');
+      const sancEl = document.getElementById('grp-loan-total-sanctioned');
+      if (countEl) countEl.textContent = activeLoans.length;
+      if (sancEl) sancEl.textContent = Common.formatIndianCurrency(totalSanctioned);
+
+      tbody.innerHTML = loans.map(l => {
+        const principal = parseFloat(l.principalAmount || 0);
+        const rate = parseFloat(l.interestRate || 12.0);
+        const emi = parseFloat(l.monthlyInstallment || 0);
+        const repaid = parseFloat(l.totalPaid || 0);
+        const outstanding = parseFloat(l.totalOutstanding || 0);
+        const dueDate = l.nextDueDate ? Common.formatDate(l.nextDueDate) : (l.status === 'CLOSED' ? 'Completed' : '-');
+        const statusBadge = Common.getStatusBadge(l.status);
+
+        return `
+          <tr>
+            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(l.memberId || '-')}</code></td>
+            <td><strong>${escapeHtml(l.memberName || '-')}</strong></td>
+            <td><code style="color: var(--text-muted);">${escapeHtml(l.loanId || l.id || '-')}</code></td>
+            <td><span style="font-size: 0.85rem; color: var(--text-main);">${escapeHtml(l.purpose || 'General / Business Need')}</span></td>
+            <td class="table-currency" style="font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
+            <td class="table-currency">${rate.toFixed(1)}% p.a.</td>
+            <td class="table-currency" style="font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
+            <td class="table-currency" style="color: var(--success);">${Common.formatIndianCurrency(repaid)}</td>
+            <td class="table-currency" style="font-weight: 700; color: ${outstanding > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(outstanding)}</td>
+            <td><strong>${dueDate}</strong></td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function populateCard(g) {
+      if (!g) return;
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+      const name = Common.getLocalizedGroupName(g, currentLang);
+      document.getElementById('card-group-name').textContent = Common.text(name);
+      document.getElementById('card-reg-id').textContent = Common.text(g.registrationId, '-');
+      document.getElementById('card-gov-reg-no').textContent = Common.text(g.bachatGatRegNumber, '-');
+      document.getElementById('card-group-code').textContent = Common.text(g.groupCode, '-');
+      document.getElementById('card-formation-date').textContent = g.formationDate ? Common.formatDate(g.formationDate) : '-';
+      document.getElementById('card-monthly-share').textContent = Common.formatIndianCurrency(g.monthlyBachatAmount || 500);
+
+      document.getElementById('card-president').textContent = Common.text(g.president, '-');
+      document.getElementById('card-secretary').textContent = Common.text(g.secretary, '-');
+      document.getElementById('card-treasurer').textContent = Common.text(g.treasurer, '-');
+      document.getElementById('card-phone').textContent = Common.text(g.contactNumber, '-');
+      document.getElementById('card-email').textContent = Common.text(g.email, '-');
+
+      document.getElementById('card-village').textContent = Common.text(g.village, '-');
+      document.getElementById('card-taluka-dist').textContent = `${Common.text(g.taluka, '')}, ${Common.text(g.district, '')}`;
+      document.getElementById('card-state-pin').textContent = `${Common.text(g.state, 'Maharashtra')} - ${Common.text(g.pinCode, '')}`;
+      const dueEl = document.getElementById('card-collection-due-day');
+      if (dueEl) dueEl.textContent = (g.collectionDueDay || 10) + 'th of every month';
+
+      document.getElementById('card-bank-name').textContent = Common.text(g.bankName, '-');
+      document.getElementById('card-branch').textContent = Common.text(g.branch, '-');
+      document.getElementById('card-account-no').textContent = Common.text(g.accountNumber, '-');
+      document.getElementById('card-ifsc').textContent = Common.text(g.ifsc, '-');
+      document.getElementById('card-upi').textContent = Common.text(g.upiDetails || g.upiId, '-');
+
+      // Update add member subtitle
+      const addMemTitle = document.getElementById('add-member-group-name');
+      if (addMemTitle) addMemTitle.textContent = name;
+      const shareVal = g.monthlyBachatAmount || 500;
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+      setVal('enroll-monthlyBachat', shareVal);
+      setVal('enroll-committedAmount', shareVal);
+      setVal('new-monthlyBachat', shareVal);
+      setVal('new-committedAmount', shareVal);
+    }
+
+    async function loadGroupMembers(groupId) {
+      try {
+        groupMembers = await api.getMembers(groupId);
+        renderGroupMembers(groupMembers);
+        updateGroupStats(groupMembers);
+      } catch (err) {
+        console.error('Error fetching group members:', err);
+      }
+    }
+
+    function updateGroupStats(members) {
+      document.getElementById('grp-stat-members').textContent = members.length;
+      const share = currentGroup ? parseFloat(currentGroup.monthlyBachatAmount || 5000) : 5000;
+      const totalTarget = members.length * share;
+      document.getElementById('grp-stat-target').textContent = Common.formatIndianCurrency(totalTarget);
+
+      const totalSavings = members.reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
+      document.getElementById('grp-stat-savings').textContent = Common.formatIndianCurrency(totalSavings);
+
+      const noLoans = members.filter(m => !m.activeLoanId || parseFloat(m.currentLoanOutstanding || 0) <= 0);
+      document.getElementById('grp-stat-no-loans').textContent = noLoans.length;
+    }
+
+    function renderGroupMembers(members) {
+      const tbody = document.getElementById('group-members-tbody');
+      if (!tbody) return;
+      if (!members || members.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="13" class="empty-state" style="text-align: center; padding: 2rem;">No members enrolled in this group yet. Click <strong>"Add Member to Group"</strong> above to enroll members.</td></tr>`;
+        return;
+      }
+
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+      tbody.innerHTML = members.map(m => {
+        const monthlyBachat = parseFloat(currentGroup && currentGroup.monthlyBachatAmount || m.monthlyBachatAmount || 500);
+        const totalSavings = parseFloat(m.totalSavingsBalance || 0);
+        const paidAmount = totalSavings;
+        const pendingAmount = parseFloat(m.pendingSavings || 0);
+        const startDate = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : (m.joiningDate ? Common.formatDate(m.joiningDate) : '-');
+        const endDate = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
+        const nextDueDate = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of Month';
+        const memberDisplayName = Common.getLocalizedMemberName(m, currentLang);
+        const regCode = Common.getGroupScopedMemberRegistrationId(m);
+
+        let statusBadge = '<span class="status-badge badge-active">PAID</span>';
+        if (pendingAmount > 0) {
+          statusBadge = '<span class="badge" style="background:#fef3c7; color:#92400e;">PENDING</span>';
+        }
+
+        return `
+          <tr>
+            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(regCode)}</code></td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <strong>${escapeHtml(memberDisplayName)}</strong>
+                ${m.designation && m.designation !== 'MEMBER' ? Common.getRoleBadge({ designation: m.designation }, currentLang) : ''}
+              </div>
+              ${m.fullNameMr && currentLang !== 'mr' ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(m.fullNameMr)}</div>` : ''}
+              <div style="font-size: 0.75rem; color: var(--text-muted);">${m.guardianName ? 'Rel: ' + escapeHtml(m.guardianName) : ''}</div>
+            </td>
+            <td class="table-currency">${Common.formatIndianCurrency(monthlyBachat)}</td>
+            <td class="table-currency" style="font-weight: 700; color: var(--success);">${Common.formatIndianCurrency(totalSavings)}</td>
+            <td class="table-currency">${Common.formatIndianCurrency(paidAmount)}</td>
+            <td class="table-currency" style="color: ${pendingAmount > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(pendingAmount)}</td>
+            <td>${startDate}</td>
+            <td>${endDate}</td>
+            <td><strong style="color: var(--primary);">${nextDueDate}</strong></td>
+            <td>${statusBadge}</td>
+            <td style="text-align: right;">
+              <div class="table-actions" style="justify-content: flex-end;">
+                <button class="btn-action-icon" title="View Member 360 Dossier" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'">
+                  <i class="bi bi-person-bounding-box"></i>
+                </button>
+                <button class="btn-action-icon" title="Remove from Group" style="color: var(--danger);" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
+                  <i class="bi bi-trash3-fill"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Modal 1: Create Group Logic
+    function openCreateGroupModal() {
+      document.getElementById('create-group-error').style.display = 'none';
+      document.getElementById('modal-create-group').classList.add('show');
+      handleLocationInput('cg');
+    }
+
+    function closeCreateGroupModal() {
+      Common.closeModal('modal-create-group');
+    }
+
+    // Location-Based Bank & IFSC Directory Handlers
+    function handleLocationInput(prefix) {
+      if (typeof BankDirectory === 'undefined') return;
+      const districtInput = document.getElementById(`${prefix}-district`);
+      const talukaInput = document.getElementById(`${prefix}-taluka`);
+      const district = (districtInput?.value || '').trim();
+      const taluka = (talukaInput?.value || '').trim();
+      const village = (document.getElementById(`${prefix}-village`)?.value || '').trim();
+      const pin = (document.getElementById(`${prefix}-pinCode`)?.value || '').trim();
+      const select = document.getElementById(`${prefix}-bankSelect`);
+      const statusEl = document.getElementById(`${prefix}-ifsc-hint`);
+
+      if (!select) return;
+
+      if (pin && pin.length === 6 && /^[1-9][0-9]{5}$/.test(pin)) {
+        BankDirectory.lookupByPinCode(pin, select, statusEl, { districtInput, talukaInput });
+      } else {
+        const query = [district, taluka, village, pin].filter(Boolean).join(' ');
+        BankDirectory.populateSelect(select, query);
+      }
+    }
+
+    function onBankSelectChange(prefix) {
+      const select = document.getElementById(`${prefix}-bankSelect`);
+      if (!select) return;
+      const opt = select.selectedOptions[0];
+      const bankNameInput = document.getElementById(`${prefix}-bankName`) || document.getElementById(`${prefix}-bank`);
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      const badge = document.getElementById(`${prefix}-bank-badge`);
+      const verifiedTag = document.getElementById(`${prefix}-ifsc-verified-tag`);
+      const hint = document.getElementById(`${prefix}-ifsc-hint`);
+
+      if (!select.value || select.value === 'OTHER' || select.value === 'MANUAL') {
+        if (badge) badge.style.display = 'none';
+        if (select.value === 'OTHER' || select.value === 'MANUAL') {
+          if (verifiedTag) {
+            verifiedTag.textContent = '✎ Manual Bank Entry';
+            verifiedTag.style.color = '#7c3aed';
+          }
+          if (hint) hint.textContent = 'Enter bank name, account number, and IFSC code manually.';
+          if (bankNameInput) {
+            bankNameInput.removeAttribute('readonly');
+            bankNameInput.focus();
+          }
+          if (ifscInput) ifscInput.removeAttribute('readonly');
+        } else {
+          if (verifiedTag) verifiedTag.textContent = '';
+          if (hint) hint.textContent = '11-character code (auto-filled on branch select).';
+        }
+        return;
+      }
+
+      const ifsc = opt.getAttribute('data-ifsc') || select.value;
+      const bankName = opt.getAttribute('data-bank') || opt.getAttribute('data-bank-name') || '';
+      const branch = opt.getAttribute('data-branch') || '';
+
+      if (bankNameInput) bankNameInput.value = bankName;
+      if (ifscInput) ifscInput.value = ifsc;
+      if (badge) badge.style.display = 'inline-block';
+      if (verifiedTag) {
+        verifiedTag.textContent = '✓ Verified Branch';
+        verifiedTag.style.color = '#059669';
+      }
+      if (hint) hint.textContent = `${bankName} (${branch}) - IFSC Verified`;
+    }
+
+    async function onIfscDirectInput(prefix) {
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      ifscInput.value = val;
+      if (val.length === 11) {
+        await verifyIfscManually(prefix);
+      }
+    }
+
+    async function verifyIfscManually(prefix) {
+      const ifscInput = document.getElementById(`${prefix}-ifsc`);
+      const bankNameInput = document.getElementById(`${prefix}-bankName`);
+      const verifiedTag = document.getElementById(`${prefix}-ifsc-verified-tag`);
+      const hint = document.getElementById(`${prefix}-ifsc-hint`);
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      if (val.length !== 11) {
+        if (verifiedTag) {
+          verifiedTag.textContent = 'Invalid IFSC Code (must be 11 characters)';
+          verifiedTag.style.color = '#dc2626';
+        }
+        return;
+      }
+      if (verifiedTag) {
+        verifiedTag.textContent = 'Checking IFSC...';
+        verifiedTag.style.color = '#0284c7';
+      }
+      if (typeof BankDirectory !== 'undefined') {
+        const res = await BankDirectory.verifyIFSC(val);
+        if (res && res.valid) {
+          if (bankNameInput && (!bankNameInput.value || bankNameInput.value.trim() === '')) {
+            bankNameInput.value = res.bank || '';
+          }
+          if (verifiedTag) {
+            verifiedTag.textContent = '✓ Verified: ' + (res.bank || 'Verified') + (res.branch ? ` (${res.branch})` : '');
+            verifiedTag.style.color = '#059669';
+          }
+          if (hint) {
+            hint.textContent = `${res.bank || ''} - ${res.branch || ''}, ${res.city || ''}`;
+          }
+        } else {
+          if (verifiedTag) {
+            verifiedTag.textContent = res?.message || 'Invalid IFSC Code. Please enter a valid IFSC Code.';
+            verifiedTag.style.color = '#dc2626';
+          }
+        }
+      }
+    }
+
+    async function handleCreateGroup(e) {
+      e.preventDefault();
+      const pw1 = document.getElementById('cg-presidentPassword').value;
+      const pw2 = document.getElementById('cg-confirmPresidentPassword').value;
+
+      if (pw1 !== pw2) {
+        Common.showToast('President password and confirmation password do not match.', 'danger');
+        return;
+      }
+      if (pw1.length < 6) {
+        Common.showToast('President password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-create-group');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating Group...';
+
+      const payload = {
+        groupName: document.getElementById('cg-groupName').value.trim(),
+        groupNameMr: (document.getElementById('cg-groupNameMr') ? document.getElementById('cg-groupNameMr').value.trim() : ''),
+        groupNameHi: (document.getElementById('cg-groupNameHi') ? document.getElementById('cg-groupNameHi').value.trim() : ''),
+        registrationId: document.getElementById('cg-registrationId').value.trim(),
+        bachatGatRegNumber: document.getElementById('cg-bachatGatRegNumber').value.trim(),
+        groupCode: document.getElementById('cg-groupCode').value.trim().toUpperCase(),
+        monthlyBachatAmount: parseFloat(document.getElementById('cg-monthlyBachatAmount').value),
+        formationDate: document.getElementById('cg-formationDate').value,
+        collectionDueDay: parseInt(document.getElementById('cg-collectionDueDay').value) || 10,
+        president: document.getElementById('cg-president').value.trim(),
+        presidentNameMr: (document.getElementById('cg-presidentNameMr') ? document.getElementById('cg-presidentNameMr').value.trim() : ''),
+        presidentNameHi: (document.getElementById('cg-presidentNameHi') ? document.getElementById('cg-presidentNameHi').value.trim() : ''),
+        presidentMobile: document.getElementById('cg-contactNumber').value.trim(),
+        presidentPassword: pw1,
+        confirmPresidentPassword: pw2,
+        contactNumber: document.getElementById('cg-contactNumber').value.trim(),
+        email: document.getElementById('cg-email').value.trim(),
+        presidentEmail: document.getElementById('cg-email').value.trim(),
+        village: document.getElementById('cg-village').value.trim(),
+        taluka: document.getElementById('cg-taluka').value.trim(),
+        district: document.getElementById('cg-district').value.trim(),
+        pinCode: document.getElementById('cg-pinCode').value.trim(),
+        bankName: document.getElementById('cg-bankName').value.trim(),
+        accountNumber: document.getElementById('cg-accountNumber').value.trim(),
+        ifsc: document.getElementById('cg-ifsc').value.trim().toUpperCase(),
+        meetingLocation: '',
+        state: 'Maharashtra'
+      };
+
+      try {
+        const createdGroup = await api.createGroup(payload);
+        const gName = createdGroup.groupName || createdGroup.name || payload.groupName;
+        Common.showToast(`Group "${gName}" created successfully!`, 'success');
+        closeCreateGroupModal();
+        document.getElementById('form-create-group').reset();
+
+        // Refresh groups and switch to new group
+        await loadAllGroups();
+        await switchGroup(createdGroup.id);
+
+        // Immediately open Add Member modal for this newly created group!
+        // Flow: Create Group -> Group Created -> Add Members -> Configure Member's Group/Saving Details -> Save
+        openAddMemberModal();
+        Common.showToast(`Now add members to "${gName}" to complete setup!`, 'info');
+
+      } catch (err) {
+        document.getElementById('create-group-error').textContent = err.message;
+        document.getElementById('create-group-error').style.display = 'block';
+        Common.showToast('Group creation failed: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Create Group & Proceed to Add Members';
+      }
+    }
+
+    // Modal 2: Add Member Logic
+    async function openAddMemberModal() {
+      document.getElementById('add-member-error').style.display = 'none';
+      document.getElementById('member-already-enrolled-warn').style.display = 'none';
+      document.getElementById('selected-member-preview').style.display = 'none';
+
+      // Load all system members for dropdown
+      try {
+        systemMembers = await api.getAllMembers();
+        const select = document.getElementById('enroll-member-select');
+        select.innerHTML = '<option value="">-- Choose Member --</option>';
+
+        systemMembers.forEach(m => {
+          const isCurrent = currentGroup && m.groupId === currentGroup.id;
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = `${m.fullName} (${m.memberId}) - ${m.mobileNumber} ${isCurrent ? '[Currently Enrolled]' : ''}`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Failed to load system members:', err);
+      }
+
+      document.getElementById('modal-add-member').classList.add('show');
+    }
+
+    function closeAddMemberModal() {
+      Common.closeModal('modal-add-member');
+    }
+
+    function switchAddMemberTab(tab) {
+      document.getElementById('add-member-error').style.display = 'none';
+      if (tab === 'existing') {
+        document.getElementById('tab-btn-existing').classList.add('active');
+        document.getElementById('tab-btn-new').classList.remove('active');
+        document.getElementById('tab-pane-existing').classList.add('active');
+        document.getElementById('tab-pane-new').classList.remove('active');
+      } else {
+        document.getElementById('tab-btn-new').classList.add('active');
+        document.getElementById('tab-btn-existing').classList.remove('active');
+        document.getElementById('tab-pane-new').classList.add('active');
+        document.getElementById('tab-pane-existing').classList.remove('active');
+      }
+    }
+
+    function handleExistingMemberSelection() {
+      const memberId = document.getElementById('enroll-member-select').value;
+      const warnEl = document.getElementById('member-already-enrolled-warn');
+      const previewEl = document.getElementById('selected-member-preview');
+      const submitBtn = document.getElementById('btn-submit-enroll-existing');
+
+      if (!memberId) {
+        warnEl.style.display = 'none';
+        previewEl.style.display = 'none';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      const m = systemMembers.find(item => item.id === memberId || item.memberId === memberId);
+      if (!m) return;
+
+      previewEl.style.display = 'block';
+      document.getElementById('prev-name').textContent = m.fullName + ' (' + m.memberId + ')';
+      document.getElementById('prev-contact').textContent = m.mobileNumber + ' | PAN: ' + (m.panNumber || '-');
+      document.getElementById('prev-status').textContent = (m.groupName || 'Unassigned') + ' (' + m.status + ')';
+
+      if (currentGroup && m.groupId === currentGroup.id && m.status === 'ACTIVE') {
+        warnEl.style.display = 'block';
+        submitBtn.disabled = true;
+      } else {
+        warnEl.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function handleEnrollExistingMember(e) {
+      e.preventDefault();
+      if (!currentGroup) return;
+
+      const memberId = document.getElementById('enroll-member-select').value;
+      if (!memberId) {
+        alert('Please select a member to enroll.');
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-enroll-existing');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Enrolling...';
+
+      const payload = {
+        memberId: memberId,
+        monthlyBachatAmount: parseFloat(document.getElementById('enroll-monthlyBachat').value),
+
+        bachatStartDate: document.getElementById('enroll-startDate').value,
+        bachatEndDate: document.getElementById('enroll-endDate').value
+      };
+
+      try {
+        const enrolled = await api.enrollExistingMember(currentGroup.id, payload);
+        const curName = currentGroup.groupName || currentGroup.name || 'Group';
+        Common.showToast(`Member ${enrolled.fullName} successfully enrolled into ${curName}!`, 'success');
+        closeAddMemberModal();
+        await loadGroupMembers(currentGroup.id);
+      } catch (err) {
+        document.getElementById('add-member-error').textContent = err.message;
+        document.getElementById('add-member-error').style.display = 'block';
+        Common.showToast('Enrollment failed: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-person-check-fill"></i> Save & Enroll Member';
+      }
+    }
+
+    async function handleRegisterAndEnrollMember(e) {
+      e.preventDefault();
+      if (!currentGroup) return;
+
+      const errBox = document.getElementById('add-member-error');
+      errBox.style.display = 'none';
+
+      const pw1 = (document.getElementById('new-password') ? document.getElementById('new-password').value : '').trim();
+      const pw2 = (document.getElementById('new-confirmPassword') ? document.getElementById('new-confirmPassword').value : '').trim();
+
+      if (!pw1) {
+        errBox.textContent = 'Member password is required.';
+        errBox.style.display = 'block';
+        document.getElementById('new-password').focus();
+        return;
+      }
+      if (pw1.length < 6) {
+        errBox.textContent = 'Member password must be at least 6 characters long.';
+        errBox.style.display = 'block';
+        document.getElementById('new-password').focus();
+        return;
+      }
+      if (!pw2) {
+        errBox.textContent = 'Please confirm the member password.';
+        errBox.style.display = 'block';
+        document.getElementById('new-confirmPassword').focus();
+        return;
+      }
+      if (pw1 !== pw2) {
+        errBox.textContent = 'Password and Confirm Password do not match.';
+        errBox.style.display = 'block';
+        document.getElementById('new-confirmPassword').focus();
+        return;
+      }
+
+      const submitBtn = document.getElementById('btn-submit-enroll-new');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Registering Member...';
+
+      const payload = {
+        groupId: currentGroup.id,
+        fullName: document.getElementById('new-fullName').value.trim(),
+        guardianName: document.getElementById('new-guardianName').value.trim(),
+        gender: document.getElementById('new-gender').value,
+        dob: document.getElementById('new-dob').value,
+        mobileNumber: document.getElementById('new-mobileNumber').value.trim(),
+        address: document.getElementById('new-address').value.trim(),
+        village: document.getElementById('new-village').value.trim(),
+        taluka: document.getElementById('new-taluka').value.trim(),
+        district: document.getElementById('new-district').value.trim(),
+        state: 'Maharashtra',
+        pinCode: document.getElementById('new-pinCode').value.trim(),
+        panNumber: document.getElementById('new-panNumber').value.trim().toUpperCase(),
+        aadhaarReference: document.getElementById('new-aadhaarReference').value.trim(),
+        monthlyBachatAmount: parseFloat(document.getElementById('new-monthlyBachat').value),
+
+        initialShareAmount: 0,
+        totalSavingsTarget: parseFloat(document.getElementById('new-monthlyBachat').value) * 12,
+        bachatStartDate: document.getElementById('new-startDate').value,
+        bachatEndDate: document.getElementById('new-endDate').value,
+        nomineeName: document.getElementById('new-nomineeName').value.trim(),
+        nomineeRelation: document.getElementById('new-nomineeRelation').value.trim(),
+        nomineeMobile: document.getElementById('new-nomineeMobile').value.trim(),
+        bankName: document.getElementById('new-bankName').value.trim(),
+        accountNumber: document.getElementById('new-accountNumber').value.trim(),
+        ifsc: document.getElementById('new-ifsc').value.trim().toUpperCase(),
+        branch: 'Branch',
+        password: pw1,
+        confirmPassword: pw2,
+        createLoginAccount: true
+      };
+
+      try {
+        const created = await api.createMember(currentGroup.id, payload);
+        Common.showToast(`Member ${created.fullName} (${created.memberId}) registered and enrolled into group!`, 'success');
+        closeAddMemberModal();
+        document.getElementById('form-enroll-new').reset();
+        await loadGroupMembers(currentGroup.id);
+      } catch (err) {
+        document.getElementById('add-member-error').textContent = err.message;
+        document.getElementById('add-member-error').style.display = 'block';
+        Common.showToast('Registration failed: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-person-plus-fill"></i> Save & Register Member';
+      }
+    }
+
+    async function handleRemoveMember(memberId, memberName) {
+      const curName = currentGroup.groupName || currentGroup.name || 'Group';
+      if (!confirm(`Are you sure you want to remove member ${memberName} (${memberId}) from ${curName}?`)) {
+        return;
+      }
+
+      try {
+        await api.removeMemberFromGroup(currentGroup.id, memberId);
+        Common.showToast(`Member ${memberName} removed from group.`, 'success');
+        await loadGroupMembers(currentGroup.id);
+      } catch (err) {
+        Common.showToast('Could not remove member: ' + err.message, 'danger');
+      }
+    }
+
+    // Modal 3: Edit Group Logic
+    function syncInterestRateFromMonthly() {
+      const m = parseFloat(document.getElementById('edit-monthly-interest-rate').value);
+      if (!isNaN(m)) {
+        document.getElementById('edit-interest-rate').value = (m * 12).toFixed(2).replace(/\.00$/, '');
+      }
+    }
+
+    function syncInterestRateFromAnnual() {
+      const a = parseFloat(document.getElementById('edit-interest-rate').value);
+      if (!isNaN(a)) {
+        document.getElementById('edit-monthly-interest-rate').value = (a / 12).toFixed(2).replace(/\.00$/, '');
+      }
+    }
+
+    async function openEditModal() {
+      if (!currentGroup) return;
+      document.getElementById('edit-name').value = currentGroup.groupName || currentGroup.name || '';
+      document.getElementById('edit-monthly-share').value = currentGroup.monthlyBachatAmount || '';
+      document.getElementById('edit-gov-reg').value = currentGroup.bachatGatRegNumber || '';
+      document.getElementById('edit-collection-due-day').value = currentGroup.collectionDueDay || 10;
+      document.getElementById('edit-president').value = currentGroup.president || '';
+      document.getElementById('edit-secretary').value = currentGroup.secretary || '';
+      document.getElementById('edit-treasurer').value = currentGroup.treasurer || '';
+      document.getElementById('edit-bank').value = currentGroup.bankName || '';
+      document.getElementById('edit-account').value = currentGroup.accountNumber || '';
+      document.getElementById('edit-ifsc').value = currentGroup.ifsc || '';
+
+      // Populate location bank branch dropdown
+      if (window.BankDirectory && document.getElementById('edit-bankSelect')) {
+        BankDirectory.populateSelect(document.getElementById('edit-bankSelect'), currentGroup.district || 'Ahilyanagar', currentGroup.ifsc || '');
+      }
+
+      // Prefill Interest Rate & Lending Rules
+      let annualRate = currentGroup.defaultInterestRate != null ? currentGroup.defaultInterestRate : 12;
+      let interestType = currentGroup.loanInterestType || 'REDUCING_BALANCE';
+      let maxLoan = currentGroup.maxLoanAmount || 100000;
+      let lateFee = currentGroup.lateFeeAmount != null ? currentGroup.lateFeeAmount : 100;
+      let allowMulti = currentGroup.allowMultipleLoans === true;
+      let maxActive = currentGroup.maxActiveLoans != null ? currentGroup.maxActiveLoans : 2;
+      let maxOutstanding = currentGroup.maxOutstandingLoanAmount != null ? currentGroup.maxOutstandingLoanAmount : 150000;
+      let maxPerMember = currentGroup.maxLoanAmountPerMember != null ? currentGroup.maxLoanAmountPerMember : 100000;
+
+      // Try fetching latest master data rules to ensure 100% current settings
+      try {
+        const md = await api.getMasterData(currentGroup.id);
+        if (md) {
+          if (md.loanInterestRate != null) annualRate = md.loanInterestRate;
+          if (md.loanInterestType) interestType = md.loanInterestType;
+          if (md.maxLoanAmount != null) maxLoan = md.maxLoanAmount;
+          if (md.latePaymentFee != null) lateFee = md.latePaymentFee;
+          if (md.allowMultipleLoans != null) allowMulti = md.allowMultipleLoans;
+          if (md.maxActiveLoans != null) maxActive = md.maxActiveLoans;
+          if (md.maxOutstandingLoanAmount != null) maxOutstanding = md.maxOutstandingLoanAmount;
+          if (md.maxLoanAmountPerMember != null) maxPerMember = md.maxLoanAmountPerMember;
+        }
+      } catch (e) {
+        console.warn('Could not load group master data for edit modal:', e);
+      }
+
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+
+      setVal('edit-interest-rate', annualRate);
+      setVal('edit-monthly-interest-rate', (annualRate / 12).toFixed(2).replace(/\.00$/, ''));
+      setVal('edit-interest-type', interestType);
+      setVal('edit-max-loan', maxLoan);
+      setVal('edit-late-fee', lateFee);
+      setVal('edit-allow-multiple-loans', allowMulti ? "true" : "false");
+      setVal('edit-max-active-loans', maxActive);
+      setVal('edit-max-outstanding-loan', maxOutstanding);
+      setVal('edit-max-loan-per-member', maxPerMember);
+      toggleMultipleLoanEditFields();
+
+      Common.openModal('modal-edit-group');
+    }
+
+    function openCreateGroupModal() {
+      window.location.href = '/admin/super-dashboard.html?action=create';
+    }
+
+    function toggleMultipleLoanEditFields() {
+      const el = document.getElementById('edit-allow-multiple-loans');
+      const isMulti = el && el.value === 'true';
+      const maxBox = document.getElementById('edit-max-active-loans-box');
+      const outBox = document.getElementById('edit-max-outstanding-loan-box');
+      if (maxBox) maxBox.style.display = isMulti ? 'block' : 'none';
+      if (outBox) outBox.style.display = isMulti ? 'block' : 'none';
+    }
+
+    function closeEditModal() {
+      Common.closeModal('modal-edit-group');
+    }
+
+    async function handleUpdateGroup(e) {
+      e.preventDefault();
+      const groupId = (currentGroup && currentGroup.id) ? currentGroup.id : (Common.getSelectedGroupId() || 'bg-001');
+      const annualRate = parseFloat(document.getElementById('edit-interest-rate')?.value);
+      const interestType = document.getElementById('edit-interest-type')?.value || 'REDUCING_BALANCE';
+      const maxLoan = parseFloat(document.getElementById('edit-max-loan')?.value || document.getElementById('edit-max-loan-per-member')?.value);
+      const lateFee = parseFloat(document.getElementById('edit-late-fee')?.value);
+      const collectionDueDay = parseInt(document.getElementById('edit-collection-due-day')?.value) || 10;
+      const allowMultipleLoans = document.getElementById('edit-allow-multiple-loans')?.value === 'true';
+      const maxActiveLoans = parseInt(document.getElementById('edit-max-active-loans')?.value) || 2;
+      const maxOutstandingLoanAmount = parseFloat(document.getElementById('edit-max-outstanding-loan')?.value) || 150000;
+      const maxLoanAmountPerMember = parseFloat(document.getElementById('edit-max-loan-per-member')?.value) || 100000;
+
+      const updatedData = {
+        groupName: document.getElementById('edit-name').value,
+        monthlyBachatAmount: parseFloat(document.getElementById('edit-monthly-share').value),
+        defaultInterestRate: isNaN(annualRate) ? 12 : annualRate,
+        loanInterestType: interestType,
+        maxLoanAmount: isNaN(maxLoan) ? 100000 : maxLoan,
+        lateFeeAmount: isNaN(lateFee) ? 100 : lateFee,
+        bachatGatRegNumber: document.getElementById('edit-gov-reg').value,
+        collectionDueDay: collectionDueDay,
+        allowMultipleLoans: allowMultipleLoans,
+        maxActiveLoans: maxActiveLoans,
+        maxOutstandingLoanAmount: maxOutstandingLoanAmount,
+        maxLoanAmountPerMember: maxLoanAmountPerMember,
+        president: document.getElementById('edit-president').value,
+        secretary: document.getElementById('edit-secretary').value,
+        treasurer: document.getElementById('edit-treasurer').value,
+        bankName: document.getElementById('edit-bank').value,
+        accountNumber: document.getElementById('edit-account').value,
+        ifsc: document.getElementById('edit-ifsc').value,
+        registrationId: currentGroup.registrationId,
+        groupCode: currentGroup.groupCode
+      };
+
+      try {
+        const res = await api.updateGroup(groupId, updatedData);
+        Common.showToast(`Group settings updated successfully! Due Date: ${collectionDueDay}th of month. Loan Interest: ${updatedData.defaultInterestRate}% p.a.`, 'success');
+        closeEditModal();
+        await switchGroup(groupId);
+      } catch (err) {
+        Common.showToast('Update failed: ' + err.message, 'danger');
+      }
+    }
+
+    // Modal 4: Designate Office Bearer Logic (Secretary / Treasurer)
+    function openDesignateBearerModal() {
+      if (!currentGroup) {
+        Common.showToast('Please select a group first.', 'warning');
+        return;
+      }
+      document.getElementById('designate-error').style.display = 'none';
+      document.getElementById('form-designate-bearer').reset();
+
+      // Populate existing group members in dropdown
+      const sel = document.getElementById('desig-existing-member');
+      sel.innerHTML = '<option value="">-- Or enter new office bearer details below --</option>';
+      if (groupMembers && groupMembers.length > 0) {
+        groupMembers.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.memberId || m.id;
+          opt.textContent = `${m.fullName} (${m.mobileNumber}) - ${m.designation || 'MEMBER'}`;
+          sel.appendChild(opt);
+        });
+      }
+
+      Common.openModal('modal-designate-bearer');
+    }
+
+    function closeDesignateBearerModal() {
+      Common.closeModal('modal-designate-bearer');
+    }
+
+    function handleDesignateMemberSelect() {
+      const selId = document.getElementById('desig-existing-member').value;
+      if (!selId || !groupMembers) return;
+      const mem = groupMembers.find(m => (m.memberId === selId || m.id === selId));
+      if (mem) {
+        document.getElementById('desig-fullName').value = mem.fullName || '';
+        document.getElementById('desig-fullNameMr').value = mem.fullNameMr || '';
+        document.getElementById('desig-mobileNumber').value = mem.mobileNumber || '';
+        document.getElementById('desig-email').value = mem.email || '';
+      }
+    }
+
+    async function handleDesignateOfficeBearer(e) {
+      e.preventDefault();
+      const pw1 = document.getElementById('desig-password').value;
+      const pw2 = document.getElementById('desig-confirmPassword').value;
+      if (pw1 !== pw2) {
+        Common.showToast('Passwords do not match.', 'danger');
+        return;
+      }
+      if (pw1.length < 6) {
+        Common.showToast('Password must be at least 6 characters.', 'danger');
+        return;
+      }
+
+      const role = document.getElementById('desig-role').value;
+      const submitBtn = document.getElementById('btn-submit-designate');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Assigning...';
+
+      const payload = {
+        role: role,
+        memberId: document.getElementById('desig-existing-member').value || null,
+        fullName: document.getElementById('desig-fullName').value.trim(),
+        fullNameMr: document.getElementById('desig-fullNameMr').value.trim(),
+        mobileNumber: document.getElementById('desig-mobileNumber').value.trim(),
+        email: document.getElementById('desig-email').value.trim(),
+        password: pw1,
+        confirmPassword: pw2
+      };
+
+      try {
+        await api.designateOfficeBearer(currentGroup.id, payload);
+        Common.showToast(`Role ${role} successfully assigned to ${payload.fullName}!`, 'success');
+        closeDesignateBearerModal();
+        await switchGroup(currentGroup.id);
+      } catch (err) {
+        document.getElementById('designate-error').textContent = err.message;
+        document.getElementById('designate-error').style.display = 'block';
+        Common.showToast('Failed to designate: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save & Assign Role';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    // Reactively re-render tables and badges whenever the user switches language
+    window.addEventListener('languageChanged', () => {
+      if (groupMembers && groupMembers.length > 0) renderGroupMembers(groupMembers);
+      if (currentGroupLoans && currentGroupLoans.length > 0) renderGroupLoans(currentGroupLoans);
+    });
+  </script>
+</body>
+</html>

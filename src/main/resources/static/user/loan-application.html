@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply for Loan - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/user.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item active"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-file-earmark-plus text-primary"></i> <span data-i18n="selfServiceLoanApp">Self-Service Loan Application</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="applyForLoan">Apply for Bachat Gat Loan</h1>
+            <p class="page-subtitle" data-i18n="applyForLoanSubtitle">Submit your request for educational, agricultural, medical, or business credit for admin review</p>
+          </div>
+        </div>
+
+        <!-- Member Loan Eligibility & Policy Snapshot -->
+        <div id="eligibility-banner" class="content-card mb-4" style="padding: 1.25rem 1.5rem; border-left: 4px solid var(--primary); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div>
+            <div data-i18n="loanEligibilityStatus" style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Your Loan Eligibility Status</div>
+            <div id="el-badge-status" style="margin-top: 0.35rem;">
+              <span class="status-badge badge-active"><i class="bi bi-shield-check"></i> <span data-i18n="checkingEligibility">Checking Eligibility...</span></span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div>
+              <div data-i18n="activeLoans" style="font-size: 0.8rem; color: var(--text-muted);">Active Loans</div>
+              <strong id="el-active-count" style="font-size: 1.1rem; color: var(--text-main);">-</strong>
+            </div>
+            <div>
+              <div data-i18n="currentOutstanding" style="font-size: 0.8rem; color: var(--text-muted);">Current Outstanding</div>
+              <strong id="el-outstanding-amt" style="font-size: 1.1rem; color: var(--danger);">-</strong>
+            </div>
+            <div>
+              <div data-i18n="maxIndividualLoan" style="font-size: 0.8rem; color: var(--text-muted);">Max Individual Loan</div>
+              <strong id="el-max-loan" style="font-size: 1.1rem; color: var(--success);">-</strong>
+            </div>
+            <div>
+              <div data-i18n="multipleLoansPolicy" style="font-size: 0.8rem; color: var(--text-muted);">Multiple Loans Policy</div>
+              <strong id="el-multi-policy" style="font-size: 1.1rem; color: var(--primary);">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+          <!-- Application Form -->
+          <div class="content-card" style="padding: 1.75rem;">
+            <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-send-fill"></i> <span data-i18n="newLoanRequestForm">New Loan Request Form</span>
+            </h2>
+
+            <div id="ineligibility-alert" style="display: none; background: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 0.75rem 1rem; color: #991b1b; font-size: 0.875rem; margin-bottom: 1rem;">
+              <i class="bi bi-exclamation-triangle-fill"></i> <span id="ineligibility-reason-text">Ineligible to apply.</span>
+            </div>
+
+            <form id="form-loan-app">
+              <div class="form-group mb-3">
+                <label class="form-label required" data-i18n="requestedLoanAmount">Requested Loan Amount (₹)</label>
+                <div style="position: relative;">
+                  <span style="position: absolute; left: 14px; top: 10px; font-weight: bold; color: var(--text-muted);">₹</span>
+                  <input type="number" id="app-amount" class="form-control" style="padding-left: 2rem;" placeholder="e.g. 50000" min="1000" step="1000" required oninput="calculateLiveEmi()">
+                </div>
+                <small id="app-amount-help" class="text-muted"></small>
+              </div>
+
+              <div class="form-row mb-3">
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label required" data-i18n="purposeOfLoan">Purpose of Loan</label>
+                  <select id="app-purpose" class="form-select" required>
+                    <option value="" data-i18n="selectPurpose">-- Select Purpose --</option>
+                    <option value="Education" data-i18n="purposeEducation">Child Education / Fees</option>
+                    <option value="Agriculture" data-i18n="purposeAgriculture">Agriculture / Farming Seeds</option>
+                    <option value="Medical" data-i18n="purposeMedical">Medical / Emergency Health</option>
+                    <option value="Small Business" data-i18n="purposeBusiness">Small Business / Micro Enterprise</option>
+                    <option value="Home Repair" data-i18n="purposeHomeRepair">Home Repair / Improvement</option>
+                    <option value="Festival / Marriage" data-i18n="purposeFamilyEvent">Family Event</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label class="form-label" data-i18n="repaymentDuration">Repayment Duration</label>
+                  <input type="text" id="app-duration-display" class="form-control" value="12 Months" readonly style="background: var(--bg-surface); font-weight: 600; color: var(--text-main); cursor: not-allowed;">
+                  <input type="hidden" id="app-duration" value="12">
+                  <small class="text-muted" style="font-size: 0.75rem;">Determined by group loan policy & authorized committee</small>
+                </div>
+              </div>
+
+              <!-- Live Calculation Box -->
+              <div style="background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+                <div data-i18n="estimatedRepaymentSummary" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 0.5rem;">Estimated Repayment Summary</div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.35rem;">
+                  <span class="text-muted" data-i18n="estimatedMonthlyEmi">Estimated Monthly EMI:</span>
+                  <strong id="live-emi-val" style="color: var(--primary); font-size: 1.05rem;">₹0</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.35rem;">
+                  <span class="text-muted" data-i18n="estimatedTotalInterest">Estimated Total Interest:</span>
+                  <span id="live-interest-val">₹0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                  <span class="text-muted" data-i18n="estimatedTotalRepayment">Estimated Total Repayment:</span>
+                  <strong id="live-total-val">₹0</strong>
+                </div>
+              </div>
+
+              <div class="form-group mb-4">
+                <label class="form-label" data-i18n="messageReason">Message / Reason for Request</label>
+                <textarea id="app-message" class="form-control" rows="3" data-i18n-placeholder="loanAppMessagePlaceholder" placeholder="Provide any details that will assist the Bachat Gat committee in reviewing your loan..."></textarea>
+              </div>
+
+              <button type="submit" id="btn-submit-app" class="btn-primary-custom" style="width: 100%; padding: 0.75rem;">
+                <i class="bi bi-check2-circle"></i> <span data-i18n="submitLoanApplication">Submit Loan Application</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- Policy & Information Notice -->
+          <div class="content-card" style="padding: 1.75rem; background: var(--bg-main);">
+            <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-info-circle-fill text-primary"></i> <span data-i18n="applicationGuidelines">Application Guidelines & Rules</span>
+            </h3>
+            <ul style="padding-left: 1.25rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.8;">
+              <li><strong data-i18n="groupInterestRate">Group Interest Rate:</strong> <span id="group-loan-rate" style="font-weight: 700; color: var(--primary);">-</span></li>
+              <li><strong data-i18n="loanLimitPerMember">Loan Limit for 1 Member:</strong> <span id="group-max-loan" style="font-weight: 600; color: var(--text-main);">-</span></li>
+              <li><strong data-i18n="multipleActiveLoans">Multiple Active Loans:</strong> <span id="group-multi-loan-rule" style="font-weight: 600; color: var(--text-main);">-</span></li>
+              <li><strong data-i18n="submissionRule">Submission:</strong> <span data-i18n="submissionRuleDesc">After submitting, your application is marked PENDING ADMIN APPROVAL.</span></li>
+              <li><strong data-i18n="committeeReview">Committee Review:</strong> <span data-i18n="committeeReviewDesc">The Bachat Gat President and committee evaluate your request. The committee can adjust the sanctioned amount and rate.</span></li>
+              <li><strong data-i18n="automaticDisbursement">Automatic Disbursement:</strong> <span data-i18n="automaticDisbursementDesc">Once approved, the loan and full installment schedule are created automatically in your account.</span></li>
+              <li><strong data-i18n="strictSegregation">Strict Segregation:</strong> <span data-i18n="strictSegregationDesc">Your regular monthly savings and loan repayments are maintained as independent ledgers.</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- History of Submitted Applications -->
+        <div class="content-card">
+          <div style="padding: 1.25rem; border-bottom: 1px solid var(--border-color);">
+            <h2 style="font-size: 1.05rem; font-weight: 700; margin: 0;" data-i18n="mySubmittedLoanApplications">My Submitted Loan Applications</h2>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="appId">App ID</th>
+                  <th data-i18n="date">Date</th>
+                  <th style="text-align: right;" data-i18n="requested">Requested (₹)</th>
+                  <th data-i18n="purposeOfLoan">Purpose</th>
+                  <th data-i18n="repaymentDuration">Duration</th>
+                  <th data-i18n="status">Status</th>
+                  <th style="text-align: right;" data-i18n="sanctioned">Sanctioned (₹)</th>
+                  <th data-i18n="adminRemarks">Admin Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="user-apps-tbody">
+                <tr>
+                  <td colspan="8" class="text-center py-4 text-muted" data-i18n="loadingApplications">Loading your applications...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let memberEligibility = null;
+    let cachedApplications = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.isAuthenticated()) {
+        window.location.href = '/login.html';
+        return;
+      }
+      await loadEligibility();
+      await loadGroupRules();
+      await loadApplications();
+      document.getElementById('form-loan-app').addEventListener('submit', handleSubmitApp);
+
+      window.addEventListener('languageChanged', async () => {
+        if (memberEligibility) {
+          await loadEligibility();
+          await loadGroupRules();
+          renderApplications(cachedApplications);
+        }
+      });
+    });
+
+    async function loadEligibility() {
+      try {
+        const el = await api.getLoanEligibility();
+        memberEligibility = el;
+
+        const badgeEl = document.getElementById('el-badge-status');
+        const alertEl = document.getElementById('ineligibility-alert');
+        const reasonText = document.getElementById('ineligibility-reason-text');
+        const submitBtn = document.getElementById('btn-submit-app');
+
+        const eligibleLabel = window.i18n ? window.i18n.t('eligibleToApply', 'ELIGIBLE TO APPLY') : 'ELIGIBLE TO APPLY';
+        const notEligibleLabel = window.i18n ? window.i18n.t('notEligible', 'NOT ELIGIBLE') : 'NOT ELIGIBLE';
+
+        if (el.eligible) {
+          badgeEl.innerHTML = `<span class="status-badge badge-active"><i class="bi bi-check-circle-fill"></i> ${eligibleLabel}</span>`;
+          alertEl.style.display = 'none';
+          submitBtn.disabled = false;
+        } else {
+          badgeEl.innerHTML = `<span class="status-badge badge-danger"><i class="bi bi-x-circle-fill"></i> ${notEligibleLabel}</span>`;
+          alertEl.style.display = 'block';
+          reasonText.textContent = el.ineligibilityReason || 'You do not meet the criteria to apply for a new loan under group policies.';
+          submitBtn.disabled = true;
+          submitBtn.title = el.ineligibilityReason || 'Ineligible to apply';
+        }
+
+        const singleLoanOnlyText = window.i18n ? window.i18n.t('singleLoanOnly', 'Single Loan Only') : 'Single Loan Only';
+        const noOneAtATimeText = window.i18n ? window.i18n.t('noOneAtATime', 'NO (1 at a time)') : 'NO (1 at a time)';
+        const maxActiveStr = el.allowMultipleLoans 
+          ? `${el.activeLoanCount} / ${el.maxActiveLoans}` 
+          : `${el.activeLoanCount} (${singleLoanOnlyText})`;
+        
+        document.getElementById('el-active-count').textContent = maxActiveStr;
+        document.getElementById('el-outstanding-amt').textContent = Common.formatIndianCurrency(el.totalOutstanding || 0);
+
+        // Individual limit entered by President
+        const memberLimit = el.maxLoanAmountPerMember || el.maxIndividualLoanLimit || 75000;
+        const totalOutstandingCap = el.maxOutstandingLimit || 120000;
+
+        document.getElementById('el-max-loan').textContent = Common.formatIndianCurrency(memberLimit);
+        document.getElementById('el-multi-policy').textContent = el.allowMultipleLoans 
+          ? (window.i18n ? window.i18n.t('yesUpTo', `YES (Up to ${el.maxActiveLoans} loans)`).replace('{n}', el.maxActiveLoans) : `YES (Up to ${el.maxActiveLoans} loans)`) 
+          : noOneAtATimeText;
+
+        const multiRuleEl = document.getElementById('group-multi-loan-rule');
+        if (multiRuleEl) {
+          multiRuleEl.textContent = el.allowMultipleLoans 
+            ? (window.i18n ? window.i18n.t('multiLoanPolicyDesc', `Allowed (Max ${el.maxActiveLoans} active loans, cap ${Common.formatIndianCurrency(totalOutstandingCap)})`).replace('{max}', el.maxActiveLoans).replace('{cap}', Common.formatIndianCurrency(totalOutstandingCap)) : `Allowed (Max ${el.maxActiveLoans} active loans, cap ${Common.formatIndianCurrency(totalOutstandingCap)})`) 
+            : (window.i18n ? window.i18n.t('singleLoanPolicyDesc', 'Single Active Loan Policy (Must complete existing loan first)') : 'Single Active Loan Policy (Must complete existing loan first)');
+        }
+
+        const amountInput = document.getElementById('app-amount');
+        if (amountInput && memberLimit) {
+          amountInput.max = memberLimit;
+          const helpEl = document.getElementById('app-amount-help');
+          if (helpEl) {
+            const ceilingText = window.i18n ? window.i18n.t('groupCeilingPerLoan', 'Group ceiling per loan') : 'Group ceiling per loan';
+            const capText = window.i18n ? window.i18n.t('maxTotalOutstanding', 'Max total outstanding') : 'Max total outstanding';
+            helpEl.textContent = `${ceilingText}: ${Common.formatIndianCurrency(memberLimit)} • ${capText}: ${Common.formatIndianCurrency(totalOutstandingCap)}`;
+          }
+        }
+
+        calculateLiveEmi();
+
+      } catch (err) {
+        console.warn('Could not load loan eligibility:', err);
+      }
+    }
+
+    function calculateLiveEmi() {
+      const amount = parseFloat(document.getElementById('app-amount').value) || 0;
+      const duration = parseInt(document.getElementById('app-duration').value) || 12;
+
+      let annualRate = 12.0;
+      let interestType = 'REDUCING_BALANCE';
+      if (memberEligibility) {
+        if (memberEligibility.interestRate != null) annualRate = parseFloat(memberEligibility.interestRate);
+        if (memberEligibility.interestType) interestType = memberEligibility.interestType;
+      }
+
+      if (amount <= 0 || duration <= 0) {
+        document.getElementById('live-emi-val').textContent = '₹0';
+        document.getElementById('live-interest-val').textContent = '₹0';
+        document.getElementById('live-total-val').textContent = '₹0';
+        return;
+      }
+
+      let monthlyEmi = 0;
+      let totalInterest = 0;
+      let totalRepay = 0;
+
+      if (interestType === 'FLAT') {
+        totalInterest = amount * (annualRate / 100) * (duration / 12);
+        totalRepay = amount + totalInterest;
+        monthlyEmi = totalRepay / duration;
+      } else {
+        // Reducing Balance (Clean integer straight-line principal + reducing interest)
+        const isMonthlyRate = annualRate <= 5.0;
+        const monthlyRate = isMonthlyRate ? (annualRate / 100) : ((annualRate / 12) / 100);
+        const monthlyPrincipal = Math.floor(amount / duration);
+        let remPrincipal = amount;
+        totalInterest = 0;
+        for (let i = 1; i <= duration; i++) {
+          const interest = Math.round(remPrincipal * monthlyRate);
+          totalInterest += interest;
+          remPrincipal -= (i === duration ? remPrincipal : monthlyPrincipal);
+        }
+        totalRepay = amount + totalInterest;
+        // Month 1 installment
+        monthlyEmi = monthlyPrincipal + Math.round(amount * monthlyRate);
+      }
+
+      document.getElementById('live-emi-val').textContent = Common.formatIndianCurrency(monthlyEmi);
+      document.getElementById('live-interest-val').textContent = Common.formatIndianCurrency(totalInterest);
+      document.getElementById('live-total-val').textContent = Common.formatIndianCurrency(totalRepay);
+    }
+
+    async function loadGroupRules() {
+      try {
+        const rules = await api.getMyGroupRules();
+        if (rules) {
+          const rawRate = rules.loanInterestRate != null ? rules.loanInterestRate : 12;
+          const rateNum = parseFloat(rawRate);
+          let mStr, aStr;
+          if (rateNum <= 5) {
+            mStr = rateNum.toFixed(1).replace(/\.0$/, '');
+            aStr = (rateNum * 12).toFixed(1).replace(/\.0$/, '');
+          } else {
+            mStr = (rateNum / 12).toFixed(1).replace(/\.0$/, '');
+            aStr = rateNum.toFixed(1).replace(/\.0$/, '');
+          }
+          const typeStr = (rules.loanInterestType || 'REDUCING_BALANCE') === 'FLAT' ? 'Flat Interest' : 'Reducing Balance';
+          document.getElementById('group-loan-rate').textContent = `${mStr}% / month (${aStr}% p.a. ${typeStr})`;
+
+          const totalCapacity = rules.maxGroupLoanCapacity || rules.maxLoanAmount || 75000;
+          const memberLimit = rules.maxLoanAmountPerMember || rules.maxLoanAmount || 75000;
+
+          const capEl = document.getElementById('group-max-capacity');
+          if (capEl) capEl.textContent = Common.formatIndianCurrency(totalCapacity);
+
+          const limitEl = document.getElementById('group-max-loan');
+          if (limitEl) limitEl.textContent = Common.formatIndianCurrency(memberLimit);
+        }
+      } catch (e) {
+        console.warn('Could not load group rules for loan application:', e);
+      }
+    }
+
+    async function loadApplications() {
+      try {
+        const apps = await api.getMyLoanApplications();
+        cachedApplications = apps || [];
+        renderApplications(cachedApplications);
+      } catch (err) {
+        Common.showToast('Failed to load applications: ' + err.message, 'danger');
+      }
+    }
+
+    function renderApplications(apps) {
+      const tbody = document.getElementById('user-apps-tbody');
+      if (!apps || apps.length === 0) {
+        const emptyMsg = window.i18n ? window.i18n.t('noLoanAppsFound', 'You have not submitted any loan applications yet.') : 'You have not submitted any loan applications yet.';
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">${emptyMsg}</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = apps.map(a => {
+        const pendingTxt = window.i18n ? window.i18n.t('pendingAdminApproval', 'PENDING APPROVAL') : 'PENDING APPROVAL';
+        const approvedTxt = window.i18n ? window.i18n.t('approved', 'APPROVED') : 'APPROVED';
+        const rejectedTxt = window.i18n ? window.i18n.t('rejected', 'REJECTED') : 'REJECTED';
+
+        let badge = `<span class="status-badge badge-warning">${pendingTxt}</span>`;
+        if (a.status === 'APPROVED') {
+          badge = `<span class="status-badge badge-active"><i class="bi bi-check-circle"></i> ${approvedTxt}</span>`;
+        } else if (a.status === 'REJECTED') {
+          badge = `<span class="status-badge badge-danger"><i class="bi bi-x-circle"></i> ${rejectedTxt}</span>`;
+        }
+
+        const monthsLabel = window.i18n ? window.i18n.t('monthsCount', `${a.repaymentPeriodMonths} Months`).replace('{n}', a.repaymentPeriodMonths) : `${a.repaymentPeriodMonths} Months`;
+
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(a.id)}</strong></td>
+            <td>${Common.formatDate(a.applicationDate || a.createdAt)}</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(a.requestedAmount)}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(a.purpose)}</span></td>
+            <td>${monthsLabel}</td>
+            <td>${badge}</td>
+            <td style="text-align: right; font-weight: 600; color: var(--success);">${a.approvedAmount ? Common.formatIndianCurrency(a.approvedAmount) : '-'}</td>
+            <td><small class="text-muted">${escapeHtml(a.rejectionReason || a.notes || '-')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleSubmitApp(e) {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('app-amount').value);
+      const purpose = document.getElementById('app-purpose').value;
+      const duration = parseInt(document.getElementById('app-duration').value);
+      const message = document.getElementById('app-message').value.trim();
+
+      const memberLimit = (memberEligibility && (memberEligibility.maxLoanAmountPerMember || memberEligibility.maxIndividualLoanLimit)) || 75000;
+
+      if (memberEligibility) {
+        if (!memberEligibility.eligible) {
+          Common.showToast('Application blocked: ' + (memberEligibility.ineligibilityReason || 'Not eligible'), 'danger');
+          return;
+        }
+        if (amount > memberLimit) {
+          Common.showToast(`Requested amount ₹${amount} exceeds max loan limit of ₹${memberLimit}`, 'danger');
+          return;
+        }
+        const remainingCap = (memberEligibility.maxOutstandingLimit || 120000) - (memberEligibility.totalOutstanding || 0);
+        if (amount > remainingCap) {
+          Common.showToast(`Requested amount exceeds your available credit cap of ₹${remainingCap.toFixed(0)}`, 'danger');
+          return;
+        }
+      }
+
+      const btn = document.getElementById('btn-submit-app');
+      btn.disabled = true;
+      const submittingTxt = window.i18n ? window.i18n.t('submitting', 'Submitting...') : 'Submitting...';
+      const submitTxt = window.i18n ? window.i18n.t('submitLoanApplication', 'Submit Loan Application') : 'Submit Loan Application';
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> ${submittingTxt}`;
+
+      try {
+        await api.submitLoanApplication({
+          requestedAmount: amount,
+          purpose: purpose,
+          preferredDurationMonths: duration,
+          repaymentPeriodMonths: duration,
+          optionalMessage: message,
+          notes: message
+        });
+
+        Common.showToast('Loan application submitted successfully! It is now pending admin committee review.', 'success');
+        document.getElementById('form-loan-app').reset();
+        await loadEligibility();
+        await loadApplications();
+      } catch (err) {
+        if (err.code === 'INSUFFICIENT_GROUP_FUNDS') {
+          const title = window.i18n ? window.i18n.t('insufficientFundsTitle', 'Funds not available') : 'Funds not available';
+          const message = window.i18n ? window.i18n.t('insufficientFundsMessage', 'Funds are not available currently. The requested loan amount cannot be provided from the available BachatGat funds.') : err.message;
+          const available = err.details && err.details.availableFund != null ? ` ${window.i18n ? window.i18n.t('availableGroupFundLabel', 'Available fund') : 'Available fund'}: ${Common.formatIndianCurrency(err.details.availableFund)}` : '';
+          Common.showToast(`${title}: ${message}${available}`, 'danger');
+        } else {
+          Common.showToast('Failed to submit application: ' + err.message, 'danger');
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-check2-circle"></i> ${submitTxt}`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

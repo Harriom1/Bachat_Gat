@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Monthly Collections - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/user.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .collection-history-table { table-layout: fixed; width: 100%; }
+    .collection-history-table th,
+    .collection-history-table td { white-space: normal; overflow-wrap: anywhere; }
+    .collection-history-table th:last-child,
+    .collection-history-table td:last-child { width: 112px; }
+    .collection-history-table td:last-child button { white-space: normal; width: 100%; }
+    @media (max-width: 600px) {
+      #spotlight-cards-container { grid-template-columns: minmax(0, 1fr) !important; }
+      #group-collection-overview .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+      #group-collection-overview .metric-card { padding: .75rem; }
+      #group-collection-overview .metric-label { font-size: .68rem; }
+      #group-collection-overview .metric-value { font-size: 1.25rem; }
+      #modal-payment-gateway .modal-box,
+      #modal-payment-receipt .modal-box { width: calc(100% - 1rem) !important; max-height: 92vh; overflow-y: auto; padding: 1rem !important; }
+      #modal-payment-gateway .payment-mode-btn { min-height: 4.2rem; }
+      #modal-payment-gateway #btn-process-payment { flex: 1; min-height: 2.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- User Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">MEMBER</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MY ACCOUNT</li>
+        <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
+        <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
+        <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+        <li><a href="/user/collections.html" class="menu-item active"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">My Collections</span></a></li>
+
+        <li class="menu-category">LOAN & CREDIT</li>
+        <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
+        <li><a href="/user/loan-application.html" class="menu-item"><i class="bi bi-pencil-square menu-icon"></i><span data-i18n="applyForLoan">Apply for Loan</span></a></li>
+
+        <li class="menu-category">RECORDS & NOTICES</li>
+        <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/reports.html" class="menu-item"><i class="bi bi-bar-chart-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
+        <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-wallet2 text-primary"></i> <span data-i18n="monthlyPassbookTitle">Monthly Savings & Collection Passbook</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">U</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Member</span>
+              <span id="current-user-role" class="user-role" style="color: #10b981;">MEMBER</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="myCollectionRecords">My Collection Records & Share Deposits</h1>
+            <p class="page-subtitle" data-i18n="collectionSubtitle">Monthly contribution history, verified receipts, and late fee audits</p>
+          </div>
+          <button onclick="window.print()" class="btn-outline-custom">
+            <i class="bi bi-printer"></i> <span data-i18n="printCollections">Print Collections</span>
+          </button>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid mb-4">
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="totalShareDeposited">Total Share Deposited</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-check-circle-fill"></i></div>
+            </div>
+            <div id="u-col-paid" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="totalShareDepositedSub">Accumulated regular monthly bachat</div>
+          </div>
+
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="pendingDues">Pending Dues</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-hourglass-split"></i></div>
+            </div>
+            <div id="u-col-pending" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="pendingDuesSub">Overdue or pending deposit</div>
+          </div>
+
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="lateFeesPaid">Late Fees Paid</span>
+              <div class="metric-icon-wrap icon-red"><i class="bi bi-exclamation-circle-fill"></i></div>
+            </div>
+            <div id="u-col-late-paid" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="lateFeesPaidSub">Penalty levied for delayed payment</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label" data-i18n="waivedPenalties">Waived Penalties</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-shield-check"></i></div>
+            </div>
+            <div id="u-col-waived" class="metric-value">₹0</div>
+            <div class="metric-sub" data-i18n="waivedPenaltiesSub">Audited late fees waived by admin</div>
+          </div>
+        </div>
+
+        <!-- Spotlight Cards: Current Month & Upcoming Month -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;" id="spotlight-cards-container">
+          <!-- Dynamically populated in JavaScript -->
+        </div>
+
+        <!-- Read-only group transparency for every member -->
+        <div class="content-card" id="group-collection-overview" style="margin-bottom:1.5rem;">
+          <div class="card-header-flex mb-3">
+            <div>
+              <h3 style="margin:0; font-size:1.15rem; font-weight:700;">This Month's Group Collection Status</h3>
+              <p style="margin:0.25rem 0 0; color:var(--text-muted); font-size:0.85rem;">See who has paid, who is pending, and the amount collected by the group.</p>
+            </div>
+            <span id="group-collection-period" class="badge-status badge-pending">Loading...</span>
+          </div>
+          <div class="metrics-grid" style="margin-bottom:1rem;">
+            <div class="metric-card success"><div class="metric-label">Members Paid</div><div id="group-paid-count" class="metric-value">0</div></div>
+            <div class="metric-card warning"><div class="metric-label">Members Pending</div><div id="group-pending-count" class="metric-value">0</div></div>
+            <div class="metric-card"><div class="metric-label">Collected This Month</div><div id="group-collected-total" class="metric-value">₹0</div></div>
+            <div class="metric-card danger"><div class="metric-label">Remaining This Month</div><div id="group-remaining-total" class="metric-value">₹0</div></div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table mobile-card-table">
+              <thead><tr><th>Member</th><th>Expected</th><th>Paid</th><th>Remaining</th><th>Due Date</th><th>Status</th></tr></thead>
+              <tbody id="group-collection-tbody"><tr><td colspan="6" class="text-center py-4 text-muted">Loading group collection status...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="content-card">
+          <div class="card-header-flex mb-3">
+            <div>
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;" data-i18n="monthlyDepositHistory">Monthly Deposit History</h3>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;" data-i18n="depositHistorySub">
+                Historical records are permanent and auditable
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <select id="sel-filter-status" class="form-select form-select-sm" style="width: auto;">
+                <option value="ALL" data-i18n="filterAllStatuses">All Statuses</option>
+                <option value="PAID" data-i18n="paid">PAID</option>
+                <option value="PENDING" data-i18n="pending">PENDING</option>
+                <option value="OVERDUE" data-i18n="overdue">OVERDUE</option>
+                <option value="UPCOMING" data-i18n="upcomingMonth">UPCOMING</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table mobile-card-table collection-history-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tablePeriod">Period</th>
+                  <th data-i18n="tableDueDate">Due Date</th>
+                  <th style="text-align: right;" data-i18n="tableExpectedShare">Expected Share (₹)</th>
+                  <th style="text-align: right;" data-i18n="tablePaidShare">Paid Share (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableLateFee">Late Fee (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableWaived">Waived (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableTotalPaid">Total Paid (₹)</th>
+                  <th data-i18n="tablePaymentDate">Payment Date</th>
+                  <th data-i18n="tableReference">Reference / Receipt</th>
+                  <th data-i18n="status">Status</th>
+                  <th style="text-align: center;" data-i18n="tableAction">Action</th>
+                </tr>
+              </thead>
+              <tbody id="user-collections-tbody">
+                <tr>
+                  <td colspan="11" class="text-center py-4 text-muted" data-i18n="loadingCollections">Loading your collection records...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Payment Method & Online Payment Gateway (Requirements 22, 23, 24, 25) -->
+  <div id="modal-payment-gateway" class="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1050; align-items:center; justify-content:center;">
+    <div class="modal-box" style="background:#fff; border-radius:12px; max-width:520px; width:90%; padding:1.5rem; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.75rem;">
+        <div>
+          <h3 style="margin:0; font-size:1.15rem; font-weight:700; color:var(--text-main);" data-i18n="paymentMethod">Select Payment Method</h3>
+          <p style="margin:0.2rem 0 0 0; font-size:0.8rem; color:var(--text-muted);">Secure Online Bachat Gat Share Deposit</p>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closePaymentModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+
+      <!-- Amount Breakdown Box -->
+      <div style="background:var(--bg-main, #f8fafc); border:1px solid var(--border-color, #e2e8f0); border-radius:8px; padding:1rem; margin-bottom:1.25rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.9rem;">
+          <span class="text-muted">Collection Period:</span>
+          <strong id="pay-period-label">-</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem; font-size:0.9rem;">
+          <span class="text-muted">Monthly Bachat:</span>
+          <span id="pay-share-label">₹0.00</span>
+        </div>
+        <div id="pay-latefee-row" style="display:none; justify-content:space-between; margin-bottom:0.4rem; font-size:0.9rem; color:var(--danger, #ef4444);">
+          <span>Overdue Penalty / Late Fee:</span>
+          <span id="pay-latefee-label">+₹0.00</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-top:1px dashed #cbd5e1; padding-top:0.5rem; margin-top:0.5rem; font-size:1.05rem;">
+          <strong style="color:var(--text-main);">Total Payable:</strong>
+          <strong id="pay-total-label" style="color:var(--primary, #2563eb); font-size:1.2rem;">₹0.00</strong>
+        </div>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <label style="font-weight:600; font-size:0.85rem; display:block; margin-bottom:0.5rem;" data-i18n="onlinePayment">Choose Payment Mode</label>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:1rem;">
+        <button type="button" class="payment-mode-btn" id="btn-mode-upi" onclick="selectPaymentMode('UPI')" style="border:2px solid var(--primary, #2563eb); background:#eff6ff; padding:0.6rem; border-radius:8px; text-align:left; cursor:pointer;">
+          <div style="font-weight:700; font-size:0.9rem; color:var(--primary);"><i class="bi bi-qr-code"></i> UPI</div>
+          <small style="color:#64748b; font-size:0.75rem;">GPay, PhonePe, Paytm</small>
+        </button>
+        <button type="button" class="payment-mode-btn" id="btn-mode-card" onclick="selectPaymentMode('CARD')" style="border:1px solid #cbd5e1; background:#fff; padding:0.6rem; border-radius:8px; text-align:left; cursor:pointer;">
+          <div style="font-weight:700; font-size:0.9rem; color:#334155;"><i class="bi bi-credit-card"></i> Card</div>
+          <small style="color:#64748b; font-size:0.75rem;">Debit / Credit Card</small>
+        </button>
+        <button type="button" class="payment-mode-btn" id="btn-mode-netbanking" onclick="selectPaymentMode('NET_BANKING')" style="border:1px solid #cbd5e1; background:#fff; padding:0.6rem; border-radius:8px; text-align:left; cursor:pointer;">
+          <div style="font-weight:700; font-size:0.9rem; color:#334155;"><i class="bi bi-bank"></i> Net Banking</div>
+          <small style="color:#64748b; font-size:0.75rem;">SBI, BoM, HDFC etc.</small>
+        </button>
+        <button type="button" class="payment-mode-btn" id="btn-mode-wallet" onclick="selectPaymentMode('WALLET')" style="border:1px solid #cbd5e1; background:#fff; padding:0.6rem; border-radius:8px; text-align:left; cursor:pointer;">
+          <div style="font-weight:700; font-size:0.9rem; color:#334155;"><i class="bi bi-wallet"></i> Wallet</div>
+          <small style="color:#64748b; font-size:0.75rem;">Paytm, Amazon Pay</small>
+        </button>
+      </div>
+
+      <!-- Dynamic Mode Input -->
+      <div id="mode-input-container" style="margin-bottom:1rem;">
+        <div id="mode-input-upi">
+          <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.25rem;">Enter UPI ID / VPA</label>
+          <input type="text" id="pay-upi-id" class="form-control" placeholder="e.g. member@okhdfcbank" value="member@upi">
+          <small style="color:#64748b; font-size:0.75rem;">Or tap Pay Now to simulate instant UPI push approval.</small>
+        </div>
+        <div id="mode-input-card" style="display:none;">
+          <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.25rem;">Card Number</label>
+          <input type="text" id="pay-card-num" class="form-control" placeholder="4111 2222 3333 4444" maxlength="19" value="4111 2222 3333 4444">
+        </div>
+        <div id="mode-input-netbanking" style="display:none;">
+          <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.25rem;">Select Bank</label>
+          <select id="pay-bank-select" class="form-select">
+            <option value="MAHB">Bank of Maharashtra</option>
+            <option value="SBI">State Bank of India</option>
+            <option value="HDFC">HDFC Bank</option>
+            <option value="ICICI">ICICI Bank</option>
+          </select>
+        </div>
+        <div id="mode-input-wallet" style="display:none;">
+          <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:0.25rem;">Select Wallet</label>
+          <select id="pay-wallet-select" class="form-select">
+            <option value="PAYTM">Paytm Wallet</option>
+            <option value="AMAZON">Amazon Pay</option>
+            <option value="MOBIKWIK">MobiKwik</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Trust Badge -->
+      <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.75rem; color:#64748b; margin-bottom:1.25rem;">
+        <i class="bi bi-shield-lock-fill text-success" style="font-size:1rem;"></i>
+        <span>256-bit Bank Grade Encryption • PCI-DSS Compliant • Verified Ledger Sync</span>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+        <button type="button" class="btn-outline-custom" onclick="closePaymentModal()">Cancel</button>
+        <button type="button" id="btn-process-payment" class="btn-primary-custom" onclick="executeOnlinePayment()">
+          <i class="bi bi-lock-fill"></i> Pay Now <span id="btn-pay-amount">-</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Payment Success & Verified Receipt -->
+  <div id="modal-payment-receipt" class="modal-backdrop" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1060; align-items:center; justify-content:center;">
+    <div class="modal-box" style="background:#fff; border-radius:12px; max-width:480px; width:90%; padding:1.5rem; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); text-align:center;">
+      <div style="width:50px; height:50px; border-radius:50%; background:#dcfce7; color:#16a34a; font-size:1.75rem; display:flex; align-items:center; justify-content:center; margin:0 auto 1rem;">
+        <i class="bi bi-check2-circle"></i>
+      </div>
+      <h3 style="margin:0 0 0.25rem 0; font-size:1.2rem; font-weight:700; color:#15803d;">Payment Successful!</h3>
+      <p style="margin:0 0 1rem 0; color:#64748b; font-size:0.85rem;">Your monthly bachat contribution has been received & verified on ledger.</p>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; margin-bottom:1.25rem; text-align:left; font-size:0.875rem;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Receipt Number:</span>
+          <strong id="rec-number" style="font-family:monospace; color:var(--primary);">-</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Order ID:</span>
+          <span id="rec-order-id" style="font-family:monospace;">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Amount Paid:</span>
+          <strong id="rec-amount" style="color:#15803d;">-</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Payment Mode:</span>
+          <span id="rec-method">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span class="text-muted">Date & Time:</span>
+          <span id="rec-timestamp">-</span>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:0.75rem; justify-content:center;">
+        <button type="button" class="btn-outline-custom" onclick="window.print()">
+          <i class="bi bi-printer"></i> Print Receipt
+        </button>
+        <button type="button" class="btn-primary-custom" onclick="closeReceiptModal()">
+          <i class="bi bi-check-lg"></i> Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let myCollections = [];
+    let activePaymentContext = null;
+    let selectedPaymentMode = 'UPI';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAuth('MEMBER');
+      await loadMyCollections();
+      await loadGroupCollectionOverview();
+
+      document.getElementById('sel-filter-status').addEventListener('change', () => {
+        applyFilter();
+      });
+
+      window.addEventListener('languageChanged', () => {
+        if (myCollections && myCollections.length > 0) {
+          renderSpotlightCards(myCollections);
+          applyFilter();
+        }
+      });
+    });
+
+    async function loadMyCollections() {
+      try {
+        myCollections = await api.getMyCollections();
+        calculateMetrics(myCollections);
+        renderSpotlightCards(myCollections);
+        renderCollections(myCollections);
+      } catch (err) {
+        Common.showToast('Failed to load collections: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadGroupCollectionOverview() {
+      try {
+        const overview = await api.getMyGroupCollections();
+        renderGroupCollectionOverview(overview);
+      } catch (err) {
+        console.error('Failed to load group collection overview:', err);
+        const body = document.getElementById('group-collection-tbody');
+        if (body) body.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Group collection status is temporarily unavailable.</td></tr>';
+      }
+    }
+
+    function renderGroupCollectionOverview(overview) {
+      const month = Number(overview.month);
+      const year = Number(overview.year);
+      const records = (overview.collections || []).filter(c => Number(c.month) === month && Number(c.year) === year);
+      const pending = overview.pending || [];
+      const pendingByMember = new Map(pending.map(p => [p.memberId, p]));
+      const recordByMember = new Map(records.map(c => [c.memberId, c]));
+      const rows = (overview.members || []).map(member => {
+        const record = recordByMember.get(member.memberId);
+        const pendingRow = pendingByMember.get(member.memberId);
+        const expected = Number(record?.expectedAmount ?? pendingRow?.monthlyBachatAmount ?? member.monthlyBachatAmount ?? 0);
+        const paid = Number(record?.paidAmount ?? pendingRow?.paidAmount ?? 0);
+        const remaining = Math.max(0, expected - paid);
+        const status = record?.status || (remaining > 0 ? (pendingRow?.status || 'PENDING') : 'PAID');
+        const dueDate = record?.dueDate || pendingRow?.dueDate || '-';
+        return { member, expected, paid, remaining, status, dueDate };
+      });
+      const paidRows = rows.filter(row => row.remaining <= 0);
+      const collected = rows.reduce((sum, row) => sum + row.paid, 0);
+      const remaining = rows.reduce((sum, row) => sum + row.remaining, 0);
+
+      document.getElementById('group-collection-period').textContent = `${Common.getMonthName(month)} ${year}`;
+      document.getElementById('group-paid-count').textContent = paidRows.length;
+      document.getElementById('group-pending-count').textContent = rows.length - paidRows.length;
+      document.getElementById('group-collected-total').textContent = Common.formatIndianCurrency(collected);
+      document.getElementById('group-remaining-total').textContent = Common.formatIndianCurrency(remaining);
+      document.getElementById('group-collection-tbody').innerHTML = rows.length ? rows.map(row => `
+        <tr>
+          <td data-label="Member"><strong>${escapeHtml(row.member.fullName || row.member.memberId)}</strong><br><small>${escapeHtml(row.member.memberId || '')}</small></td>
+          <td data-label="Expected">${Common.formatIndianCurrency(row.expected)}</td>
+          <td data-label="Paid" style="color:var(--success); font-weight:700;">${Common.formatIndianCurrency(row.paid)}</td>
+          <td data-label="Remaining" style="color:${row.remaining > 0 ? 'var(--danger)' : 'var(--success)'}; font-weight:700;">${Common.formatIndianCurrency(row.remaining)}</td>
+          <td data-label="Due Date">${row.dueDate === '-' ? '-' : Common.formatDate(row.dueDate)}</td>
+          <td data-label="Status">${Common.getStatusBadge(row.status)}</td>
+        </tr>`).join('') : '<tr><td colspan="6" class="text-center py-4 text-muted">No active members found.</td></tr>';
+    }
+
+    function calculateMetrics(list) {
+      let paid = 0, pending = 0, latePaid = 0, waived = 0;
+      list.forEach(c => {
+        paid += parseFloat(c.paidAmount || 0);
+        pending += parseFloat(c.pendingAmount || 0);
+        latePaid += parseFloat(c.paidLateFee || 0);
+        waived += parseFloat(c.waivedLateFee || 0);
+      });
+
+      document.getElementById('u-col-paid').textContent = Common.formatIndianCurrency(paid);
+      document.getElementById('u-col-pending').textContent = Common.formatIndianCurrency(pending);
+      document.getElementById('u-col-late-paid').textContent = Common.formatIndianCurrency(latePaid);
+      document.getElementById('u-col-waived').textContent = Common.formatIndianCurrency(waived);
+    }
+
+    function renderSpotlightCards(list) {
+      const container = document.getElementById('spotlight-cards-container');
+      if (!container || !list || list.length === 0) return;
+
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      let upYear = currentYear;
+      let upMonth = currentMonth + 1;
+      if (upMonth > 12) {
+        upMonth = 1;
+        upYear += 1;
+      }
+
+      const curRec = list.find(c => c.year === currentYear && c.month === currentMonth) || list[0];
+      const upRec = list.find(c => c.year === upYear && c.month === upMonth);
+
+      const curTitle = window.i18n ? window.i18n.t('currentMonthShare', 'CURRENT MONTH SHARE') : 'CURRENT MONTH SHARE';
+      const upTitle = window.i18n ? window.i18n.t('upcomingMonthShare', 'UPCOMING MONTH SHARE') : 'UPCOMING MONTH SHARE';
+      const expectedShareTxt = window.i18n ? window.i18n.t('expectedShare', 'Expected Share:') : 'Expected Share:';
+      const collectionDueTxt = window.i18n ? window.i18n.t('collectionDueDate', 'Collection Due Date:') : 'Collection Due Date:';
+      const totalPayableTxt = window.i18n ? window.i18n.t('totalPayable', 'Total Payable') : 'Total Payable';
+      const payNowTxt = window.i18n ? window.i18n.t('payNow', 'Pay Now') : 'Pay Now';
+      const advAllowedTxt = window.i18n ? window.i18n.t('advancePaymentAllowed', 'Advance Payment Allowed') : 'Advance Payment Allowed';
+      const payAdvTxt = window.i18n ? window.i18n.t('payInAdvance', 'Pay in Advance') : 'Pay in Advance';
+      const completedTxt = window.i18n ? window.i18n.t('completed', 'Completed') : 'Completed';
+
+      let curHtml = '';
+      if (curRec) {
+        const curStatusBadge = Common.getStatusBadge(curRec.status);
+        const curDueStr = curRec.dueDate ? Common.formatDate(curRec.dueDate) : '-';
+        const isPaid = curRec.status === 'PAID';
+        const pendingTotal = parseFloat(curRec.pendingAmount || curRec.expectedAmount) + parseFloat(curRec.lateFeeAmount || 0);
+        const curMonthName = Common.getMonthName(curRec.month);
+
+        curHtml = `
+          <div class="content-card" style="border-left: 4px solid var(--primary); padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+              <div>
+                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--primary); letter-spacing: 0.5px;">${curTitle}</span>
+                <h4 style="margin: 0.2rem 0 0 0; font-size: 1.1rem; font-weight: 700;">${curMonthName} ${curRec.year}</h4>
+              </div>
+              <div>${curStatusBadge}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+              <span class="text-muted">${expectedShareTxt}</span>
+              <strong>${Common.formatIndianCurrency(curRec.expectedAmount)}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+              <span class="text-muted">${collectionDueTxt}</span>
+              <strong style="color: var(--primary);">${curDueStr}</strong>
+            </div>
+            ${parseFloat(curRec.lateFeeAmount || 0) > 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem; color: var(--danger);">
+                <span>Late Fee:</span>
+                <strong>+${Common.formatIndianCurrency(curRec.lateFeeAmount)}</strong>
+              </div>
+            ` : ''}
+            <div style="margin-top: 0.75rem; pt: 0.75rem; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <small class="text-muted">${isPaid ? 'Paid on: ' + Common.formatDate(curRec.paymentDate) : totalPayableTxt}</small>
+                <div style="font-weight: 700; font-size: 1.1rem; color: ${isPaid ? 'var(--success)' : 'var(--text-main)'};">
+                  ${isPaid ? Common.formatIndianCurrency(curRec.paidAmount) : Common.formatIndianCurrency(pendingTotal)}
+                </div>
+              </div>
+              ${!isPaid ? `
+                <button type="button" class="btn-primary-custom" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${curRec.id}', ${curRec.expectedAmount}, ${curRec.pendingAmount || curRec.expectedAmount}, ${curRec.lateFeeAmount || 0}, ${curRec.month}, ${curRec.year})">
+                  <i class="bi bi-credit-card-2-front"></i> ${payNowTxt}
+                </button>
+              ` : `
+                <span class="badge" style="background: #dcfce7; color: #16a34a; font-weight: 600; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                  <i class="bi bi-check-circle-fill"></i> ${completedTxt}
+                </span>
+              `}
+            </div>
+          </div>
+        `;
+      }
+
+      let upHtml = '';
+      if (upRec) {
+        const upStatusBadge = Common.getStatusBadge(upRec.status);
+        const upDueStr = upRec.dueDate ? Common.formatDate(upRec.dueDate) : '-';
+        const isPaid = upRec.status === 'PAID';
+        const upMonthName = Common.getMonthName(upRec.month);
+
+        upHtml = `
+          <div class="content-card" style="border-left: 4px solid var(--info); padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+              <div>
+                <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--info); letter-spacing: 0.5px;">${upTitle}</span>
+                <h4 style="margin: 0.2rem 0 0 0; font-size: 1.1rem; font-weight: 700;">${upMonthName} ${upRec.year}</h4>
+              </div>
+              <div>${upStatusBadge}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+              <span class="text-muted">${expectedShareTxt}</span>
+              <strong>${Common.formatIndianCurrency(upRec.expectedAmount)}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem; font-size: 0.9rem;">
+              <span class="text-muted">${collectionDueTxt}</span>
+              <strong style="color: var(--info);">${upDueStr}</strong>
+            </div>
+            <div style="margin-top: 0.75rem; pt: 0.75rem; border-top: 1px dashed var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <small class="text-muted">${isPaid ? completedTxt : advAllowedTxt}</small>
+                <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-main);">
+                  ${Common.formatIndianCurrency(upRec.expectedAmount)}
+                </div>
+              </div>
+              ${!isPaid ? `
+                <button type="button" class="btn-outline-custom" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${upRec.id}', ${upRec.expectedAmount}, ${upRec.expectedAmount}, 0, ${upRec.month}, ${upRec.year})">
+                  <i class="bi bi-wallet2"></i> ${payAdvTxt}
+                </button>
+              ` : `
+                <span class="badge" style="background: #dcfce7; color: #16a34a; font-weight: 600; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
+                  <i class="bi bi-check-circle-fill"></i> ${completedTxt}
+                </span>
+              `}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = curHtml + upHtml;
+    }
+
+    function applyFilter() {
+      const status = document.getElementById('sel-filter-status').value;
+      if (status === 'ALL') {
+        renderCollections(myCollections);
+      } else {
+        renderCollections(myCollections.filter(c => c.status === status));
+      }
+    }
+
+    function renderCollections(list) {
+      const tbody = document.getElementById('user-collections-tbody');
+      if (!list || list.length === 0) {
+        const noRecordsTxt = window.i18n ? window.i18n.t('noCollectionsFound', 'No collection records found.') : 'No collection records found.';
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-muted">${noRecordsTxt}</td></tr>`;
+        return;
+      }
+
+      const receiptTxt = window.i18n ? window.i18n.t('receipt', 'Receipt') : 'Receipt';
+      const payNowTxt = window.i18n ? window.i18n.t('payNow', 'Pay Now') : 'Pay Now';
+
+      tbody.innerHTML = list.map(c => {
+        const totalPaid = parseFloat(c.paidAmount || 0) + parseFloat(c.paidLateFee || 0);
+        const statusBadge = Common.getStatusBadge(c.status);
+        const isPaid = c.status === 'PAID';
+        const pendingAmount = parseFloat(c.pendingAmount || c.expectedAmount || 0);
+        const lateFee = parseFloat(c.lateFeeAmount || 0);
+        const dueStr = c.dueDate ? Common.formatDate(c.dueDate) : '-';
+        const monthDisplayName = Common.getMonthName(c.month);
+
+        let actionHtml = '';
+        if (isPaid) {
+          actionHtml = `
+            <button type="button" class="btn btn-sm btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="viewReceiptForCollection('${escapeHtml(c.referenceNumber || c.id)}')">
+              <i class="bi bi-receipt"></i> ${receiptTxt}
+            </button>
+          `;
+        } else {
+          actionHtml = `
+            <button type="button" class="btn-primary-custom" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" onclick="openPaymentModal('${c.id}', ${c.expectedAmount}, ${pendingAmount}, ${lateFee}, ${c.month}, ${c.year})">
+              <i class="bi bi-credit-card-2-front"></i> ${payNowTxt}
+            </button>
+          `;
+        }
+
+        return `
+          <tr>
+            <td data-label="Period"><strong>${monthDisplayName} ${c.year}</strong></td>
+            <td data-label="Due Date"><strong style="color: var(--primary);">${dueStr}</strong></td>
+            <td data-label="Expected Monthly Bachat" style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+            <td data-label="Paid Monthly Bachat" style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
+            <td data-label="Late Fee" style="text-align: right; color: ${lateFee > 0 ? 'var(--danger)' : 'var(--text-muted)'};">
+              ${Common.formatIndianCurrency(lateFee)}
+            </td>
+            <td data-label="Waived" style="text-align: right; color: ${parseFloat(c.waivedLateFee || 0) > 0 ? 'var(--primary)' : 'var(--text-muted)'};">
+              ${Common.formatIndianCurrency(c.waivedLateFee || 0)}
+            </td>
+            <td data-label="Total Paid" style="text-align: right; font-weight: 700; color: var(--text-main);">
+              ${Common.formatIndianCurrency(totalPaid)}
+            </td>
+            <td data-label="Payment Date">${c.paymentDate ? Common.formatDate(c.paymentDate) : '-'}</td>
+            <td data-label="Reference / Receipt"><code>${escapeHtml(c.referenceNumber || c.paymentMethod || '-')}</code></td>
+            <td data-label="Status">${statusBadge}</td>
+            <td data-label="Action" style="text-align: center;">${actionHtml}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Payment Modal Logic (Requirements 22, 23, 24, 25)
+    function openPaymentModal(recId, expectedShare, pendingShare, lateFee, month, year) {
+      const share = parseFloat(pendingShare || expectedShare || 0);
+      const fee = parseFloat(lateFee || 0);
+      const total = share + fee;
+
+      activePaymentContext = {
+        collectionId: recId,
+        month: month,
+        year: year,
+        monthlyBachatAmount: share,
+        lateFeeAmount: fee,
+        totalAmount: total
+      };
+
+      document.getElementById('pay-period-label').textContent = `${monthFullNames[month] || month} ${year}`;
+      document.getElementById('pay-share-label').textContent = Common.formatIndianCurrency(share);
+
+      const feeRow = document.getElementById('pay-latefee-row');
+      if (fee > 0) {
+        feeRow.style.display = 'flex';
+        document.getElementById('pay-latefee-label').textContent = `+${Common.formatIndianCurrency(fee)}`;
+      } else {
+        feeRow.style.display = 'none';
+      }
+
+      document.getElementById('pay-total-label').textContent = Common.formatIndianCurrency(total);
+      document.getElementById('btn-pay-amount').textContent = `(${Common.formatIndianCurrency(total)})`;
+
+      selectPaymentMode('UPI');
+
+      Common.openModal('modal-payment-gateway');
+    }
+
+    function closePaymentModal() {
+      Common.closeModal('modal-payment-gateway');
+      activePaymentContext = null;
+    }
+
+    function selectPaymentMode(mode) {
+      selectedPaymentMode = mode;
+      const modes = ['upi', 'card', 'netbanking', 'wallet'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`btn-mode-${m}`);
+        const input = document.getElementById(`mode-input-${m}`);
+        const isSelected = m.toUpperCase() === mode.replace('_', '').toUpperCase();
+        if (btn) {
+          if (isSelected) {
+            btn.style.border = '2px solid var(--primary, #2563eb)';
+            btn.style.background = '#eff6ff';
+          } else {
+            btn.style.border = '1px solid #cbd5e1';
+            btn.style.background = '#fff';
+          }
+        }
+        if (input) input.style.display = isSelected ? 'block' : 'none';
+      });
+    }
+
+    async function executeOnlinePayment() {
+      if (!activePaymentContext) return;
+
+      const submitBtn = document.getElementById('btn-process-payment');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing Gateway...';
+
+      try {
+        // Step 1: Create Payment Order on Backend
+        const orderPayload = {
+          amount: activePaymentContext.totalAmount,
+          monthlyBachatAmount: activePaymentContext.monthlyBachatAmount,
+          lateFeeAmount: activePaymentContext.lateFeeAmount,
+          month: activePaymentContext.month,
+          year: activePaymentContext.year,
+          paymentType: 'MONTHLY_SAVINGS'
+        };
+
+        const order = await api.createPaymentOrder(orderPayload);
+        const orderId = order.orderId;
+        const serverToken = order.serverVerificationToken;
+
+        // Step 2: Simulate Payment Gateway interaction & callback
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Verifying with Bank...';
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Step 3: Backend Cryptographic Verification
+        const verifyPayload = {
+          orderId: orderId,
+          gatewaySignatureToken: serverToken,
+          paymentMethod: selectedPaymentMode,
+          gatewayPaymentId: 'PG-TXN-' + Date.now(),
+          referenceNumber: 'UPI/' + Date.now(),
+          notes: `Online Bachat Gat deposit for ${monthFullNames[activePaymentContext.month]} ${activePaymentContext.year}`
+        };
+
+        const receipt = await api.verifyPayment(verifyPayload);
+
+        Common.showToast('Payment successful! Digital receipt generated.', 'success');
+        closePaymentModal();
+
+        // Show Receipt Modal
+        showPaymentReceiptModal(receipt, orderId);
+
+        // Refresh collections and metrics
+        await loadMyCollections();
+
+      } catch (err) {
+        Common.showToast('Payment failed: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = `<i class="bi bi-lock-fill"></i> Pay Now <span id="btn-pay-amount">(${Common.formatIndianCurrency(activePaymentContext ? activePaymentContext.totalAmount : 0)})</span>`;
+      }
+    }
+
+    function showPaymentReceiptModal(receipt, orderId) {
+      document.getElementById('rec-number').textContent = receipt.receiptNumber || 'REC-' + Date.now();
+      document.getElementById('rec-order-id').textContent = receipt.orderId || orderId || '-';
+      document.getElementById('rec-amount').textContent = Common.formatIndianCurrency(receipt.totalAmount || (activePaymentContext ? activePaymentContext.totalAmount : 0));
+      document.getElementById('rec-method').textContent = receipt.paymentMethod || selectedPaymentMode;
+      document.getElementById('rec-timestamp').textContent = receipt.transactionTimestamp ? Common.formatDateTime(receipt.transactionTimestamp) : Common.formatDateTime(new Date());
+
+      Common.openModal('modal-payment-receipt');
+    }
+
+    function closeReceiptModal() {
+      Common.closeModal('modal-payment-receipt');
+    }
+
+    function viewReceiptForCollection(ref) {
+      document.getElementById('rec-number').textContent = ref;
+      document.getElementById('rec-order-id').textContent = 'ORD-VERIFIED';
+      document.getElementById('rec-amount').textContent = 'Verified Deposit';
+      document.getElementById('rec-method').textContent = 'ONLINE / BANK';
+      document.getElementById('rec-timestamp').textContent = 'Audited & Confirmed';
+
+      Common.openModal('modal-payment-receipt');
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

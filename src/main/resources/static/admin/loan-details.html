@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loan Account Details - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item active"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <a href="/admin/loans.html" class="btn-outline-custom" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+            <i class="bi bi-arrow-left"></i> Back to Loans
+          </a>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <!-- Header banner -->
+        <div class="page-header">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.25rem;">
+              <h1 class="page-title" style="margin: 0;">Loan Account: <span id="dtl-loan-code">-</span></h1>
+              <span id="dtl-status-badge" class="badge">ACTIVE</span>
+            </div>
+            <p class="page-subtitle">Borrower: <strong id="dtl-member-name">-</strong> (<span id="dtl-member-id">-</span>) | Sanctioned: <span id="dtl-sanction-date">-</span></p>
+          </div>
+          <div style="display: flex; gap: 0.75rem;">
+            <button id="btn-open-repay" class="btn-primary-custom">
+              <i class="bi bi-cash-coin"></i> Record Repayment
+            </button>
+            <button id="btn-open-extra" class="btn-outline-custom">
+              <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i> Extra Prepayment
+            </button>
+            <button onclick="window.print()" class="btn-outline-custom">
+              <i class="bi bi-printer"></i> Print Statement
+            </button>
+          </div>
+        </div>
+
+        <!-- Loan Balances (Requirement 27: Total Loan Outstanding) -->
+        <div class="metrics-grid mb-4">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Sanctioned Principal</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-cash"></i></div>
+            </div>
+            <div id="dtl-sanctioned-principal" class="metric-value">₹0</div>
+            <div class="metric-sub" id="dtl-interest-rate-label">12% p.a. Reducing Balance</div>
+          </div>
+
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label">Principal Repaid</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-check2-circle"></i></div>
+            </div>
+            <div id="dtl-principal-paid" class="metric-value">₹0</div>
+            <div class="metric-sub" id="dtl-principal-paid-sub">Direct principal reduction</div>
+          </div>
+
+          <div class="metric-card warning">
+            <div class="metric-header">
+              <span class="metric-label">Remaining Principal</span>
+              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-hourglass-split"></i></div>
+            </div>
+            <div id="dtl-remaining-principal" class="metric-value">₹0</div>
+            <div class="metric-sub">Base for future monthly interest</div>
+          </div>
+
+          <div class="metric-card danger">
+            <div class="metric-header">
+              <span class="metric-label">Total Outstanding Dues</span>
+              <div class="metric-icon-wrap icon-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            </div>
+            <div id="dtl-total-outstanding" class="metric-value">₹0</div>
+            <div class="metric-sub" id="dtl-outstanding-sub">Remaining Principal + Accrued Interest</div>
+          </div>
+        </div>
+
+        <!-- Loan Terms Card -->
+        <div class="content-card mb-4">
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Loan Terms & Amortization Parameters</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+            <div>
+              <span class="text-muted d-block">Monthly EMI</span>
+              <strong id="dtl-monthly-emi" style="font-size: 1.1rem; color: var(--primary);">₹0</strong>
+            </div>
+            <div>
+              <span class="text-muted d-block">Tenure / Duration</span>
+              <strong id="dtl-tenure">-</strong>
+            </div>
+            <div>
+              <span class="text-muted d-block">Total Interest Accrued</span>
+              <strong id="dtl-interest-accrued">₹0</strong>
+            </div>
+            <div>
+              <span class="text-muted d-block">Interest Paid to Date</span>
+              <strong id="dtl-interest-paid" style="color: var(--success);">₹0</strong>
+            </div>
+            <div>
+              <span class="text-muted d-block">Remaining Interest Due</span>
+              <strong id="dtl-remaining-interest" style="color: var(--danger);">₹0</strong>
+            </div>
+            <div>
+              <span class="text-muted d-block">Next Installment Due</span>
+              <strong id="dtl-next-due-date">-</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Amortization Schedule Table (Requirement 28) -->
+        <div class="content-card">
+          <div class="card-header-flex mb-3">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Reducing-Balance Amortization Schedule</h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
+                Calculated strictly in Java backend using BigDecimal reducing balance formula
+              </p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Due Date</th>
+                  <th style="text-align: right;">Opening Principal (₹)</th>
+                  <th style="text-align: right;">Principal Component (₹)</th>
+                  <th style="text-align: right;">Interest Component (₹)</th>
+                  <th style="text-align: right;">EMI Amount (₹)</th>
+                  <th style="text-align: right;">Paid (₹)</th>
+                  <th style="text-align: right;">Closing Principal (₹)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-tbody">
+                <tr>
+                  <td colspan="9" class="text-center py-4 text-muted">Loading loan amortization schedule...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Repayment Modal -->
+  <div id="modal-repay" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Loan Repayment</h3>
+        <button type="button" class="btn-close-modal" onclick="closeRepayModal()">&times;</button>
+      </div>
+      <form id="form-repay">
+        <div class="form-group mb-3">
+          <label class="form-label required">Repayment Amount (₹)</label>
+          <div class="input-currency-group">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="inp-repay-amount" class="form-control" min="100" step="50" required>
+          </div>
+          <div class="form-help">Scheduled Monthly EMI: <strong id="repay-emi-help">₹0</strong></div>
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Payment Date</label>
+            <input type="date" id="inp-repay-date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Payment Mode</label>
+            <select id="inp-repay-mode" class="form-select" required>
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI / QR</option>
+              <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label">Reference / Receipt Number</label>
+          <input type="text" id="inp-repay-ref" class="form-control" placeholder="e.g. UTR-SBI-9821 or Cash receipt #12">
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Notes</label>
+          <input type="text" id="inp-repay-notes" class="form-control" placeholder="e.g. Regular monthly installment deposit">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeRepayModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-repay">Save Repayment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Extra Prepayment Modal (Requirement 26) -->
+  <div id="modal-extra" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Extra Prepayment (Direct Principal Reduction)</h3>
+        <button type="button" class="btn-close-modal" onclick="closeExtraModal()">&times;</button>
+      </div>
+      <form id="form-extra">
+        <div class="info-banner mb-3" style="background: rgba(2, 132, 199, 0.1); border-left: 4px solid #0284c7; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem;">
+          Extra payments directly reduce the outstanding principal, permanently lowering future interest charges.
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Extra Prepayment Amount (₹)</label>
+          <div class="input-currency-group">
+            <span class="currency-prefix">₹</span>
+            <input type="number" id="inp-extra-amount" class="form-control" min="500" step="500" required placeholder="e.g. 5000">
+          </div>
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Payment Date</label>
+            <input type="date" id="inp-extra-date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Payment Mode</label>
+            <select id="inp-extra-mode" class="form-select" required>
+              <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+              <option value="UPI">UPI / QR</option>
+              <option value="CASH">Cash</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Reference Number</label>
+          <input type="text" id="inp-extra-ref" class="form-control" placeholder="e.g. UTR-SBI-88123">
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeExtraModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-extra">
+            <i class="bi bi-lightning-charge-fill"></i> Apply Extra Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let currentLoan = null;
+    let currentLoanId = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      const params = new URLSearchParams(window.location.search);
+      currentLoanId = params.get('loanId') || params.get('id');
+
+      if (!currentLoanId) {
+        Common.showToast('No loan ID provided in URL', 'warning');
+        setTimeout(() => window.location.href = '/admin/loans.html', 1500);
+        return;
+      }
+
+      document.getElementById('inp-repay-date').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('inp-extra-date').value = new Date().toISOString().slice(0, 10);
+
+      await loadLoanDetails();
+
+      document.getElementById('btn-open-repay').addEventListener('click', () => {
+        document.getElementById('inp-repay-amount').value = currentLoan?.monthlyInstallment || 0;
+        document.getElementById('modal-repay').classList.add('show');
+      });
+
+      document.getElementById('btn-open-extra').addEventListener('click', () => {
+        document.getElementById('modal-extra').classList.add('show');
+      });
+
+      document.getElementById('form-repay').addEventListener('submit', handleRepaySubmit);
+      document.getElementById('form-extra').addEventListener('submit', handleExtraSubmit);
+    });
+
+    function closeRepayModal() {
+      document.getElementById('modal-repay').classList.remove('show');
+    }
+
+    function closeExtraModal() {
+      document.getElementById('modal-extra').classList.remove('show');
+    }
+
+    async function loadLoanDetails() {
+      try {
+        currentLoan = await api.getLoanById(currentLoanId);
+        if (!currentLoan) {
+          Common.showToast('Loan not found', 'danger');
+          return;
+        }
+
+        renderHero();
+        await loadSchedule();
+      } catch (err) {
+        Common.showToast('Failed to load loan: ' + err.message, 'danger');
+      }
+    }
+
+    function renderHero() {
+      const l = currentLoan;
+      document.getElementById('dtl-loan-code').textContent = l.loanId || l.id;
+      document.getElementById('dtl-member-name').textContent = l.memberName || l.memberId;
+      document.getElementById('dtl-member-id').textContent = l.memberId;
+      document.getElementById('dtl-sanction-date').textContent = Common.formatDate(l.startDate);
+
+      const statusBadge = document.getElementById('dtl-status-badge');
+      statusBadge.textContent = l.status;
+      statusBadge.className = `badge status-badge badge-${(l.status || 'active').toLowerCase()}`;
+
+      document.getElementById('dtl-sanctioned-principal').textContent = Common.formatIndianCurrency(l.principalAmount);
+      document.getElementById('dtl-principal-paid').textContent = Common.formatIndianCurrency(l.principalPaid);
+      document.getElementById('dtl-remaining-principal').textContent = Common.formatIndianCurrency(l.outstandingPrincipal);
+
+      const totalOut = parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0);
+      document.getElementById('dtl-total-outstanding').textContent = Common.formatIndianCurrency(totalOut);
+
+      document.getElementById('dtl-monthly-emi').textContent = Common.formatIndianCurrency(l.monthlyInstallment);
+      document.getElementById('dtl-tenure').textContent = `${l.durationMonths || 12} Months`;
+      document.getElementById('dtl-interest-accrued').textContent = Common.formatIndianCurrency(l.totalInterest);
+      document.getElementById('dtl-interest-paid').textContent = Common.formatIndianCurrency(l.interestPaid);
+      document.getElementById('dtl-remaining-interest').textContent = Common.formatIndianCurrency(l.outstandingInterest);
+      document.getElementById('dtl-next-due-date').textContent = l.nextDueDate ? Common.formatDate(l.nextDueDate) : 'N/A';
+
+      document.getElementById('repay-emi-help').textContent = Common.formatIndianCurrency(l.monthlyInstallment);
+    }
+
+    async function loadSchedule() {
+      try {
+        const schedule = await api.getLoanSchedule(currentLoanId);
+        const tbody = document.getElementById('schedule-tbody');
+        if (!schedule || schedule.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No schedule items generated.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = schedule.map(s => `
+          <tr>
+            <td><strong>#${s.installmentNo}</strong></td>
+            <td>${Common.formatDate(s.dueDate)}</td>
+            <td style="text-align: right;">${Common.formatIndianCurrency(s.openingPrincipal)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.principalComponent)}</td>
+            <td style="text-align: right; color: var(--text-muted);">${Common.formatIndianCurrency(s.interestComponent)}</td>
+            <td style="text-align: right; font-weight: 700; color: var(--primary);">${Common.formatIndianCurrency(s.emiAmount)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.paidAmount || 0)}</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(s.closingPrincipal)}</td>
+            <td><span class="badge status-badge badge-${(s.status || 'upcoming').toLowerCase()}">${Common.escapeHtml ? Common.escapeHtml(s.status) : s.status}</span></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load schedule:', err);
+      }
+    }
+
+    async function handleRepaySubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-repay');
+      btn.disabled = true;
+
+      const payload = {
+        amount: parseFloat(document.getElementById('inp-repay-amount').value),
+        paymentDate: document.getElementById('inp-repay-date').value,
+        paymentMethod: document.getElementById('inp-repay-mode').value,
+        referenceNumber: document.getElementById('inp-repay-ref').value.trim(),
+        notes: document.getElementById('inp-repay-notes').value.trim()
+      };
+
+      try {
+        await api.recordLoanRepayment(currentLoanId, payload);
+        Common.showToast('Repayment recorded and ledger updated!', 'success');
+        closeRepayModal();
+        await loadLoanDetails();
+      } catch (err) {
+        Common.showToast('Repayment failed: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function handleExtraSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-extra');
+      btn.disabled = true;
+
+      const payload = {
+        amount: parseFloat(document.getElementById('inp-extra-amount').value),
+        paymentDate: document.getElementById('inp-extra-date').value,
+        paymentMethod: document.getElementById('inp-extra-mode').value,
+        referenceNumber: document.getElementById('inp-extra-ref').value.trim(),
+        notes: 'Extra principal prepayment'
+      };
+
+      try {
+        await api.recordLoanExtraPayment(currentLoanId, payload);
+        Common.showToast('Extra prepayment applied directly to principal! Schedule recalculated.', 'success');
+        closeExtraModal();
+        await loadLoanDetails();
+      } catch (err) {
+        Common.showToast('Extra payment failed: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Vault - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item active"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="documents">Cloud Storage Document Vault</h1>
+            <p class="page-subtitle">Encrypted member identity records, PAN scans, loan sanction agreements, and meeting minutes</p>
+          </div>
+          <button id="btn-upload-doc" class="btn-primary-custom">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Upload Document
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="content-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; flex: 1; max-width: 600px;">
+              <div style="flex: 2; min-width: 200px;">
+                <input type="text" id="search-docs" class="form-control" placeholder="Search by Document Name, Member ID...">
+              </div>
+              <div style="flex: 1; min-width: 160px;">
+                <select id="filter-doc-type" class="form-select">
+                  <option value="">All Document Types</option>
+                  <option value="KYC_PAN">PAN Card Proof</option>
+                  <option value="KYC_AADHAAR">Aadhaar / ID Card</option>
+                  <option value="LOAN_AGREEMENT">Loan Agreement</option>
+                  <option value="MEETING_RESOLUTION">Meeting Resolution</option>
+                  <option value="BANK_PASSBOOK">Bank Passbook</option>
+                </select>
+              </div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">
+              Storage: <span class="badge" style="background:#e0f2fe; color:#0369a1;">Google Cloud Storage (Encrypted)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Documents Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Doc ID</th>
+                  <th>File Name</th>
+                  <th>Document Type</th>
+                  <th>Member ID</th>
+                  <th>Loan ID</th>
+                  <th>Upload Date</th>
+                  <th>Uploaded By</th>
+                  <th>Status</th>
+                  <th style="text-align: right;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="documents-tbody">
+                <tr>
+                  <td colspan="9" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading documents from Cloud Storage...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Upload Document Modal -->
+  <div id="modal-upload-doc" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Upload New Document to Cloud Storage</h3>
+        <button type="button" class="btn-close-modal" onclick="closeUploadModal()">&times;</button>
+      </div>
+      <form id="form-upload-doc">
+        <div class="form-group mb-3">
+          <label class="form-label required">Document Type</label>
+          <select id="up-type" class="form-select" required>
+            <option value="KYC_PAN">PAN Card Scan</option>
+            <option value="KYC_AADHAAR">Aadhaar Card / ID Proof</option>
+            <option value="LOAN_AGREEMENT">Signed Loan Promissory / Agreement</option>
+            <option value="MEETING_RESOLUTION">Meeting Minutes & Resolution</option>
+            <option value="BANK_PASSBOOK">Bank Statement / Passbook</option>
+            <option value="GENERAL">General Document</option>
+          </select>
+        </div>
+
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Member ID (Optional)</label>
+            <input type="text" id="up-member-id" class="form-control" placeholder="e.g. MBR-2026-001">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label">Loan ID (Optional)</label>
+            <input type="text" id="up-loan-id" class="form-control" placeholder="e.g. LN-2026-001">
+          </div>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label required">Select File (PDF, PNG, JPG)</label>
+          <input type="file" id="up-file" class="form-control" required accept=".pdf,.png,.jpg,.jpeg">
+          <small class="text-muted">Files are stored securely in Google Cloud Storage with strict IAM access.</small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeUploadModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-upload">Upload to Vault</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let groupDocuments = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      await loadDocuments();
+
+      document.getElementById('btn-upload-doc').addEventListener('click', () => {
+        document.getElementById('modal-upload-doc').classList.add('show');
+      });
+      document.getElementById('form-upload-doc').addEventListener('submit', handleUpload);
+      document.getElementById('search-docs').addEventListener('input', applyDocFilter);
+      document.getElementById('filter-doc-type').addEventListener('change', applyDocFilter);
+    });
+
+    function closeUploadModal() {
+      document.getElementById('modal-upload-doc').classList.remove('show');
+    }
+
+    async function loadDocuments() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        groupDocuments = await api.getGroupDocuments(groupId);
+        renderDocuments(groupDocuments);
+      } catch (err) {
+        Common.showToast('Failed to load documents: ' + err.message, 'danger');
+      }
+    }
+
+    function applyDocFilter() {
+      const q = document.getElementById('search-docs').value.toLowerCase().trim();
+      const type = document.getElementById('filter-doc-type').value;
+
+      const filtered = groupDocuments.filter(d => {
+        const matchesType = !type || d.documentType === type;
+        const matchesQuery = !q || (d.fileName && d.fileName.toLowerCase().includes(q)) || (d.memberId && d.memberId.toLowerCase().includes(q));
+        return matchesType && matchesQuery;
+      });
+
+      renderDocuments(filtered);
+    }
+
+    function renderDocuments(docs) {
+      const tbody = document.getElementById('documents-tbody');
+      if (!docs || docs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="9" class="text-center py-4 text-muted">
+              <i class="bi bi-folder2-open" style="font-size: 2rem;"></i>
+              <p class="mt-2">No documents stored in the vault yet.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = docs.map(d => `
+        <tr>
+          <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(d.id)}</strong></td>
+          <td><i class="bi bi-file-earmark-arrow-up text-primary me-1"></i> <strong>${escapeHtml(d.fileName)}</strong></td>
+          <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(d.documentType)}</span></td>
+          <td>${d.memberId ? `<span class="badge" style="background:#e0f2fe; color:#0369a1;">${escapeHtml(d.memberId)}</span>` : '<span class="text-muted">Group</span>'}</td>
+          <td>${d.loanId ? `<span style="font-family: monospace;">${escapeHtml(d.loanId)}</span>` : '-'}</td>
+          <td>${Common.formatDate(d.uploadedAt)}</td>
+          <td><small>${escapeHtml(d.uploadedBy || 'ADMIN')}</small></td>
+          <td><span class="status-badge badge-active">${escapeHtml(d.status || 'VERIFIED')}</span></td>
+          <td style="text-align: right;">
+            <a href="/api/documents/view/${encodeURIComponent(d.id || d.documentId)}" target="_blank" class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+              <i class="bi bi-eye"></i> <span data-i18n="viewDoc">View</span>
+            </a>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function handleUpload(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const fileInput = document.getElementById('up-file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        Common.showToast('Please select a file to upload', 'warning');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('groupId', groupId);
+      formData.append('documentType', document.getElementById('up-type').value);
+      const memberId = document.getElementById('up-member-id').value.trim();
+      if (memberId) formData.append('memberId', memberId);
+      const loanId = document.getElementById('up-loan-id').value.trim();
+      if (loanId) formData.append('loanId', loanId);
+      formData.append('file', fileInput.files[0]);
+
+      const submitBtn = document.getElementById('btn-submit-upload');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+
+      try {
+        await api.uploadDocument(formData);
+        Common.showToast('Document uploaded securely to Cloud Storage!', 'success');
+        closeUploadModal();
+        document.getElementById('form-upload-doc').reset();
+        await loadDocuments();
+      } catch (err) {
+        Common.showToast('Upload failed: ' + err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Upload to Vault';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collections Register - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item active"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="collections">Monthly Savings Collections</h1>
+            <p class="page-subtitle">Track regular recurring member shares, pending dues, and payment entries</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button id="btn-generate-monthly-due" class="btn-outline-custom">
+              <i class="bi bi-calendar2-plus"></i> <span data-i18n="generateMonthly">Generate Monthly Due</span>
+            </button>
+            <button id="btn-open-payment-modal" class="btn-primary-custom">
+              <i class="bi bi-plus-circle"></i> <span data-i18n="recordPayment">Record Payment</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Section 21 Tab Navigation -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem;">
+          <button id="tab-btn-all-col" class="btn-primary-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-wallet2 me-1"></i> All Monthly Savings Collections
+          </button>
+          <button id="tab-btn-pending-col" class="btn-outline-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-clock-history me-1"></i> Pending Members & Penalties
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="card-box" style="padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 200px;">
+              <input type="text" id="collection-search-input" class="form-control" placeholder="Search by member name or ID...">
+            </div>
+            <div style="width: 140px;">
+              <select id="collection-month-select" class="form-select">
+                <option value="0">All Months</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10" selected>October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div style="width: 150px;">
+              <select id="collection-status-filter" class="form-select">
+                <option value="ALL">All Statuses</option>
+                <option value="PAID">Paid Only</option>
+                <option value="PARTIAL">Partial</option>
+                <option value="PENDING">Pending Dues</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collections Table (All) -->
+        <div id="all-collections-card" class="card-box">
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tablePeriod">Period</th>
+                  <th data-i18n="memberId">Member ID</th>
+                  <th data-i18n="fullName">Member Name</th>
+                  <th data-i18n="monthlyExpected">Expected Share</th>
+                  <th data-i18n="tablePaidAmount">Paid Amount</th>
+                  <th data-i18n="tablePendingAmount">Pending Due</th>
+                  <th style="text-align: right; color: var(--danger);">Penalty (₹)</th>
+                  <th data-i18n="date">Payment Date</th>
+                  <th data-i18n="tableMode">Mode</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="action">Action</th>
+                </tr>
+              </thead>
+              <tbody id="collections-table-tbody">
+                <tr><td colspan="11" style="text-align: center;">Loading collection history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pending Members & Penalties Card -->
+        <div id="pending-savings-card" class="card-box" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-clock-history text-danger"></i> Monthly Savings Pending Members Register
+              </h3>
+              <p style="font-size: 0.825rem; color: #64748b; margin: 0.2rem 0 0 0;">
+                Section 21: Breakdown of monthly bachat due, payments made, calculated penalties, and total due
+              </p>
+            </div>
+            <button id="btn-refresh-pending" class="btn-outline-custom" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+              <i class="bi bi-arrow-repeat"></i> Refresh Pending
+            </button>
+          </div>
+
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Member Name</th>
+                  <th>Member ID</th>
+                  <th style="text-align: right;">Monthly Bachat</th>
+                  <th style="text-align: right;">Amount Paid</th>
+                  <th style="text-align: right;">Remaining Due</th>
+                  <th>Due Date</th>
+                  <th style="text-align: center;">Days Overdue</th>
+                  <th style="text-align: right; color: var(--danger);">Penalty Fee</th>
+                  <th style="text-align: right; font-weight: 700;">Total Payable</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="pending-savings-tbody">
+                <tr><td colspan="11" style="text-align: center;">Loading pending members...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Record Payment Modal -->
+  <div id="payment-modal" class="modal-overlay">
+    <div class="modal-content-custom">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom">Record Member Savings Share Payment</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-payment-modal" onclick="Common.closeModal('payment-modal')">&times;</button>
+      </div>
+      <form id="record-payment-form">
+        <div class="modal-body-custom">
+          <div class="form-group">
+            <label class="form-label">Select Member *</label>
+            <select id="pay-memberId" class="form-select" required>
+              <option value="">-- Choose Member --</option>
+            </select>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Month *</label>
+              <select id="pay-month" class="form-select" required>
+                <option value="1">1 - January</option>
+                <option value="2">2 - February</option>
+                <option value="3" selected>3 - March</option>
+                <option value="4">4 - April</option>
+                <option value="5">5 - May</option>
+                <option value="6">6 - June</option>
+                <option value="7">7 - July</option>
+                <option value="8">8 - August</option>
+                <option value="9">9 - September</option>
+                <option value="10">10 - October</option>
+                <option value="11">11 - November</option>
+                <option value="12">12 - December</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Year *</label>
+              <input type="number" id="pay-year" class="form-control" value="2026" required>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Total Amount Received (₹) *</label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="pay-amount" class="form-control" value="5000" min="1" step="0.5" required>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Payment Date *</label>
+              <input type="date" id="pay-date" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Payment Mode *</label>
+              <select id="pay-method" class="form-select" required>
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI / QR Code</option>
+                <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+                <option value="CHEQUE">Cheque</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference / UTR / Receipt No.</label>
+              <input type="text" id="pay-ref" class="form-control" placeholder="e.g. UTR-SBI-82910 or REC#12">
+            </div>
+          </div>
+
+          <div class="form-grid mb-3">
+            <div class="form-group">
+              <label class="form-label">Idempotency Key (Duplicate Prevention)</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="pay-idempotency" class="form-control" style="font-family: monospace; font-size: 0.85rem;" placeholder="Unique reference key">
+                <button type="button" class="btn-outline-custom" id="btn-regen-idemp" title="Generate New Key" style="padding: 0 0.5rem;">
+                  <i class="bi bi-arrow-repeat"></i>
+                </button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Banking / Payment Status</label>
+              <select id="pay-status" class="form-select">
+                <option value="SUCCESS">SUCCESS (Finalize financial entries)</option>
+                <option value="PENDING">PENDING (Keep collection pending)</option>
+                <option value="FAILED">FAILED (Do not update balances)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Payment Allocation Category (Requirement 5) -->
+          <div class="form-group mb-3">
+            <label class="form-label" style="font-weight: 600;">Payment Allocation Type / Purpose *</label>
+            <select id="pay-type-select" class="form-select" style="font-weight: 600;">
+              <option value="SAVINGS" selected>Monthly Savings / Share Contribution (मासिक बचत)</option>
+              <option value="LOAN">Loan EMI / Repayment (कर्ज परतफेड)</option>
+              <option value="COMBINED">Combined (Monthly Savings + Loan EMI)</option>
+              <option value="OTHER">Other Contribution / Penalty / Late Fee (इतर भरणा)</option>
+            </select>
+          </div>
+
+          <!-- Dynamic Option Details Container -->
+          <div id="pay-category-details" style="padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.85rem; line-height: 1.4; border-left: 4px solid var(--primary); background: #f0fdf4;">
+            <div style="font-weight: 700; color: #166534; margin-bottom: 0.25rem;">
+              <i class="bi bi-wallet2"></i> Monthly Savings Share Selected
+            </div>
+            <div style="color: #166534;">
+              100% of the amount received will be allocated to the member's regular monthly savings passbook, accumulating group capital.
+            </div>
+          </div>
+
+          <!-- 3-Category Allocation Box (Requirement 3 & 67) -->
+          <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <strong style="color: var(--primary); font-size: 0.95rem;">
+                <i class="bi bi-diagram-3"></i> Money Category Allocations
+              </strong>
+              <span id="allocation-badge" class="badge bg-success" style="font-size: 0.8rem; padding: 0.35rem 0.6rem;">
+                Allocations Balanced
+              </span>
+            </div>
+
+            <div id="alloc-sec-share" class="form-group mb-2">
+              <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Option 1: Monthly Bachat / Savings (₹)</label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="pay-share" class="form-control form-control-sm" value="5000" min="0" step="0.5">
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Regular monthly member savings credit</small>
+            </div>
+
+            <div id="alloc-sec-loan" style="border-top: 1px dashed var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
+              <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Option 2: Loan EMI / Repayment</label>
+              <div class="form-group mb-2">
+                <select id="pay-loan-select" class="form-select form-select-sm">
+                  <option value="">-- No Active Loan (Share Only) --</option>
+                </select>
+              </div>
+              <div class="form-grid mb-2">
+                <div class="form-group">
+                  <label style="font-size: 0.75rem; color: var(--text-muted);">Loan Principal (₹)</label>
+                  <input type="number" id="pay-loan-principal" class="form-control form-control-sm" value="0" min="0" step="0.5">
+                </div>
+                <div class="form-group">
+                  <label style="font-size: 0.75rem; color: var(--text-muted);">Loan Interest (₹)</label>
+                  <input type="number" id="pay-loan-interest" class="form-control form-control-sm" value="0" min="0" step="0.5">
+                </div>
+              </div>
+            </div>
+
+            <div id="alloc-sec-other" style="border-top: 1px dashed var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">
+              <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Option 3: Other Contribution / Miscellaneous (₹)</label>
+              <input type="number" id="pay-other" class="form-control form-control-sm" value="0" min="0" step="0.5">
+              <small style="color: var(--text-muted); font-size: 0.75rem;">Fines, meeting absence fee, or special contributions</small>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); font-size: 0.85rem;">
+              <span>Received: <strong id="lbl-rec-amt">₹5,000</strong></span>
+              <span>Allocated: <strong id="lbl-alloc-amt" style="color: var(--primary);">₹5,000</strong></span>
+              <span>Diff: <strong id="lbl-diff-amt" style="color: var(--success);">₹0</strong></span>
+            </div>
+          </div>
+
+          <!-- Late Fee & Waiver Section -->
+          <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="flex: 1; margin-right: 1rem;">
+                <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.25rem;">Late Fee (₹)</label>
+                <input type="number" id="pay-late-fee" class="form-control form-control-sm" value="0" min="0" step="10">
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
+                <input type="checkbox" id="pay-waive-late" style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="pay-waive-late" style="font-size: 0.85rem; cursor: pointer; margin: 0;">Waive Late Fee</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-payment" onclick="Common.closeModal('payment-modal')">Cancel</button>
+          <button type="submit" id="btn-save-payment" class="btn-primary-custom">
+            <i class="bi bi-check-circle-fill"></i> Confirm & Save Payment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let allCollections = [];
+    let memberList = [];
+    let groupLoans = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.requireAuth('ADMIN')) return;
+      let currentGroupId = Common.getSelectedGroupId();
+      
+      document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+      generateIdempotencyKey();
+
+      await Promise.all([
+        loadCollections(currentGroupId),
+        loadMemberDropdown(currentGroupId),
+        loadGroupLoans(currentGroupId)
+      ]);
+
+      window.addEventListener('groupChanged', async (e) => {
+        currentGroupId = e.detail.groupId;
+        await Promise.all([
+          loadCollections(currentGroupId),
+          loadMemberDropdown(currentGroupId),
+          loadGroupLoans(currentGroupId)
+        ]);
+        if (pendingColCard.style.display === 'block') {
+          loadPendingCollections(currentGroupId);
+        }
+      });
+
+      // Check query param for quick action
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('action') === 'record') {
+        document.getElementById('payment-modal').classList.add('active');
+      }
+
+      // Tab navigation
+      const tabAllCol = document.getElementById('tab-btn-all-col');
+      const tabPendingCol = document.getElementById('tab-btn-pending-col');
+      const allColCard = document.getElementById('all-collections-card');
+      const pendingColCard = document.getElementById('pending-savings-card');
+
+      tabAllCol.addEventListener('click', () => {
+        tabAllCol.className = 'btn-primary-custom';
+        tabPendingCol.className = 'btn-outline-custom';
+        allColCard.style.display = 'block';
+        pendingColCard.style.display = 'none';
+      });
+
+      tabPendingCol.addEventListener('click', () => {
+        tabPendingCol.className = 'btn-primary-custom';
+        tabAllCol.className = 'btn-outline-custom';
+        allColCard.style.display = 'none';
+        pendingColCard.style.display = 'block';
+        loadPendingCollections(currentGroupId);
+      });
+
+      const btnRefPending = document.getElementById('btn-refresh-pending');
+      if (btnRefPending) {
+        btnRefPending.addEventListener('click', () => loadPendingCollections(currentGroupId));
+      }
+
+      // Modal open/close
+      const modal = document.getElementById('payment-modal');
+      document.getElementById('btn-open-payment-modal').addEventListener('click', () => {
+        generateIdempotencyKey();
+        recalcAllocations();
+        Common.openModal('payment-modal');
+      });
+      document.getElementById('btn-close-payment-modal').addEventListener('click', () => Common.closeModal('payment-modal'));
+      document.getElementById('btn-cancel-payment').addEventListener('click', () => Common.closeModal('payment-modal'));
+      document.getElementById('btn-regen-idemp').addEventListener('click', generateIdempotencyKey);
+
+      // Allocation live listeners
+      document.getElementById('pay-amount').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value || 0);
+        const cat = document.getElementById('pay-type-select') ? document.getElementById('pay-type-select').value : 'SAVINGS';
+        if (cat === 'SAVINGS') {
+          document.getElementById('pay-share').value = val;
+        } else if (cat === 'LOAN') {
+          const lInt = parseFloat(document.getElementById('pay-loan-interest').value || 0);
+          document.getElementById('pay-loan-principal').value = Math.max(0, val - lInt);
+        } else if (cat === 'OTHER') {
+          document.getElementById('pay-other').value = val;
+        }
+        recalcAllocations();
+      });
+      ['pay-share', 'pay-loan-principal', 'pay-loan-interest', 'pay-other'].forEach(id => {
+        document.getElementById(id).addEventListener('input', recalcAllocations);
+      });
+
+      // Member changed -> update active loan dropdown and prefill monthly bachat
+      document.getElementById('pay-memberId').addEventListener('change', (e) => {
+        const memId = e.target.value;
+        populateMemberLoans(memId);
+        if (memId && memberList && memberList.length > 0) {
+          const m = memberList.find(x => x.memberId === memId);
+          if (m && m.monthlyBachatAmount) {
+            const currentCat = document.getElementById('pay-type-select').value;
+            if (currentCat === 'SAVINGS' || currentCat === 'COMBINED') {
+              document.getElementById('pay-share').value = m.monthlyBachatAmount;
+              if (currentCat === 'SAVINGS') {
+                document.getElementById('pay-amount').value = m.monthlyBachatAmount;
+              }
+              recalcAllocations();
+            }
+          }
+        }
+      });
+
+      // Dynamic Dropdown Details for Payment Allocation Type (Requirement 5)
+      const payTypeSelect = document.getElementById('pay-type-select');
+      const payCatDetails = document.getElementById('pay-category-details');
+      const allocShareSec = document.getElementById('alloc-sec-share');
+      const allocLoanSec = document.getElementById('alloc-sec-loan');
+      const allocOtherSec = document.getElementById('alloc-sec-other');
+
+      function updatePaymentTypeDetails() {
+        const cat = payTypeSelect.value;
+        const totalAmt = parseFloat(document.getElementById('pay-amount').value || 0);
+
+        if (cat === 'SAVINGS') {
+          payCatDetails.style.borderLeft = '4px solid #16a34a';
+          payCatDetails.style.background = '#f0fdf4';
+          payCatDetails.innerHTML = `
+            <div style="font-weight: 700; color: #166534; margin-bottom: 0.25rem;">
+              <i class="bi bi-wallet2"></i> Monthly Savings Share Selected (मासिक बचत)
+            </div>
+            <div style="color: #166534;">
+              100% of the received payment (${Common.formatIndianCurrency(totalAmt)}) will be allocated to the member's accumulated personal savings passbook. This funds the group internal lending pool.
+            </div>
+          `;
+          allocShareSec.style.display = 'block';
+          allocLoanSec.style.display = 'none';
+          allocOtherSec.style.display = 'none';
+          document.getElementById('pay-share').value = totalAmt;
+          document.getElementById('pay-loan-principal').value = 0;
+          document.getElementById('pay-loan-interest').value = 0;
+          document.getElementById('pay-other').value = 0;
+        } else if (cat === 'LOAN') {
+          payCatDetails.style.borderLeft = '4px solid #d97706';
+          payCatDetails.style.background = '#fffbeb';
+          payCatDetails.innerHTML = `
+            <div style="font-weight: 700; color: #92400e; margin-bottom: 0.25rem;">
+              <i class="bi bi-cash-coin"></i> Loan EMI / Repayment Selected (कर्ज परतफेड)
+            </div>
+            <div style="color: #92400e;">
+              Payment is allocated specifically toward loan recovery (Principal + Interest). No regular savings will be credited for this transaction.
+            </div>
+          `;
+          allocShareSec.style.display = 'none';
+          allocLoanSec.style.display = 'block';
+          allocOtherSec.style.display = 'none';
+          document.getElementById('pay-share').value = 0;
+          document.getElementById('pay-other').value = 0;
+          // Trigger loan computation if a loan is selected
+          const loanSelect = document.getElementById('pay-loan-select');
+          if (loanSelect.value) {
+            loanSelect.dispatchEvent(new Event('change'));
+          } else {
+            document.getElementById('pay-loan-principal').value = totalAmt;
+            document.getElementById('pay-loan-interest').value = 0;
+          }
+        } else if (cat === 'COMBINED') {
+          payCatDetails.style.borderLeft = '4px solid #2563eb';
+          payCatDetails.style.background = '#eff6ff';
+          payCatDetails.innerHTML = `
+            <div style="font-weight: 700; color: #1e40af; margin-bottom: 0.25rem;">
+              <i class="bi bi-diagram-3"></i> Combined Payment Selected (बचत + कर्ज हप्ता)
+            </div>
+            <div style="color: #1e40af;">
+              Splits the total received amount between the member's monthly savings share and their ongoing loan repayment installment.
+            </div>
+          `;
+          allocShareSec.style.display = 'block';
+          allocLoanSec.style.display = 'block';
+          allocOtherSec.style.display = 'block';
+        } else if (cat === 'OTHER') {
+          payCatDetails.style.borderLeft = '4px solid #0284c7';
+          payCatDetails.style.background = '#f0f9ff';
+          payCatDetails.innerHTML = `
+            <div style="font-weight: 700; color: #0369a1; margin-bottom: 0.25rem;">
+              <i class="bi bi-receipt"></i> Other Contribution / Penalty / Fine (इतर भरणा)
+            </div>
+            <div style="color: #0369a1;">
+              Records meeting absence fines, late fees, registration charges, or miscellaneous group contributions without impacting standard savings shares.
+            </div>
+          `;
+          allocShareSec.style.display = 'none';
+          allocLoanSec.style.display = 'none';
+          allocOtherSec.style.display = 'block';
+          document.getElementById('pay-share').value = 0;
+          document.getElementById('pay-loan-principal').value = 0;
+          document.getElementById('pay-loan-interest').value = 0;
+          document.getElementById('pay-other').value = totalAmt;
+        }
+        recalcAllocations();
+      }
+
+      payTypeSelect.addEventListener('change', updatePaymentTypeDetails);
+
+      // Loan selector changed
+      document.getElementById('pay-loan-select').addEventListener('change', (e) => {
+        const loanId = e.target.value;
+        if (!loanId) {
+          document.getElementById('pay-loan-principal').value = 0;
+          document.getElementById('pay-loan-interest').value = 0;
+        } else {
+          const l = groupLoans.find(x => x.id === loanId);
+          if (l) {
+            const emi = parseFloat(l.monthlyInstallment || 0);
+            const rate = parseFloat(l.interestRate || 12) / 100 / 12;
+            const prin = parseFloat(l.outstandingPrincipal || l.principalAmount || 0);
+            const intComp = Math.round(prin * rate);
+            const prinComp = Math.max(0, emi - intComp);
+            document.getElementById('pay-loan-principal').value = prinComp;
+            document.getElementById('pay-loan-interest').value = intComp;
+          }
+        }
+        recalcAllocations();
+      });
+
+      // Filter events
+      document.getElementById('collection-search-input').addEventListener('input', applyFilters);
+      document.getElementById('collection-month-select').addEventListener('change', applyFilters);
+      document.getElementById('collection-status-filter').addEventListener('change', applyFilters);
+
+      // Generate Monthly Due
+      document.getElementById('btn-generate-monthly-due').addEventListener('click', async () => {
+        const month = prompt('Enter month (1-12) to generate expected shares for:', new Date().getMonth() + 1);
+        if (!month) return;
+        const year = prompt('Enter year (e.g. 2026):', new Date().getFullYear());
+        if (!year) return;
+
+        const activeGId = currentGroupId || Common.getSelectedGroupId();
+        try {
+          const res = await api.generateMonthlyCollections(activeGId, Number(month), Number(year));
+          Common.showToast(`Generated ${res.length} expected collection records successfully!`, 'success');
+          await loadCollections(activeGId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        }
+      });
+
+      // Record Payment Form Submit
+      document.getElementById('record-payment-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const amount = Number(document.getElementById('pay-amount').value);
+        const monthlyBachatAmount = Number(document.getElementById('pay-share').value || 0);
+        const loanPrincipal = Number(document.getElementById('pay-loan-principal').value || 0);
+        const loanInterest = Number(document.getElementById('pay-loan-interest').value || 0);
+        const otherAmount = Number(document.getElementById('pay-other').value || 0);
+        const status = document.getElementById('pay-status').value;
+        const allocatedSum = monthlyBachatAmount + loanPrincipal + loanInterest + otherAmount;
+
+        if (status === 'SUCCESS' && Math.abs(amount - allocatedSum) > 0.01) {
+          Common.showToast(`Total allocated (₹${allocatedSum}) must equal total amount received (₹${amount})!`, 'danger');
+          return;
+        }
+
+        const submitBtn = document.getElementById('btn-save-payment');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving Payment...';
+
+        const paymentPayload = {
+          memberId: document.getElementById('pay-memberId').value,
+          month: Number(document.getElementById('pay-month').value),
+          year: Number(document.getElementById('pay-year').value),
+          amount: amount,
+          monthlyBachatAmount: monthlyBachatAmount,
+          loanPrincipalAmount: loanPrincipal,
+          loanInterestAmount: loanInterest,
+          otherAmount: otherAmount,
+          loanId: document.getElementById('pay-loan-select').value || null,
+          lateFeeAmount: Number(document.getElementById('pay-late-fee').value || 0),
+          waiveLateFee: document.getElementById('pay-waive-late').checked,
+          idempotencyKey: document.getElementById('pay-idempotency').value.trim(),
+          paymentStatus: status,
+          paymentMethod: document.getElementById('pay-method').value,
+          referenceNumber: document.getElementById('pay-ref').value.trim(),
+          paymentDate: document.getElementById('pay-date').value
+        };
+
+        const activeGId = currentGroupId || Common.getSelectedGroupId();
+        try {
+          await api.recordCollectionPayment(activeGId, paymentPayload);
+          Common.showToast(`Payment of ₹${paymentPayload.amount} recorded and allocated successfully!`, 'success');
+          Common.closeModal('payment-modal');
+          document.getElementById('record-payment-form').reset();
+          document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+          generateIdempotencyKey();
+          await loadCollections(activeGId);
+          if (pendingColCard && pendingColCard.style.display === 'block') {
+            await loadPendingCollections(activeGId);
+          }
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirm & Save Payment';
+        }
+      });
+    });
+
+    function generateIdempotencyKey() {
+      const key = `PAY-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+      document.getElementById('pay-idempotency').value = key;
+    }
+
+    function recalcAllocations() {
+      const received = parseFloat(document.getElementById('pay-amount').value || 0);
+      const share = parseFloat(document.getElementById('pay-share').value || 0);
+      const prin = parseFloat(document.getElementById('pay-loan-principal').value || 0);
+      const int = parseFloat(document.getElementById('pay-loan-interest').value || 0);
+      const other = parseFloat(document.getElementById('pay-other').value || 0);
+
+      const allocated = share + prin + int + other;
+      const diff = received - allocated;
+
+      document.getElementById('lbl-rec-amt').textContent = Common.formatIndianCurrency(received);
+      document.getElementById('lbl-alloc-amt').textContent = Common.formatIndianCurrency(allocated);
+      document.getElementById('lbl-diff-amt').textContent = Common.formatIndianCurrency(Math.abs(diff));
+
+      const badge = document.getElementById('allocation-badge');
+      if (Math.abs(diff) < 0.01) {
+        badge.className = 'badge bg-success';
+        badge.textContent = 'Allocations Balanced';
+        document.getElementById('lbl-diff-amt').style.color = 'var(--success)';
+      } else {
+        badge.className = 'badge bg-danger';
+        badge.textContent = diff > 0 ? `Unallocated ₹${diff.toFixed(2)}` : `Over-allocated ₹${Math.abs(diff).toFixed(2)}`;
+        document.getElementById('lbl-diff-amt').style.color = 'var(--danger)';
+      }
+    }
+
+    async function loadGroupLoans(groupId) {
+      try {
+        groupLoans = await api.getLoans(groupId);
+      } catch (e) {
+        console.error('Failed to load loans:', e);
+      }
+    }
+
+    function populateMemberLoans(memberId) {
+      const select = document.getElementById('pay-loan-select');
+      select.innerHTML = '<option value="">-- No Active Loan (Share Only) --</option>';
+      if (!memberId) return;
+
+      const userLoans = groupLoans.filter(l => l.memberId === memberId && l.status !== 'COMPLETED');
+      userLoans.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = `${l.loanId || l.id} - EMI: ₹${l.monthlyInstallment} (Bal: ₹${l.totalOutstanding || l.outstandingPrincipal})`;
+        select.appendChild(opt);
+      });
+    }
+
+    async function loadCollections(groupId) {
+      try {
+        allCollections = await api.getCollections(groupId);
+        applyFilters();
+      } catch (err) {
+        console.error('Error fetching collections:', err);
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    async function loadMemberDropdown(groupId) {
+      try {
+        memberList = await api.getMembers(groupId);
+        const sel = document.getElementById('pay-memberId');
+        sel.innerHTML = '<option value="">-- Choose Member --</option>' +
+          memberList.map(m => `<option value="${m.memberId}">${m.memberId} - ${m.fullName}</option>`).join('');
+      } catch (err) {
+        console.error('Error loading members for dropdown:', err);
+      }
+    }
+
+    function renderCollections(records) {
+      const tbody = document.getElementById('collections-table-tbody');
+      if (!records || records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No collection records found.</td></tr>';
+        return;
+      }
+
+      const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      tbody.innerHTML = records.map(c => {
+        const pen = c.paidLateFee != null && c.paidLateFee > 0 ? c.paidLateFee : (c.lateFeeAmount || 0);
+        return `
+        <tr>
+          <td><strong style="color: var(--text-main);">${monthNames[c.month]} ${c.year}</strong></td>
+          <td><code>${c.memberId}</code></td>
+          <td><strong>${c.memberName}</strong></td>
+          <td class="table-currency">${Common.formatINR(c.expectedAmount)}</td>
+          <td class="table-currency text-success">${Common.formatINR(c.paidAmount)}</td>
+          <td class="table-currency ${c.pendingAmount > 0 ? 'text-danger' : ''}">${Common.formatINR(c.pendingAmount)}</td>
+          <td class="table-currency" style="text-align: right; color: ${pen > 0 ? 'var(--danger)' : 'var(--text-muted)'}; font-weight: 600;">${Common.formatINR(pen)}</td>
+          <td>${Common.formatDate(c.paymentDate)}</td>
+          <td>${c.paymentMethod || 'CASH'}</td>
+          <td>${Common.getStatusBadge(c.status)}</td>
+          <td>
+            ${c.status !== 'PAID' ? `
+              <button class="btn-action-icon" title="Pay Share" onclick="quickPay('${c.memberId}', ${c.month}, ${c.year}, ${c.pendingAmount})">
+                <i class="bi bi-credit-card-fill" style="color: var(--success);"></i>
+              </button>
+            ` : '<i class="bi bi-check2-all text-success" title="Settled"></i>'}
+          </td>
+        </tr>
+      `;
+      }).join('');
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('collection-search-input').value.toLowerCase();
+      const monthFilter = Number(document.getElementById('collection-month-select').value);
+      const statusFilter = document.getElementById('collection-status-filter').value;
+
+      const filtered = allCollections.filter(c => {
+        const matchesSearch = !search || 
+          (c.memberName && c.memberName.toLowerCase().includes(search)) ||
+          (c.memberId && c.memberId.toLowerCase().includes(search));
+
+        const matchesMonth = monthFilter === 0 || c.month === monthFilter;
+        const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+
+        return matchesSearch && matchesMonth && matchesStatus;
+      });
+
+      renderCollections(filtered);
+    }
+
+    function quickPay(memberId, month, year, pendingAmount) {
+      document.getElementById('pay-memberId').value = memberId;
+      document.getElementById('pay-month').value = month;
+      document.getElementById('pay-year').value = year;
+      document.getElementById('pay-amount').value = pendingAmount > 0 ? pendingAmount : 5000;
+      generateIdempotencyKey();
+      recalcAllocations();
+      Common.openModal('payment-modal');
+    }
+
+    function escapeHtml(str) {
+      if (window.Common && typeof Common.escapeHtml === 'function') {
+        return Common.escapeHtml(str);
+      }
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    async function loadPendingCollections(groupId) {
+      const targetGId = groupId || currentGroupId || Common.getSelectedGroupId();
+      const tbody = document.getElementById('pending-savings-tbody');
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading pending members...</td></tr>';
+      try {
+        const month = parseInt(document.getElementById('collection-month-select').value) || (new Date().getMonth() + 1);
+        const year = new Date().getFullYear();
+        const pendingList = await api.getPendingSavings(targetGId, month, year);
+        if (!pendingList || pendingList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="11" class="empty-state text-success" style="padding: 2rem;"><i class="bi bi-check-circle-fill me-1" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> All active members have deposited their monthly savings share! Zero pending dues.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = pendingList.map(p => {
+          const share = p.monthlyBachatAmount != null ? p.monthlyBachatAmount : (p.monthlyBachatAmount != null ? p.monthlyBachatAmount : 0);
+          const paid = p.amountPaid != null ? p.amountPaid : (p.paidAmount != null ? p.paidAmount : 0);
+          const rem = p.remainingDue != null ? p.remainingDue : (p.remainingAmount != null ? p.remainingAmount : 0);
+          const pen = p.currentPenalty != null ? p.currentPenalty : (p.penalty != null ? p.penalty : 0);
+          const tot = p.totalPayable != null ? p.totalPayable : (rem + pen);
+          const days = p.daysOverdue != null ? p.daysOverdue : (p.daysLate != null ? p.daysLate : 0);
+          const dueStr = p.dueDate ? Common.formatDate(p.dueDate) : '-';
+
+          return `
+          <tr>
+            <td><strong>${escapeHtml(p.memberName)}</strong></td>
+            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(p.memberId)}</code></td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatINR(share)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatINR(paid)}</td>
+            <td style="text-align: right; font-weight: 600; color: ${rem > 0 ? '#b91c1c' : '#15803d'};">${Common.formatINR(rem)}</td>
+            <td><strong>${dueStr}</strong></td>
+            <td style="text-align: center;"><span class="badge ${days > 0 ? 'bg-danger text-white' : 'bg-light text-dark'}">${days} days</span></td>
+            <td style="text-align: right; color: var(--danger); font-weight: 700;">${Common.formatINR(pen)}</td>
+            <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 1rem;">${Common.formatINR(tot)}</td>
+            <td>${Common.getStatusBadge(p.status || 'PENDING')}</td>
+            <td>
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${month}, ${year}, ${tot})">
+                <i class="bi bi-credit-card"></i> Pay Now
+              </button>
+            </td>
+          </tr>
+        `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--danger);">Failed to load pending collections: ${err.message}</td></tr>`;
+      }
+    }
+
+    window.addEventListener('languageChanged', () => {
+      applyFilters();
+    });
+  </script>
+</body>
+</html>

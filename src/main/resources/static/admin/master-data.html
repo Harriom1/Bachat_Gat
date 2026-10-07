@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="masterDataPageTitle">Master Data Rules - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item active"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="masterDataPageTitle">Group Master Data & Financial Rules</h1>
+            <p class="page-subtitle" data-i18n="masterDataPageSubtitle">Configure collection dues, default EMI, reducing-balance interest, and versioned policies</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; font-weight: 600; font-size: 0.9rem; padding: 0.5rem 0.85rem;">
+              <span data-i18n="activeVersion">Active Version</span>: <strong id="lbl-active-version">v1</strong>
+            </span>
+          </div>
+        </div>
+
+        <!-- Master Data Form Card -->
+        <div class="content-card mb-4" style="border-top: 4px solid var(--primary);">
+          <div class="card-header-flex mb-3">
+            <div>
+              <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;" data-i18n="editFinancialRules">Edit Financial Rules</h3>
+              <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.85rem;">
+                <span data-i18n="masterDataVersionHelp">Changes preserve historical records and create a new audited version with designated application scope.</span>
+              </p>
+            </div>
+          </div>
+
+          <form id="form-master-data">
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="monthlyBachatLabel">Monthly Bachat (₹)</label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="md-share-amount" class="form-control" min="100" step="50" required>
+                </div>
+                <div class="form-help" data-i18n="monthlyBachatHelp">Default compulsory monthly deposit per active member.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="defaultLoanEmiLabel">Default Monthly Loan EMI (₹)</label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="md-loan-emi" class="form-control" min="500" step="50" required>
+                </div>
+                <div class="form-help" data-i18n="defaultLoanEmiHelp">Standard monthly EMI benchmark for new loans.</div>
+              </div>
+            </div>
+
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="monthlyLoanInterestLabel">Monthly Loan Interest Rate (% / month)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="md-monthly-interest-rate" class="form-control" min="0.1" max="15" step="0.05" placeholder="e.g. 2.0" oninput="syncMdInterestFromMonthly()">
+                </div>
+                <div class="form-help" data-i18n="monthlyLoanInterestHelp">e.g. 2% / month (२ रुपये शेकडा)</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="annualLoanInterestLabel">Annual Loan Interest Rate (% p.a.)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="md-interest-rate" class="form-control" min="1" max="60" step="0.25" required placeholder="e.g. 24.0" oninput="syncMdInterestFromAnnual()">
+                </div>
+                <div class="form-help" data-i18n="annualLoanInterestHelp">Standard reducing-balance annual interest rate.</div>
+              </div>
+            </div>
+
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="interestCalculationMethod">Interest Calculation Method</label>
+                <select id="md-interest-type" class="form-select" required>
+                  <option value="REDUCING_BALANCE" data-i18n="reducingBalanceOption">Reducing Balance (घटती शिल्लक - Standard Production Rule)</option>
+                  <option value="FLAT" data-i18n="flatInterestOption">Flat Interest (स्थिर व्याज)</option>
+                </select>
+                <div class="form-help" data-i18n="interestCalculationHelp">Interest charged only on outstanding principal in reducing balance.</div>
+              </div>
+            </div>
+
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="collectionDueDayLabel">Collection Due Day of Month</label>
+                <input type="number" id="md-due-day" class="form-control" min="1" max="28" required placeholder="e.g. 10">
+                <div class="form-help" data-i18n="collectionDueDayHelp">Monthly bachat due date (e.g. 10th of every month).</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="gracePeriodLabel">Grace Period (Days)</label>
+                <input type="number" id="md-grace-period" class="form-control" min="0" max="30" required placeholder="e.g. 5">
+                <div class="form-help" data-i18n="gracePeriodHelp">Days permitted after due date before late fees apply.</div>
+              </div>
+            </div>
+
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="latePaymentFeeLabel">Late Payment Fee (₹)</label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="md-late-fee" class="form-control" min="0" step="10" required>
+                </div>
+                <div class="form-help" data-i18n="latePaymentFeeHelp">Penalty levied per delayed installment.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="maxGroupLoanLabel">Maximum Group Loan Capacity (₹)</label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="md-max-loan" class="form-control" min="1000" step="1" required>
+                </div>
+                <div class="form-help" data-i18n="maxGroupLoanHelp">Maximum total loan amount the group can approve.</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="maxMemberLoanLabel">Maximum Loan Per Member (₹)</label>
+                <div class="input-currency-group">
+                  <span class="currency-prefix">₹</span>
+                  <input type="number" id="md-max-member-loan" class="form-control" min="1000" step="1" required>
+                </div>
+                <div class="form-help" data-i18n="maxMemberLoanHelp">Maximum principal one member can borrow in one loan.</div>
+              </div>
+            </div>
+
+            <div class="form-grid mb-3">
+              <div class="form-group">
+                <label class="form-label required" data-i18n="maxLoanDurationLabel">Max Loan Duration (Months)</label>
+                <input type="number" id="md-loan-duration" class="form-control" min="1" max="60" required>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required" data-i18n="financialYearLabel">Financial Year</label>
+                <input type="text" id="md-financial-year" class="form-control" required placeholder="e.g. 2026-2027">
+              </div>
+            </div>
+
+            <!-- Versioning & Application Scope -->
+            <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h4 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: var(--primary);" data-i18n="versioningScopeTitle">Master Data Versioning & Application Scope</h4>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <span data-i18n="versioningScopeHelp">Historical financial truth is immutable. Specify how these rule adjustments should take effect:</span>
+              </p>
+              
+              <div class="form-grid">
+                <div class="form-group">
+                  <label class="form-label required" data-i18n="updateScopeLabel">Update Scope</label>
+                  <select id="md-scope" class="form-select" required>
+                    <option value="FUTURE_ONLY" data-i18n="futureOnlyOption">1. FUTURE_ONLY (Preserve historical records; apply to future collections and new loans)</option>
+                    <option value="EXISTING_ONLY" data-i18n="existingOnlyOption">2. EXISTING_ONLY (Update active members immediately)</option>
+                    <option value="BOTH" selected data-i18n="bothOption">3. BOTH (Update future collections and active members)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label required" data-i18n="effectiveFromLabel">Effective From Date</label>
+                  <input type="date" id="md-effective-from" class="form-control" required>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+              <button type="button" class="btn-outline-custom" onclick="loadMasterData()" data-i18n="resetForm">Reset Form</button>
+              <button type="submit" class="btn-primary-custom" id="btn-save-master-data">
+                <i class="bi bi-shield-check"></i> <span data-i18n="savePublishRules">Save Rules & Publish Version</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Master Data Version History -->
+        <div class="content-card">
+          <div class="card-header-flex mb-3">
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;" data-i18n="versionHistoryTitle">Version History & Audit Log</h3>
+            <span class="text-muted" style="font-size: 0.85rem;" data-i18n="versionHistoryHelp">Audited historical snapshots</span>
+          </div>
+
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Version</th>
+                  <th>Effective From</th>
+                  <th>Effective To</th>
+                  <th style="text-align: right;" data-i18n="tableMonthlyBachat">Monthly Bachat (₹)</th>
+                  <th style="text-align: right;" data-i18n="tableMaxMemberLoan">Max Loan / Member (₹)</th>
+                  <th style="text-align: right;">EMI (₹)</th>
+                  <th style="text-align: right;">Interest Rate</th>
+                  <th>Due Day / Grace</th>
+                  <th style="text-align: right;">Late Fee</th>
+                  <th>Status</th>
+                  <th>Updated By</th>
+                </tr>
+              </thead>
+              <tbody id="version-history-tbody">
+                <tr>
+                  <td colspan="11" class="text-center py-4 text-muted">Loading version history...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      document.getElementById('md-effective-from').value = nextMonthStart();
+      await loadMasterData();
+      await loadVersionHistory();
+
+      document.getElementById('form-master-data').addEventListener('submit', handleSaveMasterData);
+    });
+
+    function nextMonthStart() {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() + 1);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function syncMdInterestFromMonthly() {
+      const m = parseFloat(document.getElementById('md-monthly-interest-rate').value);
+      if (!isNaN(m)) {
+        document.getElementById('md-interest-rate').value = (m * 12).toFixed(2).replace(/\.00$/, '');
+      }
+    }
+
+    function syncMdInterestFromAnnual() {
+      const a = parseFloat(document.getElementById('md-interest-rate').value);
+      if (!isNaN(a)) {
+        document.getElementById('md-monthly-interest-rate').value = (a / 12).toFixed(2).replace(/\.00$/, '');
+      }
+    }
+
+    async function loadMasterData() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const md = await api.getMasterData(groupId);
+        if (!md) return;
+
+        document.getElementById('lbl-active-version').textContent = `v${md.version || 1}`;
+        document.getElementById('md-share-amount').value = md.monthlyBachatAmount || 5000;
+        document.getElementById('md-loan-emi').value = md.defaultLoanEmiAmount || 4100;
+        const rate = md.loanInterestRate != null ? md.loanInterestRate : 12;
+        document.getElementById('md-interest-rate').value = rate;
+        document.getElementById('md-monthly-interest-rate').value = (rate / 12).toFixed(2).replace(/\.00$/, '');
+        document.getElementById('md-interest-type').value = md.loanInterestType || 'REDUCING_BALANCE';
+        document.getElementById('md-due-day').value = md.collectionDueDay || 10;
+        document.getElementById('md-grace-period').value = md.gracePeriodDays || 5;
+        document.getElementById('md-late-fee').value = md.latePaymentFee || 100;
+        document.getElementById('md-max-loan').value = md.maxLoanAmount || 100000;
+        document.getElementById('md-max-member-loan').value = md.maxLoanAmountPerMember || md.maxLoanAmount || 100000;
+        document.getElementById('md-loan-duration').value = md.defaultLoanDurationMonths || 12;
+        document.getElementById('md-financial-year').value = md.financialYear || '2026-2027';
+        document.getElementById('md-effective-from').value = md.effectiveFrom && md.effectiveFrom > new Date().toISOString().slice(0, 10)
+          ? md.effectiveFrom : nextMonthStart();
+      } catch (err) {
+        Common.showToast('Failed to load group master data: ' + err.message, 'danger');
+      }
+    }
+
+    async function loadVersionHistory() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const history = await api.getMasterDataHistory(groupId);
+        const tbody = document.getElementById('version-history-tbody');
+        if (!history || history.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-muted">No version history records found.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = history.map(h => `
+          <tr>
+            <td><strong style="color: var(--primary);">v${h.version}</strong></td>
+            <td>${Common.formatDate(h.effectiveFrom)}</td>
+            <td>${h.effectiveTo ? Common.formatDate(h.effectiveTo) : `<span class="text-success font-weight-bold">${window.i18n ? window.i18n.t('current', 'Current') : 'Current'}</span>`}</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(h.monthlyBachatAmount)}</td>
+            <td style="text-align: right;">${Common.formatIndianCurrency(h.maxLoanAmountPerMember || h.maxLoanAmount)}</td>
+            <td style="text-align: right;">${Common.formatIndianCurrency(h.defaultLoanEmiAmount)}</td>
+            <td style="text-align: right;">${h.loanInterestRate}% (${h.loanInterestType || 'REDUCING'})</td>
+            <td>${h.collectionDueDay}th (+${h.gracePeriodDays}d)</td>
+            <td style="text-align: right; color: var(--danger);">${Common.formatIndianCurrency(h.latePaymentFee)}</td>
+            <td>
+              ${h.active ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;">${window.i18n ? window.i18n.t('active', 'ACTIVE') : 'ACTIVE'}</span>` : `<span class="badge" style="background: var(--bg-main); color: var(--text-muted);">${window.i18n ? window.i18n.t('archived', 'ARCHIVED') : 'ARCHIVED'}</span>`}
+            </td>
+            <td><small>${escapeHtml(h.createdBy || 'ADMIN')}</small></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        console.error('Failed to load version history:', err);
+      }
+    }
+
+    async function handleSaveMasterData(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      const btn = document.getElementById('btn-save-master-data');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Publishing...';
+
+      const payload = {
+        monthlyBachatAmount: parseFloat(document.getElementById('md-share-amount').value),
+        defaultLoanEmi: parseFloat(document.getElementById('md-loan-emi').value),
+        loanInterestRate: parseFloat(document.getElementById('md-interest-rate').value),
+        loanInterestType: document.getElementById('md-interest-type').value,
+        collectionDueDay: parseInt(document.getElementById('md-due-day').value),
+        gracePeriodDays: parseInt(document.getElementById('md-grace-period').value),
+        latePaymentFee: parseFloat(document.getElementById('md-late-fee').value),
+        latePaymentType: 'FIXED',
+        maxLoanAmount: parseFloat(document.getElementById('md-max-loan').value),
+        maxLoanAmountPerMember: parseFloat(document.getElementById('md-max-member-loan').value),
+        defaultLoanDurationMonths: parseInt(document.getElementById('md-loan-duration').value),
+        financialYear: document.getElementById('md-financial-year').value.trim(),
+        updateScope: document.getElementById('md-scope').value,
+        effectiveFrom: document.getElementById('md-effective-from').value
+      };
+
+      try {
+        const updated = await api.updateMasterData(groupId, payload);
+        Common.showToast(`Master Data updated to v${updated.version} successfully!`, 'success');
+        await loadMasterData();
+        await loadVersionHistory();
+      } catch (err) {
+        Common.showToast('Failed to update master data: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-check"></i> <span data-i18n="savePublishRules">Save Rules & Publish Version</span>';
+        if (window.i18n) window.i18n.applyTranslations();
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Member 360° Profile & Bachat Dossier - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item active"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span>Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div style="font-weight: 600; color: var(--text-main);">
+            <i class="bi bi-person-bounding-box" style="color: var(--primary);"></i> Member 360° Profile
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.25rem;">
+              <a href="/admin/members.html" style="color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+                <i class="bi bi-arrow-left"></i> Back to Members Register
+              </a>
+            </div>
+            <h1 class="page-title">Member 360° Profile & Bachat Dossier</h1>
+            <p class="page-subtitle">Full KYC identity, verified bank records, group membership, savings schedule, and financial standing</p>
+          </div>
+          <div>
+            <button onclick="window.print()" class="btn-outline-custom">
+              <i class="bi bi-printer"></i> Print Member Dossier
+            </button>
+          </div>
+        </div>
+
+        <!-- Member Header Banner Card -->
+        <div class="content-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <div style="width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: bold; box-shadow: var(--shadow-sm);">
+                <i class="bi bi-person-fill"></i>
+              </div>
+              <div>
+                <h2 id="m-full-name" style="font-size: 1.45rem; font-weight: 700; margin: 0;">Loading Member...</h2>
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.35rem; flex-wrap: wrap;">
+                  <span class="badge" style="background:#e0f2fe; color:#0369a1; font-family: monospace; font-size: 0.85rem;" id="m-member-id">-</span>
+                  <span class="badge" style="background:#f1f5f9; color:#475569;" id="m-group-name">-</span>
+                  <span id="m-status-badge" class="status-badge badge-active">ACTIVE MEMBER</span>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 1.75rem; text-align: right; flex-wrap: wrap;">
+              <div>
+                <small class="text-muted" style="font-size: 0.775rem; font-weight: 600;">TOTAL ACCUMULATED SAVINGS</small>
+                <h3 id="m-savings" style="color: var(--success); font-weight: 700; margin: 0; font-size: 1.5rem;">₹0</h3>
+              </div>
+              <div>
+                <small class="text-muted" style="font-size: 0.775rem; font-weight: 600;">REGULAR MONTHLY SHARE</small>
+                <h3 id="m-monthly-share-top" style="color: var(--info); font-weight: 700; margin: 0; font-size: 1.5rem;">₹0</h3>
+              </div>
+              <div>
+                <small class="text-muted" style="font-size: 0.775rem; font-weight: 600;">ACTIVE LOAN OUTSTANDING</small>
+                <h3 id="m-loan-out" style="color: var(--danger); font-weight: 700; margin: 0; font-size: 1.5rem;">₹0</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-Card Comprehensive Grid -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+          <!-- Card 1: Personal & Contact -->
+          <div class="content-card" style="padding: 1.35rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--primary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-person-lines-fill"></i> Personal & Contact Details
+            </h3>
+            <table style="width: 100%; font-size: 0.875rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Father / Husband:</td><td style="text-align: right; font-weight: 600;" id="m-relative">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Gender:</td><td style="text-align: right;" id="m-gender">Female</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Date of Birth:</td><td style="text-align: right;" id="m-dob">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Mobile Number:</td><td style="text-align: right; font-weight: 600;" id="m-mobile">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Alternate Mobile:</td><td style="text-align: right;" id="m-alt-mobile">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Occupation:</td><td style="text-align: right;" id="m-occupation">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Residential Address:</td><td style="text-align: right;" id="m-address">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Village / Town:</td><td style="text-align: right;" id="m-village">-</td></tr>
+              <tr><td style="padding: 0.45rem 0;" class="text-muted">District / PIN:</td><td style="text-align: right;" id="m-district-pin">-</td></tr>
+            </table>
+          </div>
+
+          <!-- Card 2: Group Membership & Bachat Schedule -->
+          <div class="content-card" style="padding: 1.35rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-piggy-bank-fill"></i> Group Savings & Bachat Schedule
+            </h3>
+            <table style="width: 100%; font-size: 0.875rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Group Name:</td><td style="text-align: right; font-weight: 700; color: var(--primary);" id="m-bachat-group">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Joining Date:</td><td style="text-align: right;" id="m-join-date">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Monthly Bachat:</td><td style="text-align: right; font-weight: 600;" id="m-monthly-share">₹5,000</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Bachat Target:</td><td style="text-align: right; font-weight: 700;" id="m-savings-target">₹60,000</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Contribution Start:</td><td style="text-align: right;" id="m-start-date">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Contribution End:</td><td style="text-align: right;" id="m-end-date">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Next Due Date:</td><td style="text-align: right; font-weight: 700; color: var(--primary);" id="m-next-due">10th of every month</td></tr>
+              <tr><td style="padding: 0.45rem 0;" class="text-muted">Payment Standing:</td><td style="text-align: right;" id="m-payment-status"><span class="status-badge badge-active">REGULAR</span></td></tr>
+            </table>
+          </div>
+
+          <!-- Card 3: KYC Identity & Bank Information -->
+          <div class="content-card" style="padding: 1.35rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--info); display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-bank2"></i> KYC Identity & Bank Details
+            </h3>
+            <table style="width: 100%; font-size: 0.875rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">PAN Number:</td><td style="text-align: right; font-family: monospace; font-weight: 700;" id="m-pan-num">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">PAN Status:</td><td style="text-align: right;"><span class="badge" style="background:#ecfdf5; color:#065f46;">VERIFIED</span></td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Aadhaar Ref:</td><td style="text-align: right; font-family: monospace;" id="m-aadhaar-ref">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Bank Name:</td><td style="text-align: right; font-weight: 600;" id="m-bank">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Account No:</td><td style="text-align: right; font-family: monospace;" id="m-acc">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">IFSC Code:</td><td style="text-align: right; font-family: monospace; font-weight: 600;" id="m-ifsc">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Branch:</td><td style="text-align: right;" id="m-branch">-</td></tr>
+              <tr><td style="padding: 0.45rem 0;" class="text-muted">Bank Standing:</td><td style="text-align: right;"><span class="status-badge badge-active">ACTIVE NACH</span></td></tr>
+            </table>
+          </div>
+
+          <!-- Card 4: Nominee Information & Standing -->
+          <div class="content-card" style="padding: 1.35rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: #8b5cf6; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-shield-heart-fill"></i> Nominee & Credit Profile
+            </h3>
+            <table style="width: 100%; font-size: 0.875rem;">
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Nominee Name:</td><td style="text-align: right; font-weight: 600;" id="m-nominee">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Relationship:</td><td style="text-align: right;" id="m-nom-rel">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Nominee Phone:</td><td style="text-align: right;" id="m-nom-phone">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Nominee Address:</td><td style="text-align: right;" id="m-nom-addr">-</td></tr>
+              <tr style="border-bottom: 1px solid var(--border-color);"><td style="padding: 0.45rem 0;" class="text-muted">Active Loan Status:</td><td style="text-align: right;" id="m-loan-badge"><span class="badge" style="background:#ecfdf5; color:#065f46;">NO ACTIVE LOANS</span></td></tr>
+              <tr><td style="padding: 0.45rem 0;" class="text-muted">Bachat Standing:</td><td style="text-align: right; font-weight: 700; color: var(--success);">100% REGULAR</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Distinct Loan Status Section (Special Care for Non-Loan Members) -->
+        <div class="content-card" style="padding: 1.5rem; margin-bottom: 1.5rem;" id="loan-status-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="bi bi-cash-stack" style="color: var(--primary);"></i> Loan Standing & Credit Portfolio
+              </h3>
+              <p class="text-muted" style="font-size: 0.85rem; margin: 0.25rem 0 0 0;" id="loan-card-description">
+                Credit evaluation and active repayment schedules
+              </p>
+            </div>
+            <div id="loan-action-container"></div>
+          </div>
+          <div id="loan-card-body" style="margin-top: 1rem;"></div>
+        </div>
+
+        <!-- Monthly Savings & Collection Ledger -->
+        <div class="content-card" style="margin-bottom: 1.5rem;">
+          <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-wallet2 text-primary"></i> Member Bachat Savings & Monthly Contribution Ledger
+            </h3>
+            <span class="text-muted" style="font-size: 0.85rem;">History of all verified share deposits</span>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Period</th>
+                  <th style="text-align: right;">Expected Share</th>
+                  <th style="text-align: right;">Paid Amount</th>
+                  <th style="text-align: right;">Pending Amount</th>
+                  <th>Payment Date</th>
+                  <th>Receipt / Txn ID</th>
+                  <th>Status</th>
+                  <th>Recorded By</th>
+                </tr>
+              </thead>
+              <tbody id="m-savings-tbody">
+                <tr><td colspan="8" class="text-center py-3 text-muted">Loading collections...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Income Distributions & Dividends Ledger -->
+        <div class="content-card" style="margin-bottom: 1.5rem;">
+          <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; color: #0284c7;">
+                <i class="bi bi-pie-chart-fill"></i> Income Distributions & Dividends Credited to Savings
+              </h3>
+              <small class="text-muted">Group loan interest dividends and other non-share income credited to this member's savings</small>
+            </div>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Transaction ID</th>
+                  <th>Type / Source</th>
+                  <th>Description</th>
+                  <th style="text-align: right;">Dividend Added (₹)</th>
+                  <th>Credit Status</th>
+                </tr>
+              </thead>
+              <tbody id="m-dividends-tbody">
+                <tr><td colspan="6" class="text-center py-3 text-muted">No income distributions credited yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let currentMemberData = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      const urlParams = new URLSearchParams(window.location.search);
+      const memberId = urlParams.get('id') || 'MPBG-M001';
+      await loadMemberDossier(memberId);
+
+      window.addEventListener('languageChanged', () => {
+        if (currentMemberData) renderMemberDossier(currentMemberData);
+      });
+    });
+
+    async function loadMemberDossier(memberId) {
+      try {
+        const stmt = await api.getMemberStatement(memberId);
+        currentMemberData = stmt;
+        renderMemberDossier(stmt);
+      } catch (err) {
+        Common.showToast('Failed to load member dossier: ' + err.message, 'danger');
+      }
+    }
+
+    function renderMemberDossier(stmt) {
+      try {
+        const m = stmt.member;
+        const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+
+        const dispName = Common.getLocalizedMemberName(m, currentLang);
+        document.getElementById('m-full-name').textContent = dispName;
+        document.getElementById('m-member-id').textContent = Common.getGroupScopedMemberRegistrationId(m);
+        document.getElementById('m-group-name').textContent = m.groupName || 'Bachat Gat';
+        document.getElementById('m-status-badge').textContent = m.status || m.membershipStatus || 'ACTIVE';
+        document.getElementById('m-savings').textContent = Common.formatIndianCurrency(m.totalSavingsBalance);
+        if (document.getElementById('m-monthly-share-top')) {
+          document.getElementById('m-monthly-share-top').textContent = Common.formatIndianCurrency(m.monthlyBachatAmount || 500);
+        }
+
+        let out = 0;
+        let activeLoans = [];
+        if (stmt.loans && stmt.loans.length > 0) {
+          activeLoans = stmt.loans.filter(l => (parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0)) > 0);
+          activeLoans.forEach(l => {
+            out += (parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0));
+          });
+        }
+        document.getElementById('m-loan-out').textContent = Common.formatIndianCurrency(out);
+
+        // Personal
+        document.getElementById('m-relative').textContent = m.guardianName || m.relativeName || '-';
+        document.getElementById('m-gender').textContent = m.gender || 'Female';
+        document.getElementById('m-dob').textContent = m.dob ? Common.formatDate(m.dob) : '-';
+        document.getElementById('m-mobile').textContent = m.mobileNumber;
+        document.getElementById('m-alt-mobile').textContent = m.alternateMobile || '-';
+        document.getElementById('m-occupation').textContent = m.occupation || '-';
+        document.getElementById('m-address').textContent = m.address || '-';
+        document.getElementById('m-village').textContent = m.village || '-';
+        document.getElementById('m-district-pin').textContent = `${m.taluka ? m.taluka + ', ' : ''}${m.district || ''} - ${m.pinCode || ''}`;
+
+        // Group & Bachat
+        document.getElementById('m-bachat-group').textContent = m.groupName || 'Bachat Gat';
+        document.getElementById('m-join-date').textContent = Common.formatDate(m.joiningDate);
+        document.getElementById('m-monthly-share').textContent = Common.formatIndianCurrency(m.monthlyBachatAmount);
+        if (document.getElementById('m-committed-share')) {
+          document.getElementById('m-committed-share').textContent = Common.formatIndianCurrency(monthlyCommitted);
+        }
+        document.getElementById('m-savings-target').textContent = Common.formatIndianCurrency(m.totalSavingsTarget || 60000);
+        document.getElementById('m-start-date').textContent = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : Common.formatDate(m.joiningDate);
+        document.getElementById('m-end-date').textContent = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
+        document.getElementById('m-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of every month';
+
+        // Identity & Bank
+        document.getElementById('m-pan-num').textContent = m.panNumber || '-';
+        document.getElementById('m-aadhaar-ref').textContent = m.aadhaarReference ? `XXXX-XXXX-${m.aadhaarReference.slice(-4)}` : '-';
+        document.getElementById('m-bank').textContent = m.bankName || '-';
+        document.getElementById('m-acc').textContent = m.accountNumber ? `••••••••${m.accountNumber.slice(-4)}` : '-';
+        document.getElementById('m-ifsc').textContent = m.ifsc || '-';
+        document.getElementById('m-branch').textContent = m.branch || '-';
+
+        // Nominee
+        document.getElementById('m-nominee').textContent = m.nomineeName || '-';
+        document.getElementById('m-nom-rel').textContent = m.nomineeRelation || '-';
+        document.getElementById('m-nom-phone').textContent = m.nomineeMobile || '-';
+        document.getElementById('m-nom-addr').textContent = m.nomineeAddress || m.address || '-';
+
+        // Loan Standing section (Highlighting non-loan members clearly)
+        const loanCardBody = document.getElementById('loan-card-body');
+        const loanBadge = document.getElementById('m-loan-badge');
+
+        if (out === 0) {
+          loanBadge.innerHTML = '<span class="badge" style="background:#ecfdf5; color:#065f46;"><i class="bi bi-shield-check"></i> NO ACTIVE LOANS</span>';
+          loanCardBody.innerHTML = `
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 1.25rem; display: flex; align-items: center; gap: 1rem;">
+              <div style="font-size: 2.25rem; color: #16a34a;"><i class="bi bi-check-circle-fill"></i></div>
+              <div>
+                <h4 style="font-weight: 700; color: #15803d; margin: 0 0 0.25rem 0;">No Active Loan Borrowings</h4>
+                <p style="color: #166534; font-size: 0.9rem; margin: 0;">
+                  This member is exclusively participating as a <strong>Regular Bachat & Savings Accumulator</strong>. Their monthly committed share is fully accumulated into their personal savings balance without any debt obligation.
+                </p>
+              </div>
+            </div>
+          `;
+        } else {
+          loanBadge.innerHTML = `<span class="badge" style="background:#fee2e2; color:#991b1b;"><i class="bi bi-exclamation-circle"></i> LOAN: ${Common.formatIndianCurrency(out)}</span>`;
+          loanCardBody.innerHTML = `
+            <div style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-md); padding: 1.25rem;">
+              <h4 style="font-weight: 700; color: #92400e; margin: 0 0 0.5rem 0;">Active Borrowing Details</h4>
+              <p style="color: #b45309; font-size: 0.9rem; margin-bottom: 1rem;">Total outstanding balance across active loans: <strong>${Common.formatIndianCurrency(out)}</strong></p>
+              <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                ${activeLoans.map(l => `
+                  <div style="background: white; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.85rem; min-width: 220px; font-size: 0.85rem;">
+                    <div><strong>Loan ID:</strong> ${l.loanId}</div>
+                    <div><strong>Sanctioned:</strong> ${Common.formatIndianCurrency(l.principalAmount)}</div>
+                    <div><strong>Outstanding:</strong> <span style="color: var(--danger); font-weight: 700;">${Common.formatIndianCurrency(l.outstandingPrincipal)}</span></div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        // Render savings
+        const tbody = document.getElementById('m-savings-tbody');
+        if (!stmt.collections || stmt.collections.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">No monthly records recorded yet.</td></tr>`;
+        } else {
+          tbody.innerHTML = stmt.collections.map(c => `
+            <tr>
+              <td><strong>${c.month}/${c.year}</strong></td>
+              <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+              <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
+              <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
+              <td>${c.paymentDate ? Common.formatDate(c.paymentDate) : '-'}</td>
+              <td><code style="font-size: 0.8rem;">${c.receiptNumber || 'RCP-' + c.month + c.year}</code></td>
+              <td><span class="status-badge badge-${(c.status || 'PAID').toLowerCase()}">${escapeHtml(c.status || 'PAID')}</span></td>
+              <td><small>${escapeHtml(c.recordedBy || 'ADMIN')}</small></td>
+            </tr>
+          `).join('');
+        }
+
+        // Render dividends & income distributions
+        const divTbody = document.getElementById('m-dividends-tbody');
+        if (divTbody) {
+          const allTxns = stmt.transactions || [];
+          const divTxns = allTxns.filter(t => t.type === 'MEMBER_INCOME_DISTRIBUTION' || t.category === 'DISTRIBUTION');
+          if (!divTxns || divTxns.length === 0) {
+            divTbody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">No income distributions credited yet.</td></tr>`;
+          } else {
+            divTbody.innerHTML = divTxns.map(t => {
+              const amt = parseFloat(t.amount || 0);
+              return `
+                <tr>
+                  <td><strong>${Common.formatDate(t.date || t.createdAt)}</strong></td>
+                  <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(t.id)}</code></td>
+                  <td><span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-weight: 600;">INCOME DIVIDEND</span></td>
+                  <td>${escapeHtml(t.description || 'Income Distribution')}</td>
+                  <td style="text-align: right; font-weight: 700; color: var(--success);">+${Common.formatIndianCurrency(amt)}</td>
+                  <td><span class="badge" style="background: #ecfdf5; color: #065f46; font-weight: 600;"><i class="bi bi-check-circle-fill"></i> Added to Savings</span></td>
+                </tr>
+              `;
+            }).join('');
+          }
+        }
+
+      } catch (err) {
+        Common.showToast('Failed to load member dossier: ' + err.message, 'danger');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meetings & Attendance - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span>Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item active"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Meetings & Member Attendance</h1>
+            <p class="page-subtitle">Record monthly SHG meetings, member attendance, resolution minutes, and loan committee decisions</p>
+          </div>
+          <button id="btn-record-meeting" class="btn-primary-custom">
+            <i class="bi bi-plus-circle-fill"></i> Record Meeting & Attendance
+          </button>
+        </div>
+
+        <!-- Metrics -->
+        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Meetings Conducted</span>
+              <div class="metric-icon-wrap icon-blue"><i class="bi bi-calendar-check-fill"></i></div>
+            </div>
+            <div id="metric-total-meetings" class="metric-value">0</div>
+            <div class="metric-sub">Regular monthly sessions</div>
+          </div>
+          <div class="metric-card success">
+            <div class="metric-header">
+              <span class="metric-label">Average Attendance</span>
+              <div class="metric-icon-wrap icon-green"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div id="metric-avg-attendance" class="metric-value">95%</div>
+            <div class="metric-sub">High member participation</div>
+          </div>
+          <div class="metric-card secondary">
+            <div class="metric-header">
+              <span class="metric-label">Meeting Frequency</span>
+              <div class="metric-icon-wrap icon-teal"><i class="bi bi-clock-history"></i></div>
+            </div>
+            <div class="metric-value" style="font-size: 1.3rem;">Monthly (10th)</div>
+            <div class="metric-sub">Gram Panchayat Hall</div>
+          </div>
+        </div>
+
+        <!-- Meetings History Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Meeting ID</th>
+                  <th>Date & Time</th>
+                  <th>Location</th>
+                  <th>Conducted By</th>
+                  <th>Agenda</th>
+                  <th>Attendance</th>
+                  <th>Resolution / Minutes</th>
+                </tr>
+              </thead>
+              <tbody id="meetings-tbody">
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">Loading meetings...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Record Meeting Modal -->
+  <div id="modal-record-meeting" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Monthly Meeting & Attendance</h3>
+        <button type="button" class="btn-close-modal" onclick="closeMeetingModal()">&times;</button>
+      </div>
+      <form id="form-record-meeting">
+        <div class="form-row mb-3">
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Meeting Date</label>
+            <input type="date" id="mtg-date" class="form-control" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Time</label>
+            <input type="text" id="mtg-time" class="form-control" value="11:00 AM" required>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label class="form-label required">Location</label>
+            <input type="text" id="mtg-location" class="form-control" value="Gram Panchayat Hall" required>
+          </div>
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Meeting Agenda</label>
+          <input type="text" id="mtg-agenda" class="form-control" required placeholder="e.g. Monthly share collection, loan review, festival bonus discussion">
+        </div>
+
+        <div class="form-group mb-3">
+          <label class="form-label required">Resolution / Meeting Minutes</label>
+          <textarea id="mtg-minutes" class="form-control" rows="3" required placeholder="Summary of decisions, collection figures, loan sanctions approved by committee..."></textarea>
+        </div>
+
+        <div class="form-group mb-4">
+          <label class="form-label">Member Attendance</label>
+          <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; background: var(--bg-main);" id="attendance-checkbox-container">
+            Loading members...
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" onclick="closeMeetingModal()">Cancel</button>
+          <button type="submit" class="btn-primary-custom">Save Meeting Record</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let groupMembers = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      document.getElementById('mtg-date').value = new Date().toISOString().slice(0, 10);
+      await loadMeetings();
+      await loadGroupMembers();
+
+      document.getElementById('btn-record-meeting').addEventListener('click', () => {
+        document.getElementById('modal-record-meeting').classList.add('show');
+      });
+      document.getElementById('form-record-meeting').addEventListener('submit', handleSaveMeeting);
+    });
+
+    function closeMeetingModal() {
+      document.getElementById('modal-record-meeting').classList.remove('show');
+    }
+
+    async function loadGroupMembers() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        groupMembers = await api.getMembers(groupId);
+        const container = document.getElementById('attendance-checkbox-container');
+        container.innerHTML = `
+          <div style="margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.25rem;">
+            <label style="font-weight: 600; font-size: 0.85rem; cursor: pointer;">
+              <input type="checkbox" id="check-all-att" checked onchange="toggleAllAttendance(this)"> Mark All Present (20 Members)
+            </label>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.4rem;">
+            ${groupMembers.map(m => `
+              <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+                <input type="checkbox" class="att-chk" value="${m.memberId}" checked>
+                ${escapeHtml(m.fullName)}
+              </label>
+            `).join('')}
+          </div>
+        `;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function toggleAllAttendance(master) {
+      document.querySelectorAll('.att-chk').forEach(c => c.checked = master.checked);
+    }
+
+    async function loadMeetings() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        const meetings = await api.getMeetings(groupId);
+        document.getElementById('metric-total-meetings').textContent = meetings.length;
+        renderMeetings(meetings);
+      } catch (err) {
+        Common.showToast('Failed to load meetings: ' + err.message, 'danger');
+      }
+    }
+
+    function renderMeetings(list) {
+      const tbody = document.getElementById('meetings-tbody');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No meetings recorded yet.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(m => {
+        const attCount = m.attendeeMemberIds ? m.attendeeMemberIds.length : 0;
+        return `
+          <tr>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(m.id)}</strong></td>
+            <td><strong>${Common.formatDate(m.meetingDate)}</strong> <br><small class="text-muted">${escapeHtml(m.meetingTime || '')}</small></td>
+            <td>${escapeHtml(m.location || 'Gram Panchayat')}</td>
+            <td>${escapeHtml(m.conductedBy || 'President')}</td>
+            <td><strong>${escapeHtml(m.agenda || '-')}</strong></td>
+            <td><span class="status-badge badge-active">${attCount} Present</span></td>
+            <td><small class="text-muted">${escapeHtml(m.minutes || '-')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function handleSaveMeeting(e) {
+      e.preventDefault();
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      
+      const attendees = [];
+      const absentees = [];
+      document.querySelectorAll('.att-chk').forEach(c => {
+        if (c.checked) attendees.push(c.value);
+        else absentees.push(c.value);
+      });
+
+      const meetingData = {
+        meetingDate: document.getElementById('mtg-date').value,
+        meetingTime: document.getElementById('mtg-time').value,
+        location: document.getElementById('mtg-location').value,
+        agenda: document.getElementById('mtg-agenda').value,
+        minutes: document.getElementById('mtg-minutes').value,
+        attendeeMemberIds: attendees,
+        absentMemberIds: absentees
+      };
+
+      try {
+        await api.recordMeeting(groupId, meetingData);
+        Common.showToast('Monthly meeting and member attendance recorded successfully!', 'success');
+        closeMeetingModal();
+        await loadMeetings();
+      } catch (err) {
+        Common.showToast('Failed to record meeting: ' + err.message, 'danger');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

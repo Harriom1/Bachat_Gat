@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Security Audit Trail - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item active"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="auditLogs">Security & Operations Audit Trail</h1>
+            <p class="page-subtitle">Immutable chronological log of all administrative actions, financial disbursements, approvals, and status transitions</p>
+          </div>
+          <div style="font-size: 0.875rem; color: var(--text-muted);">
+            Compliance: <span class="badge" style="background:#ecfdf5; color:#065f46;"><i class="bi bi-check-all"></i> SOC-2 & Tamper-Evident</span>
+          </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="content-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; flex: 1; max-width: 650px;">
+              <div style="flex: 2; min-width: 220px;">
+                <input type="text" id="search-logs" class="form-control" placeholder="Search by Action, Entity, or Username...">
+              </div>
+              <div style="flex: 1; min-width: 160px;">
+                <select id="filter-action" class="form-select">
+                  <option value="">All Actions</option>
+                  <option value="LOAN_APPROVED">LOAN_APPROVED</option>
+                  <option value="PAYMENT_RECORDED">PAYMENT_RECORDED</option>
+                  <option value="COLLECTIONS_GENERATED">COLLECTIONS_GENERATED</option>
+                  <option value="MEMBER_CREATED">MEMBER_CREATED</option>
+                  <option value="LOAN_APPLICATION_SUBMITTED">LOAN_APPLICATION_SUBMITTED</option>
+                </select>
+              </div>
+            </div>
+            <div style="color: var(--text-muted); font-size: 0.875rem;">
+              Showing <strong id="log-count">0</strong> logged events
+            </div>
+          </div>
+        </div>
+
+        <!-- Audit Table -->
+        <div class="content-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>User / Actor</th>
+                  <th>Action</th>
+                  <th>Entity</th>
+                  <th>Entity ID</th>
+                  <th>Old State</th>
+                  <th>New State</th>
+                  <th>IP / Metadata</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody">
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Loading audit records...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let allLogs = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      Auth.requireAdmin();
+      await loadAuditLogs();
+
+      document.getElementById('search-logs').addEventListener('input', applyLogFilter);
+      document.getElementById('filter-action').addEventListener('change', applyLogFilter);
+    });
+
+    async function loadAuditLogs() {
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      try {
+        allLogs = await api.getAuditLogs(groupId);
+        renderAuditLogs(allLogs);
+      } catch (err) {
+        Common.showToast('Failed to load audit logs: ' + err.message, 'danger');
+      }
+    }
+
+    function applyLogFilter() {
+      const q = document.getElementById('search-logs').value.toLowerCase().trim();
+      const action = document.getElementById('filter-action').value;
+
+      const filtered = allLogs.filter(l => {
+        const matchesAction = !action || l.action === action;
+        const matchesQuery = !q || (l.action && l.action.toLowerCase().includes(q)) ||
+                                   (l.username && l.username.toLowerCase().includes(q)) ||
+                                   (l.entity && l.entity.toLowerCase().includes(q)) ||
+                                   (l.entityId && l.entityId.toLowerCase().includes(q));
+        return matchesAction && matchesQuery;
+      });
+
+      renderAuditLogs(filtered);
+    }
+
+    function renderAuditLogs(logs) {
+      const tbody = document.getElementById('audit-tbody');
+      document.getElementById('log-count').textContent = logs.length;
+
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="text-center py-4 text-muted">
+              <i class="bi bi-shield-check" style="font-size: 2rem;"></i>
+              <p class="mt-2">No audit logs found matching criteria.</p>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = logs.map(l => {
+        const actionBadge = getActionBadge(l.action);
+        return `
+          <tr>
+            <td style="font-size: 0.85rem; color: var(--text-muted);">${Common.formatDateTime(l.timestamp)}</td>
+            <td><strong style="color: var(--text-main);">${escapeHtml(l.username || 'SYSTEM')}</strong></td>
+            <td>${actionBadge}</td>
+            <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(l.entity || '-')}</span></td>
+            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(l.entityId || '-')}</strong></td>
+            <td><small class="text-muted">${escapeHtml(l.oldValue || '-')}</small></td>
+            <td><small style="color: var(--success); font-weight: 500;">${escapeHtml(l.newValue || '-')}</small></td>
+            <td><small class="text-muted">${escapeHtml(l.ipAddress || 'Internal Cloud')}</small></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function getActionBadge(action) {
+      if (!action) return '-';
+      if (action.includes('APPROVE') || action.includes('CREATED') || action.includes('PAYMENT')) {
+        return `<span class="status-badge badge-active"><i class="bi bi-check-circle"></i> ${escapeHtml(action)}</span>`;
+      } else if (action.includes('REJECT') || action.includes('DELETE')) {
+        return `<span class="status-badge badge-danger"><i class="bi bi-x-circle"></i> ${escapeHtml(action)}</span>`;
+      } else {
+        return `<span class="status-badge badge-partial">${escapeHtml(action)}</span>`;
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>

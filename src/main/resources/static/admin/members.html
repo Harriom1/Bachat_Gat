@@ -1,0 +1,1205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Members Management - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Admin Sidebar -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item active"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span>Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">REPORTS & SECURITY</li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="app-main">
+      <!-- Topbar -->
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="ALL">All Groups (All Members)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="members">Bachat Gat Members Register</h1>
+            <p class="page-subtitle">Manage member KYC, verified identity, monthly Bachat share accumulation, and financial standings</p>
+          </div>
+          <button id="btn-open-register-modal" class="btn-primary-custom">
+            <i class="bi bi-person-plus-fill"></i> Register New Member
+          </button>
+        </div>
+
+        <!-- Metric Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+          <div class="content-card" style="padding: 1.15rem;">
+            <span class="text-muted" style="font-size: 0.8rem; font-weight: 600;" data-i18n="statEnrolledMembers">TOTAL REGISTERED MEMBERS</span>
+            <h3 id="stat-total-members" style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin: 0.35rem 0 0 0;">0</h3>
+          </div>
+          <div class="content-card" style="padding: 1.15rem;">
+            <span class="text-muted" style="font-size: 0.8rem; font-weight: 600;" data-i18n="activeMembers">ACTIVE BACHAT SAVERS</span>
+            <h3 id="stat-active-savers" style="font-size: 1.5rem; font-weight: 700; color: var(--success); margin: 0.35rem 0 0 0;">0</h3>
+          </div>
+          <div class="content-card" style="padding: 1.15rem;">
+            <span class="text-muted" style="font-size: 0.8rem; font-weight: 600;" data-i18n="statTotalSavings">TOTAL ACCUMULATED SAVINGS</span>
+            <h3 id="stat-total-savings" style="font-size: 1.5rem; font-weight: 700; color: var(--info); margin: 0.35rem 0 0 0;">₹0</h3>
+          </div>
+          <div class="content-card" style="padding: 1.15rem;">
+            <span class="text-muted" style="font-size: 0.8rem; font-weight: 600;" data-i18n="statNoLoans">MEMBERS WITHOUT LOANS (SAVINGS ONLY)</span>
+            <h3 id="stat-no-loans" style="font-size: 1.5rem; font-weight: 700; color: #8b5cf6; margin: 0.35rem 0 0 0;">0</h3>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="card-box" style="padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 250px;">
+              <input type="text" id="member-search-input" class="form-control" placeholder="Search by name, mobile, PAN, or member ID...">
+            </div>
+            <div style="width: 180px;">
+              <select id="status-filter-select" class="form-select">
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE" selected>Active Only</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="EXITED">Exited</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="card-box">
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="tableMemberId">Member ID</th>
+                  <th data-i18n="tableMemberName">Member Name</th>
+                  <th data-i18n="mobileNumber">Contact</th>
+                  <th data-i18n="tableMonthlyShare" title="Regular monthly savings/monthly bachat contributed by each member">Monthly Bachat (₹) <i class="bi bi-info-circle" style="font-size:0.75rem;"></i></th>
+                  <th data-i18n="tableTotalSavings">Total Savings</th>
+                  <th data-i18n="tableStartDate">Bachat Schedule</th>
+                  <th data-i18n="loanStanding">Loan Standing</th>
+                  <th data-i18n="tableStatus">Status</th>
+                  <th style="text-align: right;" data-i18n="tableAction">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="members-table-tbody">
+                <tr><td colspan="10" style="text-align: center;">Loading members register...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="members-pagination" style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem; flex-wrap:wrap; margin-top:1rem; padding-top:0.85rem; border-top:1px solid var(--border-color);">
+            <small id="members-page-summary" style="color:var(--text-muted);">Showing 0 members</small>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <button type="button" id="members-page-prev" class="btn btn-outline-secondary" disabled><i class="bi bi-chevron-left"></i> Previous</button>
+              <span id="members-page-info" style="font-weight:600; min-width:5rem; text-align:center;">Page 1 of 1</span>
+              <button type="button" id="members-page-next" class="btn btn-outline-secondary" disabled>Next <i class="bi bi-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Register Member Modal (Fixed Backdrop, Centered, Scrollable Body, Sticky Footer) -->
+  <div id="register-member-modal" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 760px;">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title">Register New Bachat Gat Member</h3>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.2rem 0 0 0;">
+            All fields marked with <span style="color: var(--danger); font-weight: bold;">*</span> are strictly mandatory
+          </p>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-register-modal" onclick="Common.closeModal('register-member-modal')">&times;</button>
+      </div>
+      
+      <form id="register-member-form" novalidate>
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: calc(85vh - 130px); overflow-y: auto;">
+          <div id="form-error-banner" style="display: none; background: #fee2e2; border: 1px solid #ef4444; border-radius: var(--radius-md); padding: 0.75rem 1rem; color: #991b1b; font-size: 0.85rem; margin-bottom: 1rem;">
+            <i class="bi bi-exclamation-triangle-fill"></i> Please complete all mandatory fields with valid details.
+          </div>
+
+          <!-- Section 1: Personal & Contact -->
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-person-lines-fill"></i> 1. Personal & Contact Information
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">Member Full Name (English)</label>
+              <input type="text" id="reg-fullName" class="form-control" placeholder="e.g. Sunita Ramesh Patil" required>
+              <div class="field-error" id="err-fullName" style="display: none;">Full name is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Member Full Name (Marathi)</label>
+              <input type="text" id="reg-fullNameMr" class="form-control" placeholder="उदा. सुनिता रमेश पाटील">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Member Full Name (Hindi)</label>
+              <input type="text" id="reg-fullNameHi" class="form-control" placeholder="उदा. सुनीता रमेश पाटिल">
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Father's / Husband's Name</label>
+              <input type="text" id="reg-guardianName" class="form-control" placeholder="e.g. Ramesh Patil" required>
+              <div class="field-error" id="err-guardianName" style="display: none;">Guardian/Father/Husband name is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Gender</label>
+              <select id="reg-gender" class="form-select">
+                <option value="FEMALE" selected>Female</option>
+                <option value="MALE">Male</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Date of Birth</label>
+              <input type="date" id="reg-dob" class="form-control" required>
+              <div class="field-error" id="err-dob" style="display: none;">Valid Date of Birth is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Mobile Number</label>
+              <input type="tel" id="reg-mobileNumber" class="form-control" placeholder="10-digit mobile (e.g. 9876543210)" maxlength="10" required>
+              <div class="field-error" id="err-mobileNumber" style="display: none;">Valid 10-digit mobile starting with 6-9 is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Alternate Mobile</label>
+              <input type="tel" id="reg-alternateMobile" class="form-control" placeholder="Optional contact number" maxlength="10">
+            </div>
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label required">Residential Address</label>
+              <input type="text" id="reg-address" class="form-control" placeholder="House / Lane / Landmark" value="House No 42, Near Gram Panchayat" required>
+              <div class="field-error" id="err-address" style="display: none;">Residential address is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Village / Town</label>
+              <input type="text" id="reg-village" class="form-control" value="Koregaon" required>
+              <div class="field-error" id="err-village" style="display: none;">Village / Town is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Taluka</label>
+              <input type="text" id="reg-taluka" class="form-control" value="Haveli" required>
+              <div class="field-error" id="err-taluka" style="display: none;">Taluka is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">District</label>
+              <input type="text" id="reg-district" class="form-control" value="Pune" required>
+              <div class="field-error" id="err-district" style="display: none;">District is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">PIN Code</label>
+              <input type="text" id="reg-pinCode" class="form-control" value="411028" maxlength="6" required>
+              <div class="field-error" id="err-pinCode" style="display: none;">Valid 6-digit PIN code is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Occupation</label>
+              <input type="text" id="reg-occupation" class="form-control" placeholder="e.g. Tailoring, Dairy, Farming" value="Small Business">
+            </div>
+          </div>
+
+          <!-- Section 2: Identity & KYC -->
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--secondary); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-shield-lock-fill"></i> 2. Identification & KYC Documents
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">PAN Card Number</label>
+              <input type="text" id="reg-panNumber" class="form-control" placeholder="ABCDE1234F" style="text-transform: uppercase;" maxlength="10" required>
+              <div class="field-error" id="err-panNumber" style="display: none;">Valid 10-character PAN format (e.g. ABCDE1234F) is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Aadhaar Reference / ID</label>
+              <input type="text" id="reg-aadhaarReference" class="form-control" placeholder="12-digit Aadhaar / Virtual ID" maxlength="16" required>
+              <div class="field-error" id="err-aadhaarReference" style="display: none;">Aadhaar or ID reference is mandatory</div>
+            </div>
+          </div>
+
+          <!-- Section 3: Group & Bachat Financial Schedule -->
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--info); margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-piggy-bank-fill"></i> 3. Group Assignment & Bachat / Savings Schedule
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">Assign to Group</label>
+              <select id="reg-groupId" class="form-select" required></select>
+              <div class="field-error" id="err-groupId" style="display: none;">Please select a Bachat Gat group</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Monthly Bachat (₹) <i class="bi bi-info-circle text-primary" title="Regular monthly savings/monthly bachat contributed by each member (e.g. 20 members × ₹3,300 = ₹66,000 monthly collection)"></i></label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="reg-monthlyBachatAmount" class="form-control" value="5000" min="100" required readonly>
+              </div>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 3px; display: block;">Regular monthly savings/monthly bachat contributed by each member.</small>
+              <div class="field-error" id="err-monthlyBachatAmount" style="display: none;">Monthly share must be greater than 0</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Initial Share Contribution (₹)</label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="reg-initialShareAmount" class="form-control" value="2000" min="0">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Bachat Start Date</label>
+              <input type="date" id="reg-bachatStartDate" class="form-control" required>
+              <div class="field-error" id="err-bachatStartDate" style="display: none;">Bachat start date is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Bachat End / Maturity Date</label>
+              <input type="date" id="reg-bachatEndDate" class="form-control" required>
+              <div class="field-error" id="err-bachatEndDate" style="display: none;">Bachat end date is mandatory</div>
+            </div>
+          </div>
+
+          <!-- Section 4: Nominee & Bank Information -->
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #8b5cf6; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-bank2"></i> 4. Nominee & Bank Account Details
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">Nominee Name</label>
+              <input type="text" id="reg-nomineeName" class="form-control" placeholder="Full name of nominee" required>
+              <div class="field-error" id="err-nomineeName" style="display: none;">Nominee name is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Nominee Relationship</label>
+              <input type="text" id="reg-nomineeRelation" class="form-control" placeholder="e.g. Spouse / Son / Daughter" required>
+              <div class="field-error" id="err-nomineeRelation" style="display: none;">Nominee relationship is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Nominee Mobile Number</label>
+              <input type="tel" id="reg-nomineeMobile" class="form-control" placeholder="10-digit mobile" maxlength="10" required>
+              <div class="field-error" id="err-nomineeMobile" style="display: none;">Valid 10-digit nominee mobile is mandatory</div>
+            </div>
+            <!-- Dynamic Location-Based Bank Selector for Member -->
+            <div class="form-group" style="grid-column: span 2; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: var(--radius-md); padding: 0.85rem 1rem;">
+              <label class="form-label" style="display: flex; justify-content: space-between; align-items: center; color: #166534; font-weight: 700; margin-bottom: 0.35rem;">
+                <span><i class="bi bi-bank2"></i> Select Member Bank Branch (Near Location)</span>
+                <span id="reg-bank-badge" style="font-size: 0.75rem; font-weight: 600; color: #15803d; display: none;">
+                  <i class="bi bi-patch-check-fill"></i> Branch & IFSC Mapped
+                </span>
+              </label>
+              <select id="reg-bankSelect" class="form-select" onchange="onMemberBankSelectChange()" style="background-color: #fff; font-weight: 500;">
+                <option value="">-- Choose Member Bank Branch --</option>
+              </select>
+              <small style="color: #166534; font-size: 0.75rem; display: block; margin-top: 4px;">
+                Auto-lists banks based on Member Village/Taluka/District. If not listed, select <strong>"✎ Other Bank (Enter Name & IFSC Manually)"</strong>.
+              </small>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Bank Name</label>
+              <input type="text" id="reg-bankName" class="form-control" value="Bank of Maharashtra" required>
+              <div class="field-error" id="err-bankName" style="display: none;">Bank name is mandatory</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Account Number</label>
+              <input type="text" id="reg-accountNumber" class="form-control" placeholder="Bank account number (9-18 digits)" maxlength="18" required>
+              <div class="field-error" id="err-accountNumber" style="display: none;">Account number must be between 9 and 18 digits</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>IFSC Code</span>
+                <span id="reg-ifsc-verified-tag" style="font-size: 0.75rem; font-weight: 700; color: #059669;"></span>
+              </label>
+              <div style="position: relative;">
+                <input type="text" id="reg-ifsc" class="form-control" placeholder="MAHB0000452" style="text-transform: uppercase;" maxlength="11" value="MAHB0000452" oninput="onMemberIfscDirectInput()" required>
+                <button type="button" onclick="verifyMemberIfscManually()" style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); padding: 0.25rem 0.55rem; font-size: 0.75rem; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 4px; color: #0284c7; cursor: pointer; font-weight: 600;">
+                  <i class="bi bi-search"></i> Verify
+                </button>
+              </div>
+              <small id="reg-ifsc-hint" style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 3px;">
+                11-character code (auto-filled on branch select or verified via lookup).
+              </small>
+              <div class="field-error" id="err-ifsc" style="display: none;">Valid 11-character IFSC code is mandatory (e.g. MAHB0000452)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Branch Name</label>
+              <input type="text" id="reg-branch" class="form-control" value="Hadapsar">
+            </div>
+          </div>
+
+          <!-- Section 5: Portal Login Access (Mandatory) -->
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: #16a34a; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-shield-lock-fill"></i> 5. Member Portal Login Credentials (Mandatory)
+          </h4>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label required">Member Password *</label>
+              <div style="position: relative;">
+                <input type="password" id="reg-password" class="form-control" placeholder="Minimum 6 characters" minlength="6" required>
+                <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('reg-password', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b;">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="field-error" id="err-reg-password" style="display: none;">Password must be at least 6 characters long</div>
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">The member will use their Mobile Number / Member ID and this password to log in.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Confirm Password *</label>
+              <div style="position: relative;">
+                <input type="password" id="reg-confirmPassword" class="form-control" placeholder="Re-enter password" minlength="6" required>
+                <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('reg-confirmPassword', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b;">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+              <div class="field-error" id="err-reg-confirmPassword" style="display: none;">Passwords do not match</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-register" onclick="Common.closeModal('register-member-modal')">Cancel</button>
+          <button type="submit" id="btn-save-member" class="btn-primary-custom">
+            <i class="bi bi-check-circle-fill"></i> Save & Register Member
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Member Login Account Modal -->
+  <div id="modal-member-login" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 class="modal-title" style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 700; margin: 0;">
+          <i class="bi bi-key-fill" style="color: var(--primary);"></i> <span>Member Login & Password Reset</span>
+        </h3>
+        <button type="button" class="btn-close-modal" onclick="closeMemberLoginModal()" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: #64748b;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <div id="member-login-body" class="modal-body" style="padding: 1.5rem;">
+        <span class="spinner-border spinner-border-sm"></span> Loading account status...
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/bank-directory.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let allMembers = [];
+    let allGroups = [];
+    let filteredMembers = [];
+    let currentMemberPage = 1;
+    const MEMBERS_PER_PAGE = 20;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.requireAuth('ADMIN')) return;
+
+      // Set default dates
+      const today = new Date().toISOString().split('T')[0];
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      const nextYearStr = nextYear.toISOString().split('T')[0];
+
+      const dobDefault = new Date();
+      dobDefault.setFullYear(dobDefault.getFullYear() - 30);
+      document.getElementById('reg-dob').value = dobDefault.toISOString().split('T')[0];
+      document.getElementById('reg-bachatStartDate').value = today;
+      document.getElementById('reg-bachatEndDate').value = nextYearStr;
+
+      // Load groups into topbar and form select
+      await loadGroups();
+
+      // Load members for active selection
+      await loadMembers();
+
+      // Topbar group change
+      document.getElementById('active-group-select').addEventListener('change', () => {
+        applyFilters();
+      });
+
+      // Modal open/close
+      const modal = document.getElementById('register-member-modal');
+      document.getElementById('btn-open-register-modal').addEventListener('click', () => {
+        Common.openModal('register-member-modal');
+        document.getElementById('form-error-banner').style.display = 'none';
+        clearFieldErrors();
+        setTimeout(handleMemberLocationInput, 50);
+      });
+
+      document.getElementById('btn-close-register-modal').addEventListener('click', () => Common.closeModal('register-member-modal'));
+      document.getElementById('btn-cancel-register').addEventListener('click', () => Common.closeModal('register-member-modal'));
+
+      // Location input listeners for bank auto-fill
+      ['reg-village', 'reg-taluka', 'reg-district', 'reg-pinCode'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', handleMemberLocationInput);
+      });
+
+      const loginModal = document.getElementById('modal-member-login');
+      if (loginModal) {
+        loginModal.addEventListener('click', (e) => {
+          if (e.target === loginModal) closeMemberLoginModal();
+        });
+      }
+
+      // Search & Filters
+      document.getElementById('member-search-input').addEventListener('input', applyFilters);
+      document.getElementById('status-filter-select').addEventListener('change', applyFilters);
+      document.getElementById('members-page-prev').addEventListener('click', () => goToMemberPage(currentMemberPage - 1));
+      document.getElementById('members-page-next').addEventListener('click', () => goToMemberPage(currentMemberPage + 1));
+
+      // Real-time input validation on change/blur
+      setupRealTimeValidation();
+
+      // Toggle portal login fields in registration modal
+      const chkCreateLogin = document.getElementById('reg-createLogin');
+      if (chkCreateLogin) {
+        chkCreateLogin.addEventListener('change', (e) => {
+          document.getElementById('login-fields-wrap').style.display = e.target.checked ? 'block' : 'none';
+        });
+      }
+
+      // Form submission
+      document.getElementById('register-member-form').addEventListener('submit', handleRegisterMember);
+    });
+
+    async function loadGroups() {
+      try {
+        allGroups = await api.getGroups();
+        const topSelect = document.getElementById('active-group-select');
+        const formSelect = document.getElementById('reg-groupId');
+        formSelect.onchange = syncRegistrationBachatWithSelectedGroup;
+
+        const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+        topSelect.innerHTML = '<option value="ALL">All Groups (All Members)</option>';
+        formSelect.innerHTML = '';
+
+        allGroups.forEach(g => {
+          const locName = Common.getLocalizedGroupName(g, currentLang);
+          const label = `${g.groupCode ? g.groupCode + ' - ' : ''}${locName}`;
+
+          const opt1 = document.createElement('option');
+          opt1.value = g.id;
+          opt1.textContent = label;
+          topSelect.appendChild(opt1);
+
+          const opt2 = document.createElement('option');
+          opt2.value = g.id;
+          opt2.textContent = label;
+          formSelect.appendChild(opt2);
+        });
+
+        const user = Auth.getUser();
+        const isScoped = user && user.groupId && ['ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER'].includes((user.role || '').toUpperCase());
+        if (isScoped) {
+          topSelect.value = user.groupId;
+          topSelect.disabled = true;
+          formSelect.value = user.groupId;
+        } else {
+          const savedGroupId = localStorage.getItem('activeGroupId');
+          if (savedGroupId && allGroups.some(g => g.id === savedGroupId)) {
+            topSelect.value = savedGroupId;
+            formSelect.value = savedGroupId;
+          } else if (allGroups.length > 0) {
+            topSelect.value = allGroups[0].id;
+            formSelect.value = allGroups[0].id;
+          }
+        }
+        syncRegistrationBachatWithSelectedGroup();
+      } catch (err) {
+        console.error('Failed to load groups:', err);
+      }
+    }
+
+    function syncRegistrationBachatWithSelectedGroup() {
+      const groupId = document.getElementById('reg-groupId')?.value;
+      const group = allGroups.find(g => g.id === groupId);
+      const amount = group?.monthlyBachatAmount;
+      const amountInput = document.getElementById('reg-monthlyBachatAmount');
+      const targetInput = document.getElementById('reg-totalSavingsTarget');
+      if (amountInput && amount != null) {
+        amountInput.value = amount;
+        amountInput.readOnly = true;
+        amountInput.title = 'Monthly Bachat is controlled by the selected group Master Data rule.';
+      }
+      if (targetInput && amount != null) targetInput.value = Number(amount) * 12;
+    }
+
+    async function loadMembers() {
+      try {
+        const user = Auth.getUser();
+        const isScoped = user && user.groupId && ['ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER'].includes((user.role || '').toUpperCase());
+        if (isScoped) {
+          allMembers = await api.getMembers(user.groupId);
+        } else {
+          allMembers = await api.getAllMembers();
+        }
+        updateSummaryMetrics(allMembers);
+        applyFilters();
+      } catch (err) {
+        console.error('Error fetching members:', err);
+        Common.showToast('Failed to load members: ' + err.message, 'danger');
+      }
+    }
+
+    function updateSummaryMetrics(members) {
+      document.getElementById('stat-total-members').textContent = members.length;
+      const active = members.filter(m => m.status === 'ACTIVE');
+      document.getElementById('stat-active-savers').textContent = active.length;
+
+      const totalSavings = members.reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
+      document.getElementById('stat-total-savings').textContent = Common.formatIndianCurrency(totalSavings);
+
+      const noLoans = members.filter(m => !m.activeLoanId || parseFloat(m.currentLoanOutstanding || 0) <= 0);
+      document.getElementById('stat-no-loans').textContent = noLoans.length;
+    }
+
+    function setupRealTimeValidation() {
+      const inputs = [
+        { id: 'reg-fullName', validator: val => val.trim().length >= 2, errId: 'err-fullName' },
+        { id: 'reg-guardianName', validator: val => val.trim().length >= 2, errId: 'err-guardianName' },
+        { id: 'reg-dob', validator: val => !!val, errId: 'err-dob' },
+        { id: 'reg-mobileNumber', validator: val => /^[6-9]\d{9}$/.test(val.trim()), errId: 'err-mobileNumber' },
+        { id: 'reg-address', validator: val => val.trim().length >= 3, errId: 'err-address' },
+        { id: 'reg-village', validator: val => val.trim().length >= 2, errId: 'err-village' },
+        { id: 'reg-taluka', validator: val => val.trim().length >= 2, errId: 'err-taluka' },
+        { id: 'reg-district', validator: val => val.trim().length >= 2, errId: 'err-district' },
+        { id: 'reg-pinCode', validator: val => /^[1-9][0-9]{5}$/.test(val.trim()), errId: 'err-pinCode' },
+        { id: 'reg-panNumber', validator: val => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.trim().toUpperCase()), errId: 'err-panNumber' },
+        { id: 'reg-aadhaarReference', validator: val => val.trim().length >= 4, errId: 'err-aadhaarReference' },
+        { id: 'reg-monthlyBachatAmount', validator: val => parseFloat(val) > 0, errId: 'err-monthlyBachatAmount' },
+        { id: 'reg-bachatStartDate', validator: val => !!val, errId: 'err-bachatStartDate' },
+        { id: 'reg-bachatEndDate', validator: val => !!val, errId: 'err-bachatEndDate' },
+        { id: 'reg-nomineeName', validator: val => val.trim().length >= 2, errId: 'err-nomineeName' },
+        { id: 'reg-nomineeRelation', validator: val => val.trim().length >= 2, errId: 'err-nomineeRelation' },
+        { id: 'reg-nomineeMobile', validator: val => /^[6-9]\d{9}$/.test(val.trim()), errId: 'err-nomineeMobile' },
+        { id: 'reg-bankName', validator: val => val.trim().length >= 2, errId: 'err-bankName' },
+        { id: 'reg-accountNumber', validator: val => /^[0-9]{9,18}$/.test(val.trim()), errId: 'err-accountNumber' },
+        { id: 'reg-ifsc', validator: val => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val.trim().toUpperCase()), errId: 'err-ifsc' },
+        { id: 'reg-password', validator: val => !!val && val.length >= 6, errId: 'err-reg-password' },
+        { id: 'reg-confirmPassword', validator: val => !!val && val === document.getElementById('reg-password').value, errId: 'err-reg-confirmPassword' }
+      ];
+
+      inputs.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (!el) return;
+        el.addEventListener('input', () => validateField(el, item.validator, item.errId));
+        el.addEventListener('blur', () => validateField(el, item.validator, item.errId));
+      });
+    }
+
+    function validateField(element, validator, errId) {
+      const isValid = validator(element.value);
+      const errEl = document.getElementById(errId);
+      if (isValid) {
+        element.classList.remove('is-invalid');
+        if (errEl) errEl.style.display = 'none';
+        return true;
+      } else {
+        element.classList.add('is-invalid');
+        if (errEl) errEl.style.display = 'flex';
+        return false;
+      }
+    }
+
+    function clearFieldErrors() {
+      document.querySelectorAll('.field-error').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    }
+
+    function validateCompleteForm() {
+      let isAllValid = true;
+      let firstInvalidEl = null;
+
+      const rules = [
+        { id: 'reg-fullName', validator: val => val.trim().length >= 2, errId: 'err-fullName' },
+        { id: 'reg-guardianName', validator: val => val.trim().length >= 2, errId: 'err-guardianName' },
+        { id: 'reg-dob', validator: val => !!val, errId: 'err-dob' },
+        { id: 'reg-mobileNumber', validator: val => /^[6-9]\d{9}$/.test(val.trim()), errId: 'err-mobileNumber' },
+        { id: 'reg-address', validator: val => val.trim().length >= 3, errId: 'err-address' },
+        { id: 'reg-village', validator: val => val.trim().length >= 2, errId: 'err-village' },
+        { id: 'reg-taluka', validator: val => val.trim().length >= 2, errId: 'err-taluka' },
+        { id: 'reg-district', validator: val => val.trim().length >= 2, errId: 'err-district' },
+        { id: 'reg-pinCode', validator: val => /^[1-9][0-9]{5}$/.test(val.trim()), errId: 'err-pinCode' },
+        { id: 'reg-panNumber', validator: val => /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.trim().toUpperCase()), errId: 'err-panNumber' },
+        { id: 'reg-aadhaarReference', validator: val => val.trim().length >= 4, errId: 'err-aadhaarReference' },
+        { id: 'reg-groupId', validator: val => !!val, errId: 'err-groupId' },
+        { id: 'reg-monthlyBachatAmount', validator: val => parseFloat(val) > 0, errId: 'err-monthlyBachatAmount' },
+        { id: 'reg-bachatStartDate', validator: val => !!val, errId: 'err-bachatStartDate' },
+        { id: 'reg-bachatEndDate', validator: val => !!val, errId: 'err-bachatEndDate' },
+        { id: 'reg-nomineeName', validator: val => val.trim().length >= 2, errId: 'err-nomineeName' },
+        { id: 'reg-nomineeRelation', validator: val => val.trim().length >= 2, errId: 'err-nomineeRelation' },
+        { id: 'reg-nomineeMobile', validator: val => /^[6-9]\d{9}$/.test(val.trim()), errId: 'err-nomineeMobile' },
+        { id: 'reg-bankName', validator: val => val.trim().length >= 2, errId: 'err-bankName' },
+        { id: 'reg-accountNumber', validator: val => /^[0-9]{9,18}$/.test(val.trim()), errId: 'err-accountNumber' },
+        { id: 'reg-ifsc', validator: val => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(val.trim().toUpperCase()), errId: 'err-ifsc' },
+        { id: 'reg-password', validator: val => !!val && val.length >= 6, errId: 'err-reg-password' },
+        { id: 'reg-confirmPassword', validator: val => !!val && val === document.getElementById('reg-password').value, errId: 'err-reg-confirmPassword' }
+      ];
+
+      rules.forEach(rule => {
+        const el = document.getElementById(rule.id);
+        const valid = validateField(el, rule.validator, rule.errId);
+        if (!valid) {
+          isAllValid = false;
+          if (!firstInvalidEl) firstInvalidEl = el;
+        }
+      });
+
+      if (!isAllValid && firstInvalidEl) {
+        firstInvalidEl.focus();
+        firstInvalidEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      return isAllValid;
+    }
+
+    async function handleRegisterMember(e) {
+      e.preventDefault();
+
+      if (!validateCompleteForm()) {
+        document.getElementById('form-error-banner').style.display = 'block';
+        Common.showToast('Please correct all highlighted mandatory fields before submitting.', 'danger');
+        return;
+      }
+
+      document.getElementById('form-error-banner').style.display = 'none';
+      const submitBtn = document.getElementById('btn-save-member');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving Member...';
+
+      const selectedGroupId = document.getElementById('reg-groupId').value;
+
+      const payload = {
+        groupId: selectedGroupId,
+        fullName: document.getElementById('reg-fullName').value.trim(),
+        fullNameMr: document.getElementById('reg-fullNameMr').value.trim(),
+        fullNameHi: document.getElementById('reg-fullNameHi').value.trim(),
+        createLoginAccount: true,
+        password: document.getElementById('reg-password').value,
+        confirmPassword: document.getElementById('reg-confirmPassword').value,
+        guardianName: document.getElementById('reg-guardianName').value.trim(),
+        gender: document.getElementById('reg-gender').value,
+        dob: document.getElementById('reg-dob').value,
+        mobileNumber: document.getElementById('reg-mobileNumber').value.trim(),
+        alternateMobile: document.getElementById('reg-alternateMobile').value.trim(),
+        address: document.getElementById('reg-address').value.trim(),
+        village: document.getElementById('reg-village').value.trim(),
+        taluka: document.getElementById('reg-taluka').value.trim(),
+        district: document.getElementById('reg-district').value.trim(),
+        state: 'Maharashtra',
+        pinCode: document.getElementById('reg-pinCode').value.trim(),
+        occupation: document.getElementById('reg-occupation').value.trim(),
+
+        panNumber: document.getElementById('reg-panNumber').value.trim().toUpperCase(),
+        aadhaarReference: document.getElementById('reg-aadhaarReference').value.trim(),
+
+        monthlyBachatAmount: parseFloat(document.getElementById('reg-monthlyBachatAmount').value),
+
+        initialShareAmount: parseFloat(document.getElementById('reg-initialShareAmount').value || 0),
+        totalSavingsTarget: parseFloat(document.getElementById('reg-monthlyBachatAmount').value) * 12,
+        bachatStartDate: document.getElementById('reg-bachatStartDate').value,
+        bachatEndDate: document.getElementById('reg-bachatEndDate').value,
+
+        nomineeName: document.getElementById('reg-nomineeName').value.trim(),
+        nomineeRelation: document.getElementById('reg-nomineeRelation').value.trim(),
+        nomineeMobile: document.getElementById('reg-nomineeMobile').value.trim(),
+        bankName: document.getElementById('reg-bankName').value.trim(),
+        accountNumber: document.getElementById('reg-accountNumber').value.trim(),
+        ifsc: document.getElementById('reg-ifsc').value.trim().toUpperCase(),
+        branch: document.getElementById('reg-branch').value.trim()
+      };
+
+      try {
+        const newMember = await api.createMember(selectedGroupId, payload);
+        Common.showToast(`Member ${newMember.fullName} registered successfully! ID: ${newMember.registrationId || newMember.memberId}`, 'success');
+        document.getElementById('register-member-modal').classList.remove('show');
+        document.getElementById('register-member-form').reset();
+        await loadMembers();
+      } catch (err) {
+        document.getElementById('form-error-banner').textContent = 'Registration failed: ' + err.message;
+        document.getElementById('form-error-banner').style.display = 'block';
+        Common.showToast(err.message, 'danger');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save & Register Member';
+      }
+    }
+
+    function renderMembers(members) {
+      const tbody = document.getElementById('members-table-tbody');
+      if (!tbody) return;
+      if (!members || members.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state" style="text-align: center; padding: 2rem;">No members found matching your search or selected group.</td></tr>';
+        return;
+      }
+
+      const currentLang = window.i18n ? window.i18n.currentLang : 'en';
+      tbody.innerHTML = members.map(m => {
+        const hasLoan = m.activeLoanId && parseFloat(m.currentLoanOutstanding || 0) > 0;
+        const startDate = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : (m.joiningDate ? Common.formatDate(m.joiningDate) : '-');
+        const endDate = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
+        const memberDisplayName = Common.getLocalizedMemberName(m, currentLang);
+        const regCode = Common.getGroupScopedMemberRegistrationId(m);
+
+        return `
+        <tr>
+          <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(regCode)}</code></td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <strong>${escapeHtml(memberDisplayName)}</strong>
+              ${m.designation && m.designation !== 'MEMBER' ? Common.getRoleBadge({ designation: m.designation }, currentLang) : ''}
+            </div>
+            ${m.fullNameMr && currentLang !== 'mr' ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(m.fullNameMr)}</div>` : ''}
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${m.guardianName ? 'Guardian: ' + escapeHtml(m.guardianName) : ''}</div>
+          </td>
+          <td>
+            <div style="font-size: 0.85rem;"><i class="bi bi-telephone-fill" style="color: #64748b;"></i> ${escapeHtml(m.mobileNumber)}</div>
+            <small class="text-muted">${escapeHtml(m.village || '')}</small>
+          </td>
+          <td class="table-currency" style="font-weight: 600;">${Common.formatIndianCurrency(m.monthlyBachatAmount)}</td>
+          <td class="table-currency" style="font-weight: 700; color: var(--success);">${Common.formatIndianCurrency(m.totalSavingsBalance)}</td>
+          <td>
+            <div style="font-size: 0.8rem; font-weight: 500;">${startDate} → ${endDate}</div>
+            <small class="text-muted">Target: ${Common.formatIndianCurrency(m.totalSavingsTarget || 60000)}</small>
+          </td>
+          <td>
+            ${hasLoan 
+              ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight: 600;"><i class="bi bi-exclamation-circle"></i> Loan: ${Common.formatIndianCurrency(m.currentLoanOutstanding)}</span>`
+              : `<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight: 600;"><i class="bi bi-shield-check"></i> Regular Bachat</span>`}
+          </td>
+          <td>${Common.getStatusBadge(m.status)}</td>
+          <td style="text-align: right;">
+            <div class="table-actions" style="justify-content: flex-end;">
+              <button class="btn-action-icon" title="View 360 Dossier & Savings" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'">
+                <i class="bi bi-person-bounding-box"></i>
+              </button>
+              <button class="btn-action-icon" title="Reset Member Password & Login" onclick="openMemberLoginModal('${m.id || m.memberId}')">
+                <i class="bi bi-key-fill"></i>
+              </button>
+              <button class="btn-action-icon" title="Change Status" onclick="promptStatusChange('${m.id}', '${escapeHtml(m.fullName)}', '${m.status}')">
+                <i class="bi bi-arrow-left-right"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `}).join('');
+    }
+
+    function updateMembersPagination(total) {
+      const totalPages = Math.max(1, Math.ceil(total / MEMBERS_PER_PAGE));
+      currentMemberPage = Math.min(Math.max(1, currentMemberPage), totalPages);
+      const start = total === 0 ? 0 : (currentMemberPage - 1) * MEMBERS_PER_PAGE + 1;
+      const end = Math.min(currentMemberPage * MEMBERS_PER_PAGE, total);
+      document.getElementById('members-page-summary').textContent = total === 0
+        ? 'Showing 0 members'
+        : `Showing ${start}-${end} of ${total} members`;
+      document.getElementById('members-page-info').textContent = `Page ${currentMemberPage} of ${totalPages}`;
+      document.getElementById('members-page-prev').disabled = currentMemberPage <= 1;
+      document.getElementById('members-page-next').disabled = currentMemberPage >= totalPages;
+    }
+
+    function renderMembersPage() {
+      const start = (currentMemberPage - 1) * MEMBERS_PER_PAGE;
+      renderMembers(filteredMembers.slice(start, start + MEMBERS_PER_PAGE));
+      updateMembersPagination(filteredMembers.length);
+    }
+
+    function goToMemberPage(page) {
+      const totalPages = Math.max(1, Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE));
+      if (page < 1 || page > totalPages) return;
+      currentMemberPage = page;
+      renderMembersPage();
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('member-search-input').value.toLowerCase().trim();
+      const statusFilter = document.getElementById('status-filter-select').value;
+      const groupFilter = document.getElementById('active-group-select').value;
+
+      filteredMembers = allMembers.filter(m => {
+        const matchesGroup = groupFilter === 'ALL' || m.groupId === groupFilter;
+        const matchesStatus = statusFilter === 'ALL' || m.status === statusFilter;
+        const matchesSearch = !search ||
+          (m.fullName && m.fullName.toLowerCase().includes(search)) ||
+          (m.memberId && m.memberId.toLowerCase().includes(search)) ||
+          (m.mobileNumber && m.mobileNumber.includes(search)) ||
+          (m.panNumber && m.panNumber.toLowerCase().includes(search));
+
+        return matchesGroup && matchesStatus && matchesSearch;
+      });
+
+      currentMemberPage = 1;
+      renderMembersPage();
+    }
+
+    async function promptStatusChange(id, name, currentStatus) {
+      const newStatus = prompt(`Update status for ${name}\nCurrent: ${currentStatus}\nEnter new status (ACTIVE, INACTIVE, SUSPENDED, EXITED):`, currentStatus);
+      if (!newStatus || newStatus.toUpperCase() === currentStatus) return;
+
+      const valid = ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'EXITED'];
+      if (!valid.includes(newStatus.toUpperCase())) {
+        alert('Invalid status. Must be one of: ACTIVE, INACTIVE, SUSPENDED, EXITED');
+        return;
+      }
+
+      try {
+        await api.updateMemberStatus(id, newStatus.toUpperCase());
+        Common.showToast(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+        await loadMembers();
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    async function openMemberLoginModal(memberId) {
+      const modal = document.getElementById('modal-member-login');
+      const body = document.getElementById('member-login-body');
+      
+      const member = allMembers.find(x => x.id === memberId || x.memberId === memberId) || {};
+      const memberName = member.fullName || 'Member';
+      const mobile = member.mobileNumber || '';
+      const regId = member.registrationId || member.memberId || memberId;
+
+      modal.classList.add('show');
+      modal.classList.add('active');
+      modal.style.setProperty('display', 'flex', 'important');
+      body.innerHTML = '<div style="text-align: center; padding: 2rem;"><span class="spinner-border spinner-border-sm"></span> Loading account status...</div>';
+
+      try {
+        const status = await api.getMemberLoginStatus(memberId);
+        if (status.hasLoginAccount || status.hasLogin) {
+          const firstLoginNotice = status.firstLogin 
+            ? '<span class="badge" style="background:#fef3c7; color:#92400e; padding: 0.35rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-clock"></i> First Login Pending (Password Change Required)</span>' 
+            : '<span class="badge" style="background:#ecfdf5; color:#065f46; padding: 0.35rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-check-circle"></i> Login Active</span>';
+
+          body.innerHTML = `
+            <div style="margin-bottom: 1.25rem; background: #f8fafc; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">${escapeHtml(memberName)}</div>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                Member ID: <strong style="color: var(--primary);">${escapeHtml(regId)}</strong> &bull; 
+                Login Username: <code style="font-weight: 700; color: var(--primary); font-size: 0.95rem;">${escapeHtml(status.username || mobile || regId)}</code>
+              </div>
+              <div style="margin-top: 0.5rem;">${firstLoginNotice}</div>
+            </div>
+
+            <form id="form-reset-mem-pass">
+              <h5 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main); display: flex; align-items: center; gap: 0.4rem;">
+                <i class="bi bi-shield-lock text-primary"></i> Set New Temporary Password
+              </h5>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="inp-new-mem-pass">New Temporary Password *</label>
+                <div style="position: relative;">
+                  <input type="password" id="inp-new-mem-pass" class="form-control" value="tempPass123" required minlength="6" placeholder="Enter temporary password">
+                  <button type="button" class="btn-toggle-pw" onclick="togglePasswordVisibility('inp-new-mem-pass', this)" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #64748b;">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </div>
+                <small style="color: var(--text-muted); font-size: 0.75rem; display: block; margin-top: 4px;">
+                  The member will use their Username and this temporary password to log in. They will be required to create their own new password immediately upon login.
+                </small>
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-outline-custom" onclick="closeMemberLoginModal()">Cancel</button>
+                <button type="submit" class="btn-primary-custom" id="btn-submit-reset-pass">
+                  <i class="bi bi-key-fill"></i> Save Temporary Password
+                </button>
+              </div>
+            </form>
+          `;
+
+          document.getElementById('form-reset-mem-pass').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newPass = document.getElementById('inp-new-mem-pass').value;
+            if (!newPass || newPass.length < 6) {
+              Common.showToast('Temporary password must be at least 6 characters long.', 'danger');
+              return;
+            }
+            const btn = document.getElementById('btn-submit-reset-pass');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating Password...';
+            try {
+              await api.resetMemberPassword(memberId, newPass);
+              Common.showToast(`Temporary password set successfully for ${memberName}! Member will be prompted to change it upon login.`, 'success');
+              closeMemberLoginModal();
+            } catch (err) {
+              Common.showToast('Failed to reset password: ' + err.message, 'danger');
+            } finally {
+              btn.disabled = false;
+              btn.innerHTML = '<i class="bi bi-key-fill"></i> Save Temporary Password';
+            }
+          });
+        } else {
+          body.innerHTML = `
+            <div style="margin-bottom: 1.25rem; background: #f8fafc; padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <div style="font-weight: 700; font-size: 1.05rem; color: var(--text-main);">${escapeHtml(memberName)}</div>
+              <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+                Member ID: <strong style="color: var(--primary);">${escapeHtml(regId)}</strong>
+              </div>
+              <div style="margin-top: 0.35rem;">
+                <span class="badge" style="background:#fee2e2; color:#991b1b; padding: 0.35rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600;"><i class="bi bi-person-x"></i> Login Account Not Yet Configured</span>
+              </div>
+            </div>
+
+            <form id="form-create-mem-login">
+              <h5 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-main);">
+                Create Member Portal Login
+              </h5>
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" for="inp-create-mem-user">Login Username / Mobile *</label>
+                <input type="text" id="inp-create-mem-user" class="form-control" value="${escapeHtml(mobile || '')}" placeholder="e.g. mobile number" required>
+              </div>
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label class="form-label" for="inp-create-mem-pass">Initial Temporary Password *</label>
+                <input type="password" id="inp-create-mem-pass" class="form-control" value="tempPass123" required minlength="6">
+                <small style="color: var(--text-muted); font-size: 0.75rem;">Member must update this upon first login.</small>
+              </div>
+              <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label" for="inp-create-mem-pass-confirm">Confirm Temporary Password *</label>
+                <input type="password" id="inp-create-mem-pass-confirm" class="form-control" value="tempPass123" required minlength="6">
+              </div>
+              <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-outline-custom" onclick="closeMemberLoginModal()">Cancel</button>
+                <button type="submit" class="btn-primary-custom" id="btn-submit-create-login">
+                  <i class="bi bi-person-check-fill"></i> Create Login Account
+                </button>
+              </div>
+            </form>
+          `;
+
+          document.getElementById('form-create-mem-login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('inp-create-mem-user').value.trim();
+            const tempPassword = document.getElementById('inp-create-mem-pass').value;
+            const confirmPassword = document.getElementById('inp-create-mem-pass-confirm').value;
+
+            if (tempPassword !== confirmPassword) {
+              Common.showToast('Temporary password and confirmation password do not match.', 'danger');
+              return;
+            }
+
+            const btn = document.getElementById('btn-submit-create-login');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating Account...';
+            try {
+              await api.createMemberLogin(memberId, { username, temporaryPassword: tempPassword });
+              Common.showToast(`Login created for ${username}!`, 'success');
+              closeMemberLoginModal();
+              await loadMembers();
+            } catch (err) {
+              Common.showToast('Failed to create login: ' + err.message, 'danger');
+            } finally {
+              btn.disabled = false;
+              btn.innerHTML = '<i class="bi bi-person-check-fill"></i> Create Login Account';
+            }
+          });
+        }
+      } catch (err) {
+        body.innerHTML = `
+          <div style="color: #ef4444; padding: 1rem; text-align: center;">
+            <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem;"></i>
+            <div style="margin-top: 0.5rem;">Failed to fetch account status: ${escapeHtml(err.message)}</div>
+            <button type="button" class="btn-outline-custom" onclick="closeMemberLoginModal()" style="margin-top: 1rem;">Close</button>
+          </div>`;
+      }
+    }
+
+    // Member Location-Based Bank Handlers
+    function handleMemberLocationInput() {
+      if (typeof BankDirectory === 'undefined') return;
+      const districtInput = document.getElementById('reg-district');
+      const talukaInput = document.getElementById('reg-taluka');
+      const district = (districtInput?.value || '').trim();
+      const taluka = (talukaInput?.value || '').trim();
+      const village = (document.getElementById('reg-village')?.value || '').trim();
+      const pin = (document.getElementById('reg-pinCode')?.value || '').trim();
+      const select = document.getElementById('reg-bankSelect');
+      const statusEl = document.getElementById('reg-ifsc-hint');
+
+      if (!select) return;
+
+      if (pin && pin.length === 6 && /^[1-9][0-9]{5}$/.test(pin)) {
+        BankDirectory.lookupByPinCode(pin, select, statusEl, { districtInput, talukaInput });
+      } else {
+        const query = [district, taluka, village, pin].filter(Boolean).join(' ');
+        BankDirectory.populateSelect(select, query);
+      }
+    }
+
+    function onMemberBankSelectChange() {
+      const select = document.getElementById('reg-bankSelect');
+      if (!select) return;
+      const opt = select.selectedOptions[0];
+      const bankNameInput = document.getElementById('reg-bankName');
+      const ifscInput = document.getElementById('reg-ifsc');
+      const branchInput = document.getElementById('reg-branch');
+      const badge = document.getElementById('reg-bank-badge');
+      const verifiedTag = document.getElementById('reg-ifsc-verified-tag');
+      const hint = document.getElementById('reg-ifsc-hint');
+
+      if (!select.value || select.value === 'OTHER' || select.value === 'MANUAL') {
+        if (badge) badge.style.display = 'none';
+        if (select.value === 'OTHER' || select.value === 'MANUAL') {
+          if (verifiedTag) {
+            verifiedTag.textContent = '✎ Manual Bank Entry';
+            verifiedTag.style.color = '#7c3aed';
+          }
+          if (hint) hint.textContent = 'Enter bank name, account number, and IFSC code manually.';
+          if (bankNameInput) {
+            bankNameInput.removeAttribute('readonly');
+            bankNameInput.focus();
+          }
+          if (ifscInput) ifscInput.removeAttribute('readonly');
+          if (branchInput) branchInput.removeAttribute('readonly');
+        } else {
+          if (verifiedTag) verifiedTag.textContent = '';
+          if (hint) hint.textContent = '11-character code (auto-filled on branch select).';
+        }
+        return;
+      }
+
+      const ifsc = opt.getAttribute('data-ifsc') || select.value;
+      const bankName = opt.getAttribute('data-bank') || opt.getAttribute('data-bank-name') || '';
+      const branch = opt.getAttribute('data-branch') || '';
+
+      if (bankNameInput) bankNameInput.value = bankName;
+      if (ifscInput) ifscInput.value = ifsc;
+      if (branchInput) branchInput.value = branch;
+      if (badge) badge.style.display = 'inline-block';
+      if (verifiedTag) {
+        verifiedTag.textContent = '✓ Verified Branch';
+        verifiedTag.style.color = '#059669';
+      }
+      if (hint) hint.textContent = `${bankName} (${branch}) - IFSC Verified`;
+    }
+
+    async function onMemberIfscDirectInput() {
+      const ifscInput = document.getElementById('reg-ifsc');
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      ifscInput.value = val;
+      if (val.length === 11) {
+        await verifyMemberIfscManually();
+      }
+    }
+
+    async function verifyMemberIfscManually() {
+      const ifscInput = document.getElementById('reg-ifsc');
+      const bankNameInput = document.getElementById('reg-bankName');
+      const branchInput = document.getElementById('reg-branch');
+      const verifiedTag = document.getElementById('reg-ifsc-verified-tag');
+      const hint = document.getElementById('reg-ifsc-hint');
+      if (!ifscInput) return;
+      const val = ifscInput.value.trim().toUpperCase();
+      if (val.length !== 11) {
+        if (verifiedTag) {
+          verifiedTag.textContent = 'Invalid IFSC Code (must be 11 characters)';
+          verifiedTag.style.color = '#dc2626';
+        }
+        return;
+      }
+      if (verifiedTag) {
+        verifiedTag.textContent = 'Checking IFSC...';
+        verifiedTag.style.color = '#0284c7';
+      }
+      if (typeof BankDirectory !== 'undefined') {
+        const res = await BankDirectory.verifyIFSC(val);
+        if (res && res.valid) {
+          if (bankNameInput && (!bankNameInput.value || bankNameInput.value.trim() === '')) {
+            bankNameInput.value = res.bank || '';
+          }
+          if (branchInput && (!branchInput.value || branchInput.value.trim() === '')) {
+            branchInput.value = res.branch || '';
+          }
+          if (verifiedTag) {
+            verifiedTag.textContent = '✓ Verified: ' + (res.bank || 'Verified') + (res.branch ? ` (${res.branch})` : '');
+            verifiedTag.style.color = '#059669';
+          }
+          if (hint) {
+            hint.textContent = `${res.bank || ''} - ${res.branch || ''}, ${res.city || ''}`;
+          }
+        } else {
+          if (verifiedTag) {
+            verifiedTag.textContent = res?.message || 'Invalid IFSC Code. Please enter a valid IFSC Code.';
+            verifiedTag.style.color = '#dc2626';
+          }
+        }
+      }
+    }
+
+    function closeMemberLoginModal() {
+      const modal = document.getElementById('modal-member-login');
+      if (modal) {
+        modal.classList.remove('show');
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+      }
+    }
+
+    window.addEventListener('languageChanged', () => {
+      applyFilters();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Active Loans & Repayments - Bachat Gat Platform</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/dashboard.css">
+  <link rel="stylesheet" href="/css/forms.css">
+  <link rel="stylesheet" href="/css/tables.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body>
+  <div class="app-wrapper">
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="brand-icon">₹</div>
+        <div>
+          <div class="brand-title" data-i18n="appName">Bachat Gat</div>
+          <span class="brand-badge">ADMIN</span>
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="menu-category">MAIN</li>
+        <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
+        <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
+        <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
+
+        <li class="menu-category">FINANCIALS</li>
+        <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
+        <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
+        <li><a href="/admin/loans.html" class="menu-item active"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
+        <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
+        <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
+        <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
+        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
+
+        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
+        <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
+        <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
+        <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
+      </div>
+    </aside>
+
+    <main class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
+          <div class="group-selector-wrap">
+            <i class="bi bi-building-check" style="color: var(--primary);"></i>
+            <select id="active-group-select" class="group-select">
+              <option value="bg-001">Mahila Pragati Bachat Gat (BG-MH-2026-0001)</option>
+            </select>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <select class="lang-selector form-select">
+            <option value="en">English</option>
+            <option value="mr">मराठी</option>
+            <option value="hi">हिन्दी</option>
+          </select>
+          <div class="user-dropdown">
+            <div id="current-user-avatar" class="user-avatar">A</div>
+            <div class="user-info">
+              <span id="current-user-name" class="user-name">Shalini Deshmukh</span>
+              <span id="current-user-role" class="user-role">ADMIN</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="page-content">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title" data-i18n="loans">Loan Ledger & Repayments</h1>
+            <p class="page-subtitle">Track principal recovery, interest income, installment schedules, and prepayments</p>
+          </div>
+        </div>
+
+        <!-- Tabs for Loan Module (Sections 20, 24, 25, 26, 27) -->
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+          <button id="tab-btn-all-loans" class="btn-primary-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-collection-fill me-1"></i> All Group Loans
+          </button>
+          <button id="tab-btn-monthly-loans" class="btn-outline-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-calendar-event me-1"></i> Monthly Loans Given
+          </button>
+          <button id="tab-btn-emi-status" class="btn-outline-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-check2-circle me-1"></i> Monthly EMI Collection Status
+          </button>
+          <button id="tab-btn-approvals" class="btn-outline-custom" style="padding: 0.45rem 1rem;">
+            <i class="bi bi-shield-check me-1"></i> Loan Approvals & Disbursement
+          </button>
+        </div>
+
+        <!-- Filter bar -->
+        <div class="card-box" style="padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 200px;">
+              <input type="text" id="loan-search-input" class="form-control" placeholder="Search by borrower name or Loan ID...">
+            </div>
+            <div style="width: 140px;">
+              <select id="loan-month-select" class="form-select">
+                <option value="0">All Months</option>
+                <option value="1">January</option>
+                <option value="2">February</option>
+                <option value="3">March</option>
+                <option value="4">April</option>
+                <option value="5">May</option>
+                <option value="6">June</option>
+                <option value="7">July</option>
+                <option value="8">August</option>
+                <option value="9">September</option>
+                <option value="10" selected>October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+              </select>
+            </div>
+            <div style="width: 120px;">
+              <select id="loan-year-select" class="form-select">
+                <option value="2026" selected>2026</option>
+                <option value="2025">2025</option>
+                <option value="2024">2024</option>
+              </select>
+            </div>
+            <div style="width: 150px;">
+              <select id="loan-status-filter" class="form-select">
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="APPROVED">APPROVED</option>
+                <option value="DISBURSED">DISBURSED</option>
+                <option value="COMPLETED">COMPLETED</option>
+                <option value="OVERDUE">OVERDUE</option>
+              </select>
+            </div>
+            <button id="btn-export-loans-csv" class="btn-outline-custom" style="padding: 0.45rem 0.85rem;" title="Download CSV Report">
+              <i class="bi bi-file-earmark-spreadsheet-fill text-success"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Loans Table (All or Monthly) -->
+        <div id="card-all-loans" class="card-box">
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Loan ID</th>
+                  <th data-i18n="members">Borrower</th>
+                  <th>Principal</th>
+                  <th>Rate</th>
+                  <th>Total Payable</th>
+                  <th>Total Paid</th>
+                  <th>Outstanding</th>
+                  <th>Monthly Installment</th>
+                  <th>Next Due</th>
+                  <th data-i18n="status">Status</th>
+                  <th data-i18n="action">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="loans-table-tbody">
+                <tr><td colspan="11" style="text-align: center;">Loading loan records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Monthly Loan Payment Status Card -->
+        <div id="card-monthly-status" class="card-box" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: #0f172a;">
+                <i class="bi bi-check2-circle text-primary"></i> Monthly Loan EMI Collection Status
+              </h3>
+              <p style="font-size: 0.825rem; color: #64748b; margin: 0.2rem 0 0 0;">
+                Section 24: Real-time EMI collection breakdown showing paid vs pending borrower installments
+              </p>
+            </div>
+            <button id="btn-refresh-monthly-status" class="btn-outline-custom" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+              <i class="bi bi-arrow-repeat"></i> Refresh Status
+            </button>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Borrower</th>
+                  <th>Loan ID</th>
+                  <th style="text-align: right;">Sanctioned (₹)</th>
+                  <th style="text-align: right;">Rate / Tenure</th>
+                  <th style="text-align: right;">Monthly EMI</th>
+                  <th style="text-align: right;">Principal</th>
+                  <th style="text-align: right;">Interest</th>
+                  <th style="text-align: right; color: var(--danger);">Penalty</th>
+                  <th style="text-align: right; font-weight: 700;">Total Due</th>
+                  <th style="text-align: right; color: var(--success);">Paid (₹)</th>
+                  <th style="text-align: right;">Remaining Principal</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="monthly-status-tbody">
+                <tr><td colspan="13" style="text-align: center;">Loading monthly EMI status...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Loan Approvals & Disbursement Queue Card -->
+        <div id="card-approval-queue" class="card-box" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0; color: #0f172a;">
+                <i class="bi bi-shield-check text-primary"></i> Loan Approval & Disbursement Queue
+              </h3>
+              <p style="font-size: 0.825rem; color: #64748b; margin: 0.2rem 0 0 0;">
+                Sections 25 & 26: Two-step lifecycle: Admin Review & Approval followed by Fund Disbursement
+              </p>
+            </div>
+            <button id="btn-refresh-approvals" class="btn-outline-custom" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+              <i class="bi bi-arrow-repeat"></i> Refresh Queue
+            </button>
+          </div>
+          <div class="table-responsive-wrapper">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>Member ID</th>
+                  <th style="text-align: right;">Requested Amount</th>
+                  <th>Purpose</th>
+                  <th>Tenure</th>
+                  <th style="text-align: right;">Proposed EMI</th>
+                  <th>Applied Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="approvals-tbody">
+                <tr><td colspan="9" style="text-align: center;">Loading pending approvals...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Repayment Modal -->
+  <div id="repay-modal" class="modal-overlay">
+    <div class="modal-content-custom">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom">Record Loan Installment Repayment</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-repay-modal" onclick="Common.closeModal('repay-modal')">&times;</button>
+      </div>
+      <form id="repay-form">
+        <input type="hidden" id="repay-loanId">
+        <div class="modal-body-custom">
+          <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted);">Borrower:</span>
+              <strong id="repay-borrowerName">-</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <span style="color: var(--text-muted);">Loan ID:</span>
+              <code id="repay-loanCode" style="font-weight: 700;">-</code>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Current Outstanding:</span>
+              <strong id="repay-currentOutstanding" style="color: var(--danger); font-size: 1.1rem;">₹0</strong>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Amount (₹) *</label>
+            <div class="input-currency-group">
+              <span class="currency-prefix">₹</span>
+              <input type="number" id="repay-amount" class="form-control" required min="100">
+            </div>
+            <div class="form-help">Scheduled regular monthly payment: <strong id="repay-suggestedEmi">₹0</strong></div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Payment Mode</label>
+              <select id="repay-method" class="form-select">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI / Net Banking</option>
+                <option value="BANK_TRANSFER">Bank Transfer / NEFT</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference No.</label>
+              <input type="text" id="repay-ref" class="form-control" placeholder="e.g. UTR# or Cash receipt">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Payment Date</label>
+            <input type="date" id="repay-date" class="form-control">
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-repay">Cancel</button>
+          <button type="submit" id="btn-confirm-repay" class="btn-primary-custom">
+            <i class="bi bi-check-circle-fill"></i> Save Repayment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Extra Prepayment Modal -->
+  <div id="extra-modal" class="modal-overlay">
+    <div class="modal-content-custom">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom">Make Extra Principal Prepayment</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-extra-modal" onclick="Common.closeModal('extra-modal')">&times;</button>
+      </div>
+      <form id="extra-form">
+        <input type="hidden" id="extra-loanId">
+        <div class="modal-body-custom">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+            Extra prepayments are credited directly towards reducing the outstanding principal balance.
+          </p>
+          <div class="form-group">
+            <label class="form-label">Extra Prepayment Amount (₹) *</label>
+            <div class="input-currency-group">
+              <span class="currency-prefix">₹</span>
+              <input type="number" id="extra-amount" class="form-control" required min="500">
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Payment Mode</label>
+              <select id="extra-method" class="form-select">
+                <option value="CASH">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reference No.</label>
+              <input type="text" id="extra-ref" class="form-control" placeholder="Transaction ref #">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-extra">Cancel</button>
+          <button type="submit" class="btn-primary-custom" style="background-color: var(--secondary); border-color: var(--secondary);">
+            <i class="bi bi-check2-circle"></i> Credit Extra Prepayment
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Schedule Viewer Modal -->
+  <div id="schedule-modal" class="modal-overlay">
+    <div class="modal-content-custom" style="max-width: 700px;">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom">Loan Repayment Schedule</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-schedule-modal" onclick="Common.closeModal('schedule-modal')">&times;</button>
+      </div>
+      <div class="modal-body-custom">
+        <div class="table-responsive-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Inst #</th>
+                <th>Due Date</th>
+                <th>Principal</th>
+                <th>Interest</th>
+                <th>Total Due</th>
+                <th>Paid</th>
+                <th>Outstanding</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="schedule-tbody">
+              <tr><td colspan="8" style="text-align: center;">Loading schedule...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loan Sanction & Manual Interest Rate Customization Modal -->
+  <div id="sanction-modal" class="modal-overlay">
+    <div class="modal-content-custom" style="max-width: 650px;">
+      <div class="modal-header-custom">
+        <h3 class="modal-title-custom"><i class="bi bi-shield-check text-success me-2"></i> Sanction & Configure Loan</h3>
+        <button type="button" class="modal-close-btn" id="btn-close-sanction-modal" onclick="Common.closeModal('sanction-modal')">&times;</button>
+      </div>
+      <form id="sanction-form">
+        <div class="modal-body-custom">
+          <input type="hidden" id="sanc-appId">
+
+          <!-- Member Request Summary -->
+          <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.15); border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <div>
+                <strong id="sanc-memberName" style="font-size: 1rem; color: var(--text-main);">-</strong>
+                <span class="text-muted" style="font-size: 0.8rem;" id="sanc-memberId">(-)</span>
+              </div>
+              <div style="text-align: right;">
+                <span class="text-muted" style="font-size: 0.75rem;">Requested:</span>
+                <span style="font-weight: 700; color: var(--primary); font-size: 1.05rem;" id="sanc-requestedAmount">₹0</span>
+              </div>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 1rem;">
+              <span><strong>Purpose:</strong> <span id="sanc-purpose">-</span></span>
+              <span><strong>Requested Tenure:</strong> <span id="sanc-prefDuration">-</span> Months</span>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label class="form-label required">Approved Sanction Amount (₹)</label>
+              <div class="input-currency-group">
+                <span class="currency-prefix">₹</span>
+                <input type="number" id="sanc-approvedAmount" class="form-control" required min="1000" step="500" oninput="recalculateSancEMI()">
+              </div>
+              <div class="form-help">Committee approved principal amount.</div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label required">Approved Tenure (Months)</label>
+              <input type="number" id="sanc-durationMonths" class="form-control" required min="1" max="60" value="12" oninput="recalculateSancEMI()">
+              <div class="form-help">Repayment duration in installments.</div>
+            </div>
+          </div>
+
+          <!-- Manual Interest Rate Customization -->
+          <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem;">
+            <div style="font-weight: 700; color: var(--primary); font-size: 0.9rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="bi bi-percent"></i> Loan Interest Rate Configuration (व्याज दर बदलण्याची सोय)
+            </div>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label required">Monthly Interest Rate (% / month)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="sanc-monthlyRate" class="form-control" min="0.1" max="15" step="0.05" placeholder="e.g. 2.0" oninput="syncSancFromMonthly()">
+                </div>
+                <div class="form-help">e.g. 2% / month (२ रुपये शेकडा)</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label required">Annual Interest Rate (% p.a.)</label>
+                <div class="input-currency-group">
+                  <input type="number" id="sanc-annualRate" class="form-control" required min="1" max="60" step="0.25" placeholder="e.g. 24.0" oninput="syncSancFromAnnual()">
+                </div>
+                <div class="form-help">Annual percentage rate</div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label class="form-label required">Interest Calculation Method</label>
+              <select id="sanc-interestType" class="form-select" onchange="recalculateSancEMI()">
+                <option value="REDUCING">Reducing Balance (घटती शिल्लक - Standard)</option>
+                <option value="FLAT">Flat Interest (स्थिर व्याज)</option>
+              </select>
+            </div>
+
+            <!-- Dynamic Live EMI Preview -->
+            <div style="margin-top: 0.75rem; padding: 0.65rem 0.85rem; background: #fff; border: 1px dashed var(--border-color); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+              <div>
+                <span class="text-muted">Estimated EMI:</span>
+                <strong style="color: var(--primary); font-size: 1rem;" id="sanc-preview-emi">₹0/mo</strong>
+              </div>
+              <div>
+                <span class="text-muted">Total Interest:</span>
+                <strong style="color: #d97706; font-size: 1rem;" id="sanc-preview-interest">₹0</strong>
+              </div>
+              <div>
+                <span class="text-muted">Total Payable:</span>
+                <strong style="color: var(--text-main); font-size: 1rem;" id="sanc-preview-total">₹0</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Admin Approval Notes / Meeting Reference</label>
+            <input type="text" id="sanc-notes" class="form-control" placeholder="e.g. Approved in Monthly Meeting #12 on 1st March">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+              <input type="checkbox" id="sanc-disburseImmediately" checked style="width: 18px; height: 18px;">
+              <span>Disburse funds immediately to member's account</span>
+            </label>
+            <div class="form-help" style="margin-left: 1.6rem;">If unchecked, loan will remain in APPROVED status until disbursement is executed separately.</div>
+          </div>
+        </div>
+        <div class="modal-footer-custom">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-sanction">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-sanction">
+            <i class="bi bi-check-circle-fill"></i> Confirm Sanction & Disburse
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/common.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script>
+    let groupLoans = [];
+    let currentGroupApplications = [];
+    let currentTab = 'ALL'; // 'ALL', 'MONTHLY', 'STATUS', 'APPROVALS'
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (!Auth.requireAuth('ADMIN')) return;
+      let currentGroupId = Common.getSelectedGroupId();
+      document.getElementById('repay-date').value = new Date().toISOString().split('T')[0];
+
+      // Tab Buttons & View Containers
+      const tabAll = document.getElementById('tab-btn-all-loans');
+      const tabMonthly = document.getElementById('tab-btn-monthly-loans');
+      const tabStatus = document.getElementById('tab-btn-emi-status');
+      const tabApprovals = document.getElementById('tab-btn-approvals');
+
+      const cardAll = document.getElementById('card-all-loans');
+      const cardStatus = document.getElementById('card-monthly-status');
+      const cardApprovals = document.getElementById('card-approval-queue');
+
+      function switchTab(newTab) {
+        currentTab = newTab;
+        [tabAll, tabMonthly, tabStatus, tabApprovals].forEach(btn => btn.className = 'btn-outline-custom');
+        cardAll.style.display = 'none';
+        cardStatus.style.display = 'none';
+        cardApprovals.style.display = 'none';
+
+        if (newTab === 'ALL') {
+          tabAll.className = 'btn-primary-custom';
+          cardAll.style.display = 'block';
+          loadLoans(currentGroupId);
+        } else if (newTab === 'MONTHLY') {
+          tabMonthly.className = 'btn-primary-custom';
+          cardAll.style.display = 'block';
+          loadLoans(currentGroupId);
+        } else if (newTab === 'STATUS') {
+          tabStatus.className = 'btn-primary-custom';
+          cardStatus.style.display = 'block';
+          loadMonthlyLoanStatus(currentGroupId);
+        } else if (newTab === 'APPROVALS') {
+          tabApprovals.className = 'btn-primary-custom';
+          cardApprovals.style.display = 'block';
+          loadLoanApprovals(currentGroupId);
+        }
+      }
+
+      tabAll.addEventListener('click', () => switchTab('ALL'));
+      tabMonthly.addEventListener('click', () => switchTab('MONTHLY'));
+      tabStatus.addEventListener('click', () => switchTab('STATUS'));
+      tabApprovals.addEventListener('click', () => switchTab('APPROVALS'));
+
+      document.getElementById('btn-refresh-monthly-status').addEventListener('click', () => loadMonthlyLoanStatus(currentGroupId));
+      document.getElementById('btn-refresh-approvals').addEventListener('click', () => loadLoanApprovals(currentGroupId));
+
+      window.addEventListener('groupChanged', async (e) => {
+        currentGroupId = e.detail.groupId;
+        switchTab(currentTab);
+      });
+
+      // Filter change listeners
+      ['loan-search-input', 'loan-month-select', 'loan-year-select', 'loan-status-filter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('change', () => {
+            if (currentTab === 'STATUS') loadMonthlyLoanStatus(currentGroupId);
+            else if (currentTab === 'ALL' || currentTab === 'MONTHLY') loadLoans(currentGroupId);
+          });
+          if (id === 'loan-search-input') {
+            el.addEventListener('input', () => {
+              if (currentTab === 'STATUS') loadMonthlyLoanStatus(currentGroupId);
+              else if (currentTab === 'ALL' || currentTab === 'MONTHLY') applyLoanFilters();
+            });
+          }
+        }
+      });
+
+      // Export CSV Listener
+      document.getElementById('btn-export-loans-csv').addEventListener('click', exportLoansCSV);
+
+      await loadLoans(currentGroupId);
+
+      // Repay modal close
+      const repayModal = document.getElementById('repay-modal');
+      document.getElementById('btn-close-repay-modal').addEventListener('click', () => Common.closeModal('repay-modal'));
+      document.getElementById('btn-cancel-repay').addEventListener('click', () => Common.closeModal('repay-modal'));
+
+      // Extra modal close
+      const extraModal = document.getElementById('extra-modal');
+      document.getElementById('btn-close-extra-modal').addEventListener('click', () => Common.closeModal('extra-modal'));
+      document.getElementById('btn-cancel-extra').addEventListener('click', () => Common.closeModal('extra-modal'));
+
+      // Schedule modal close
+      const schedModal = document.getElementById('schedule-modal');
+      document.getElementById('btn-close-schedule-modal').addEventListener('click', () => Common.closeModal('schedule-modal'));
+
+      // Sanction modal close
+      const sancModal = document.getElementById('sanction-modal');
+      document.getElementById('btn-close-sanction-modal').addEventListener('click', () => Common.closeModal('sanction-modal'));
+      document.getElementById('btn-cancel-sanction').addEventListener('click', () => Common.closeModal('sanction-modal'));
+
+      // Sanction Form Submit
+      document.getElementById('sanction-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const appId = document.getElementById('sanc-appId').value;
+        const btn = document.getElementById('btn-submit-sanction');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+
+        const payload = {
+          approvedAmount: Number(document.getElementById('sanc-approvedAmount').value),
+          interestRate: Number(document.getElementById('sanc-annualRate').value),
+          durationMonths: Number(document.getElementById('sanc-durationMonths').value),
+          interestType: document.getElementById('sanc-interestType').value,
+          disburseImmediately: document.getElementById('sanc-disburseImmediately').checked,
+          adminNotes: document.getElementById('sanc-notes').value.trim() || 'Approved by administrative committee'
+        };
+
+        try {
+          const res = await api.approveLoanApplication(appId, payload);
+          Common.showToast(`Loan sanctioned successfully! Interest Rate: ${payload.interestRate}% p.a. (${(payload.interestRate/12).toFixed(1)}%/mo)`, 'success');
+          sancModal.classList.remove('active');
+          await loadLoanApprovals(currentGroupId);
+          if (currentTab === 'ALL') await loadLoans(currentGroupId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Confirm Sanction & Disburse';
+        }
+      });
+
+      // Repayment Form Submit
+      document.getElementById('repay-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const loanId = document.getElementById('repay-loanId').value;
+        const btn = document.getElementById('btn-confirm-repay');
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+
+        const payload = {
+          amount: Number(document.getElementById('repay-amount').value),
+          paymentMethod: document.getElementById('repay-method').value,
+          referenceNumber: document.getElementById('repay-ref').value.trim(),
+          paymentDate: document.getElementById('repay-date').value
+        };
+
+        try {
+          await api.recordLoanRepayment(loanId, payload);
+          Common.showToast(`Repayment of ₹${payload.amount} saved successfully! Interest allocated to all members!`, 'success');
+          repayModal.classList.remove('active');
+          if (currentTab === 'STATUS') await loadMonthlyLoanStatus(groupId);
+          else await loadLoans(groupId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Save Repayment';
+        }
+      });
+
+      // Extra Payment Form Submit
+      document.getElementById('extra-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const loanId = document.getElementById('extra-loanId').value;
+
+        const payload = {
+          amount: Number(document.getElementById('extra-amount').value),
+          paymentMethod: document.getElementById('extra-method').value,
+          referenceNumber: document.getElementById('extra-ref').value.trim()
+        };
+
+        try {
+          await api.recordLoanExtraPayment(loanId, payload);
+          Common.showToast(`Extra principal prepayment of ₹${payload.amount} credited successfully!`, 'success');
+          extraModal.classList.remove('active');
+          await loadLoans(groupId);
+        } catch (err) {
+          Common.showToast(err.message, 'danger');
+        }
+      });
+    });
+
+    async function loadLoans(groupId) {
+      try {
+        const monthVal = currentTab === 'MONTHLY' ? parseInt(document.getElementById('loan-month-select').value) : null;
+        const yearVal = currentTab === 'MONTHLY' ? parseInt(document.getElementById('loan-year-select').value) : null;
+        const statusVal = document.getElementById('loan-status-filter').value;
+
+        groupLoans = await api.getLoans(groupId, monthVal, yearVal, statusVal);
+        applyLoanFilters();
+      } catch (err) {
+        console.error('Error fetching loans:', err);
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    function applyLoanFilters() {
+      const search = document.getElementById('loan-search-input').value.toLowerCase().trim();
+      const filtered = groupLoans.filter(l => {
+        if (!search) return true;
+        const borrower = (l.memberName || '').toLowerCase();
+        const memId = (l.memberId || '').toLowerCase();
+        const code = (l.loanId || l.id || '').toLowerCase();
+        return borrower.includes(search) || memId.includes(search) || code.includes(search);
+      });
+      renderLoans(filtered);
+    }
+
+    function renderLoans(loans) {
+      const tbody = document.getElementById('loans-table-tbody');
+      if (!loans || loans.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No active or past loans on record.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = loans.map(l => `
+        <tr>
+          <td><a href="/admin/loan-details.html?loanId=${l.id}" title="View Loan Details" style="font-weight: 700; color: var(--primary); text-decoration: underline;"><code style="color: inherit;">${l.loanId}</code></a></td>
+          <td>
+            <strong>${l.memberName}</strong>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">${l.memberId}</div>
+          </td>
+          <td class="table-currency">${Common.formatINR(l.principalAmount)}</td>
+          <td>${l.interestRate}%</td>
+          <td class="table-currency">${Common.formatINR(l.totalPayable)}</td>
+          <td class="table-currency text-success">
+            ${Common.formatINR(l.totalPaid)}
+            <div style="font-size: 0.7rem; color: var(--text-muted);">Prin: ${Common.formatINR(l.principalPaid)} | Int: ${Common.formatINR(l.interestPaid)}</div>
+          </td>
+          <td class="table-currency text-danger font-weight-bold" style="font-size: 0.95rem;">${Common.formatINR(l.totalOutstanding)}</td>
+          <td class="table-currency" style="color: var(--primary); font-weight: 600;">${Common.formatINR(l.monthlyInstallment)}</td>
+          <td>${Common.formatDate(l.nextDueDate)}</td>
+          <td>${Common.getStatusBadge(l.status)}</td>
+          <td>
+            <div class="table-actions">
+              <a href="/admin/loan-details.html?loanId=${l.id}" class="btn-action-icon" title="View Full Loan Account">
+                <i class="bi bi-eye-fill"></i>
+              </a>
+              <button class="btn-action-icon" title="View Schedule" onclick="viewSchedule('${l.id}')">
+                <i class="bi bi-calendar3"></i>
+              </button>
+              ${l.status !== 'COMPLETED' ? `
+                <button class="btn-action-icon" title="Record Installment" onclick="openRepayModal('${l.id}')">
+                  <i class="bi bi-cash-coin" style="color: var(--success);"></i>
+                </button>
+                <button class="btn-action-icon" title="Extra Prepayment" onclick="openExtraModal('${l.id}')">
+                  <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i>
+                </button>
+              ` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openRepayModal(id) {
+      const loan = groupLoans.find(l => l.id === id);
+      if (!loan) return;
+
+      document.getElementById('repay-loanId').value = loan.id;
+      document.getElementById('repay-borrowerName').textContent = `${loan.memberName} (${loan.memberId})`;
+      document.getElementById('repay-loanCode').textContent = loan.loanId;
+      document.getElementById('repay-currentOutstanding').textContent = Common.formatINR(loan.totalOutstanding);
+      document.getElementById('repay-suggestedEmi').textContent = Common.formatINR(loan.monthlyInstallment);
+      document.getElementById('repay-amount').value = loan.monthlyInstallment;
+
+      document.getElementById('repay-modal').classList.add('active');
+    }
+
+    function openExtraModal(id) {
+      const loan = groupLoans.find(l => l.id === id);
+      if (!loan) return;
+
+      document.getElementById('extra-loanId').value = loan.id;
+      document.getElementById('extra-amount').value = 5000;
+      document.getElementById('extra-modal').classList.add('active');
+    }
+
+    async function viewSchedule(id) {
+      const schedModal = document.getElementById('schedule-modal');
+      const tbody = document.getElementById('schedule-tbody');
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Loading...</td></tr>';
+      schedModal.classList.add('active');
+
+      try {
+        const schedule = await api.getLoanSchedule(id);
+        if (!schedule || schedule.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No schedule items generated.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = schedule.map(s => `
+          <tr>
+            <td><strong>#${s.installmentNo}</strong></td>
+            <td>${Common.formatDate(s.dueDate)}</td>
+            <td class="table-currency">${Common.formatINR(s.principalAmount)}</td>
+            <td class="table-currency">${Common.formatINR(s.interestAmount)}</td>
+            <td class="table-currency">${Common.formatINR(s.totalDue)}</td>
+            <td class="table-currency text-success">${Common.formatINR(s.paidAmount)}</td>
+            <td class="table-currency">${Common.formatINR(s.outstandingAmount)}</td>
+            <td>${Common.getStatusBadge(s.status)}</td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-danger">${err.message}</td></tr>`;
+      }
+    }
+
+    async function loadMonthlyLoanStatus(groupId) {
+      const tbody = document.getElementById('monthly-status-tbody');
+      tbody.innerHTML = '<tr><td colspan="13" style="text-align: center;">Loading monthly EMI status...</td></tr>';
+      try {
+        const month = parseInt(document.getElementById('loan-month-select').value) || (new Date().getMonth() + 1);
+        const year = parseInt(document.getElementById('loan-year-select').value) || new Date().getFullYear();
+        const statusList = await api.getMonthlyLoanStatus(groupId, month, year);
+        if (!statusList || statusList.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="13" class="empty-state">No loans found for this group.</td></tr>';
+          return;
+        }
+
+        const search = document.getElementById('loan-search-input').value.toLowerCase().trim();
+        const filtered = statusList.filter(s => {
+          if (!search) return true;
+          return (s.memberName || '').toLowerCase().includes(search) || (s.memberId || '').toLowerCase().includes(search) || (s.loanId || '').toLowerCase().includes(search);
+        });
+
+        tbody.innerHTML = filtered.map(item => `
+          <tr>
+            <td>
+              <strong>${item.memberName}</strong>
+              <small style="color: var(--text-muted); display: block;">${item.memberId}</small>
+            </td>
+            <td><a href="/admin/loan-details.html?loanId=${item.loanId}" style="color: var(--primary); text-decoration: underline;"><code>${item.loanId}</code></a></td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatINR(item.loanAmount)}</td>
+            <td style="text-align: right;">${item.interestRate}% / ${item.durationMonths || 12}M</td>
+            <td style="text-align: right; font-weight: 600; color: var(--primary);">${Common.formatINR(item.emiAmount)}</td>
+            <td style="text-align: right; color: var(--success);">${Common.formatINR(item.principalComponent)}</td>
+            <td style="text-align: right; color: #d97706;">${Common.formatINR(item.interestComponent)}</td>
+            <td style="text-align: right; color: ${item.penaltyAmount > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatINR(item.penaltyAmount || 0)}</td>
+            <td style="text-align: right; font-weight: 700;">${Common.formatINR(item.totalDue)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatINR(item.paidAmount || 0)}</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatINR(item.remainingPrincipal)}</td>
+            <td>${Common.getStatusBadge(item.status)}</td>
+            <td>
+              ${item.status !== 'PAID' ? `
+                <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="openRepayModal('${item.loanId}')">
+                  <i class="bi bi-cash-coin"></i> Repay EMI
+                </button>
+              ` : '<i class="bi bi-check2-all text-success"> Paid</i>'}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="13" class="text-danger" style="text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    async function loadLoanApprovals(groupId) {
+      const tbody = document.getElementById('approvals-tbody');
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">Loading approvals queue...</td></tr>';
+      try {
+        const apps = await api.getLoanApplications(groupId);
+        currentGroupApplications = apps || [];
+        if (!apps || apps.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="9" class="empty-state text-success" style="padding: 2rem;"><i class="bi bi-shield-check me-1" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> No pending loan applications or un-disbursed sanctions.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = apps.map(a => {
+          let actionBtns = '';
+          if (a.status === 'PENDING') {
+            actionBtns = `
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #059669;" onclick="approveLoanAction('${a.id}', true)">
+                <i class="bi bi-check-circle"></i> Approve & Disburse
+              </button>
+              <button class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="approveLoanAction('${a.id}', false)">
+                Approve (Disburse Later)
+              </button>
+              <button class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: var(--danger); border-color: var(--danger);" onclick="rejectLoanAction('${a.id}')">
+                Reject
+              </button>
+            `;
+          } else if (a.status === 'APPROVED') {
+            actionBtns = `
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem; background: #2563eb;" onclick="disburseLoanAction('${a.sanctionedLoanId || a.id}')">
+                <i class="bi bi-send-check"></i> Disburse Funds Now
+              </button>
+            `;
+          } else {
+            actionBtns = `<span class="text-muted" style="font-size: 0.8rem;">Processed</span>`;
+          }
+
+          return `
+            <tr>
+              <td><strong>${a.memberName}</strong></td>
+              <td><code>${a.memberId}</code></td>
+              <td style="text-align: right; font-weight: 600;">${Common.formatINR(a.requestedAmount)}</td>
+              <td>${a.purpose || 'General Need'}</td>
+              <td>${a.durationMonths || 12} Months</td>
+              <td style="text-align: right; font-weight: 600; color: var(--primary);">${Common.formatINR(a.proposedInstallment || 0)}</td>
+              <td>${Common.formatDate(a.applicationDate || a.createdAt)}</td>
+              <td>${Common.getStatusBadge(a.status)}</td>
+              <td><div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">${actionBtns}</div></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-danger" style="text-align: center;">${err.message}</td></tr>`;
+      }
+    }
+
+    function syncSancFromMonthly() {
+      const m = parseFloat(document.getElementById('sanc-monthlyRate').value);
+      if (!isNaN(m)) {
+        document.getElementById('sanc-annualRate').value = (m * 12).toFixed(2).replace(/\.00$/, '');
+        recalculateSancEMI();
+      }
+    }
+
+    function syncSancFromAnnual() {
+      const a = parseFloat(document.getElementById('sanc-annualRate').value);
+      if (!isNaN(a)) {
+        document.getElementById('sanc-monthlyRate').value = (a / 12).toFixed(2).replace(/\.00$/, '');
+        recalculateSancEMI();
+      }
+    }
+
+    function recalculateSancEMI() {
+      const P = parseFloat(document.getElementById('sanc-approvedAmount').value || 0);
+      const annualRate = parseFloat(document.getElementById('sanc-annualRate').value || 0);
+      const months = parseInt(document.getElementById('sanc-durationMonths').value || 1, 10);
+      const type = document.getElementById('sanc-interestType').value;
+
+      const emiEl = document.getElementById('sanc-preview-emi');
+      const intEl = document.getElementById('sanc-preview-interest');
+      const totEl = document.getElementById('sanc-preview-total');
+
+      if (P <= 0 || months <= 0) {
+        emiEl.textContent = '₹0/mo';
+        intEl.textContent = '₹0';
+        totEl.textContent = '₹0';
+        return;
+      }
+
+      if (type === 'FLAT') {
+        const totalInt = Math.round(P * (annualRate / 100) * (months / 12));
+        const totalPayable = P + totalInt;
+        const emi = Math.round(totalPayable / months);
+        emiEl.textContent = Common.formatINR(emi) + '/mo';
+        intEl.textContent = Common.formatINR(totalInt);
+        totEl.textContent = Common.formatINR(totalPayable);
+      } else {
+        const r = annualRate / 12 / 100;
+        let emi = 0;
+        let totalInt = 0;
+        if (r > 0) {
+          const factor = Math.pow(1 + r, months);
+          emi = Math.round((P * r * factor) / (factor - 1));
+          totalInt = Math.max(0, (emi * months) - P);
+        } else {
+          emi = Math.round(P / months);
+          totalInt = 0;
+        }
+        emiEl.textContent = Common.formatINR(emi) + '/mo';
+        intEl.textContent = Common.formatINR(totalInt);
+        totEl.textContent = Common.formatINR(P + totalInt);
+      }
+    }
+
+    async function approveLoanAction(appId, disburseImmediately) {
+      let app = currentGroupApplications.find(x => x.id === appId);
+      if (!app) {
+        try {
+          app = await api.getLoanApplicationById(appId);
+        } catch (e) {
+          console.warn('Could not fetch app by ID:', e);
+        }
+      }
+      if (!app) {
+        Common.showToast('Could not load loan application details', 'danger');
+        return;
+      }
+
+      document.getElementById('sanc-appId').value = app.id;
+      document.getElementById('sanc-memberName').textContent = app.memberName;
+      document.getElementById('sanc-memberId').textContent = `(${app.memberId})`;
+      document.getElementById('sanc-requestedAmount').textContent = Common.formatINR(app.requestedAmount);
+      document.getElementById('sanc-purpose').textContent = app.purpose || 'General Need';
+      document.getElementById('sanc-prefDuration').textContent = app.durationMonths || app.preferredDurationMonths || 12;
+
+      document.getElementById('sanc-approvedAmount').value = app.requestedAmount;
+      document.getElementById('sanc-durationMonths').value = app.durationMonths || app.preferredDurationMonths || 12;
+      document.getElementById('sanc-disburseImmediately').checked = Boolean(disburseImmediately);
+
+      // Fetch group's active master data to prefill the interest rate
+      const groupId = document.getElementById('active-group-select').value || 'bg-001';
+      let defaultRate = 12.0;
+      let defaultType = 'REDUCING';
+      try {
+        const md = await api.getMasterData(groupId);
+        if (md) {
+          if (md.loanInterestRate != null) defaultRate = md.loanInterestRate;
+          if (md.loanInterestType) defaultType = md.loanInterestType.includes('FLAT') ? 'FLAT' : 'REDUCING';
+        }
+      } catch (e) {}
+
+      document.getElementById('sanc-annualRate').value = defaultRate;
+      document.getElementById('sanc-monthlyRate').value = (defaultRate / 12).toFixed(2).replace(/\.00$/, '');
+      document.getElementById('sanc-interestType').value = defaultType;
+
+      recalculateSancEMI();
+      document.getElementById('sanction-modal').classList.add('active');
+    }
+
+    async function rejectLoanAction(appId) {
+      const reason = prompt('Please specify the reason for loan rejection:');
+      if (reason === null) return;
+      try {
+        await api.rejectLoanApplication(appId, reason || 'Rejected by administration');
+        Common.showToast('Loan application rejected.', 'info');
+        await loadLoanApprovals(document.getElementById('active-group-select').value);
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    async function disburseLoanAction(loanId) {
+      if (!confirm(`Disburse principal of Loan ${loanId} now? Group available cash will decrease and the loan will become active with reducing balance.`)) {
+        return;
+      }
+      try {
+        await api.disburseLoan(loanId, {
+          disbursementDate: new Date().toISOString().split('T')[0],
+          paymentMethod: 'BANK_TRANSFER'
+        });
+        Common.showToast(`Loan ${loanId} disbursed successfully! Group fund ledger updated.`, 'success');
+        await loadLoanApprovals(document.getElementById('active-group-select').value);
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    function exportLoansCSV() {
+      if (!groupLoans || groupLoans.length === 0) {
+        Common.showToast('No loans to export', 'info');
+        return;
+      }
+      let csv = 'Loan ID,Member ID,Borrower Name,Principal,Interest Rate,Tenure Months,Monthly EMI,Total Paid,Total Outstanding,Next Due Date,Status\\n';
+      groupLoans.forEach(l => {
+        csv += `"${l.loanId}","${l.memberId}","${l.memberName}",${l.principalAmount},${l.interestRate},${l.durationMonths || 12},${l.monthlyInstallment},${l.totalPaid},${l.totalOutstanding},"${l.nextDueDate || ''}","${l.status}"\\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `BachatGat_Loans_Report_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

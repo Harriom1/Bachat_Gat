@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comprehensive Project Guide & Architecture Manual - Bachat Gat Platform</title>
+  <!-- Core Design Styles -->
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Mermaid.js for rich dynamic workflow diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      fontFamily: 'Plus Jakarta Sans, sans-serif',
+      themeVariables: {
+        primaryColor: '#e0f2fe',
+        primaryTextColor: '#0369a1',
+        primaryBorderColor: '#0284c7',
+        lineColor: '#0284c7',
+        secondaryColor: '#ccfbf1',
+        tertiaryColor: '#f1f5f9'
+      }
+    });
+  </script>
+  <style>
+    :root {
+      --guide-sidebar-w: 300px;
+      --guide-accent: #0284c7;
+      --guide-accent-dark: #0369a1;
+      --guide-accent-light: #f0f9ff;
+      --code-bg: #0f172a;
+      --code-color: #e2e8f0;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      background-color: #f8fafc;
+      color: #1e293b;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      line-height: 1.65;
+    }
+    /* Layout */
+    .guide-header {
+      background: #0f172a;
+      color: #fff;
+      padding: 1.25rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .guide-brand {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .guide-brand .badge-tag {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      padding: 0.25rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .guide-search-wrap {
+      position: relative;
+      width: 380px;
+    }
+    .guide-search-wrap input {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 0.5rem;
+      padding: 0.55rem 1rem 0.55rem 2.5rem;
+      color: #fff;
+      font-size: 0.875rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .guide-search-wrap input:focus {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.25);
+    }
+    .guide-search-wrap i {
+      position: absolute;
+      left: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+    .guide-container {
+      display: flex;
+      max-width: 1600px;
+      margin: 0 auto;
+      min-height: calc(100vh - 70px);
+    }
+    /* Sidebar */
+    .guide-nav {
+      width: var(--guide-sidebar-w);
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      position: sticky;
+      top: 70px;
+      height: calc(100vh - 70px);
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      flex-shrink: 0;
+    }
+    .guide-nav-title {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin: 1.25rem 0 0.5rem 0.5rem;
+    }
+    .guide-nav ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .guide-nav li a {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.45rem 0.75rem;
+      border-radius: 0.375rem;
+      color: #475569;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s ease;
+    }
+    .guide-nav li a:hover {
+      background: #f1f5f9;
+      color: var(--guide-accent);
+      transform: translateX(3px);
+    }
+    .guide-nav li a.active {
+      background: var(--guide-accent-light);
+      color: var(--guide-accent-dark);
+      font-weight: 700;
+      border-left: 3px solid var(--guide-accent);
+    }
+    .guide-nav .module-badge {
+      font-size: 0.68rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: #475569;
+      margin-left: auto;
+      font-family: 'Fira Code', monospace;
+    }
+    /* Main Content */
+    .guide-content {
+      flex: 1;
+      padding: 2.5rem 3.5rem;
+      max-width: 1200px;
+      background: #f8fafc;
+    }
+    .section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 2.25rem;
+      margin-bottom: 2.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      transition: box-shadow 0.2s ease;
+    }
+    .section-card:hover {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    }
+    .section-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 0.75rem;
+    }
+    .section-title i {
+      color: var(--guide-accent);
+    }
+    .section-subtitle {
+      font-size: 1.05rem;
+      color: #64748b;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+    }
+    h3.sub-heading {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin: 1.75rem 0 0.85rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h4.topic-heading {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #334155;
+      margin: 1.25rem 0 0.5rem 0;
+    }
+    p, li {
+      color: #334155;
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+    /* Alerts and Callouts */
+    .callout {
+      border-radius: 0.5rem;
+      padding: 1.15rem 1.25rem;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      border-left: 4px solid;
+    }
+    .callout-info {
+      background: #eff6ff;
+      border-color: #3b82f6;
+      color: #1e40af;
+    }
+    .callout-success {
+      background: #ecfdf5;
+      border-color: #10b981;
+      color: #065f46;
+    }
+    .callout-warning {
+      background: #fffbeb;
+      border-color: #f59e0b;
+      color: #92400e;
+    }
+    .callout-danger {
+      background: #fef2f2;
+      border-color: #ef4444;
+      color: #991b1b;
+    }
+    .callout i {
+      font-size: 1.25rem;
+      margin-top: 0.1rem;
+    }
+    /* Feature Grid / Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .mini-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      transition: all 0.2s ease;
+    }
+    .mini-card:hover {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transform: translateY(-2px);
+    }
+    .mini-card-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #0f172a;
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    /* Tables */
+    .guide-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin: 1.25rem 0;
+      font-size: 0.88rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+    .guide-table th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .guide-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: #475569;
+      vertical-align: top;
+    }
+    .guide-table tr:last-child td {
+      border-bottom: none;
+    }
+    .guide-table tr:hover td {
+      background: #f8fafc;
+    }
+    /* Code blocks */
+    .code-block {
+      background: var(--code-bg);
+      color: var(--code-color);
+      border-radius: 0.5rem;
+      padding: 1.25rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      position: relative;
+    }
+    .code-copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255,255,255,0.15);
+      color: #cbd5e1;
+      border: none;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .code-copy-btn:hover {
+      background: rgba(255,255,255,0.3);
+      color: #fff;
+    }
+    /* Diagrams */
+    .diagram-container {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      text-align: center;
+      overflow-x: auto;
+    }
+    /* Badges */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .pill-blue { background: #e0f2fe; color: #0284c7; }
+    .pill-green { background: #dcfce7; color: #15803d; }
+    .pill-amber { background: #fef3c7; color: #b45309; }
+    .pill-purple { background: #f3e8ff; color: #7e22ce; }
+    .pill-rose { background: #ffe4e6; color: #be123c; }
+    .pill-slate { background: #f1f5f9; color: #475569; }
+
+    /* Interactive Pill Switcher */
+    .tab-pills {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 0.5rem;
+    }
+    .tab-pill-btn {
+      background: none;
+      border: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #64748b;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-pill-btn.active {
+      background: var(--guide-accent);
+      color: #ffffff;
+    }
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .guide-nav { display: none; }
+      .guide-content { padding: 1.5rem; }
+      .guide-search-wrap { width: 220px; }
+    }
+    @media (max-width: 600px) {
+      .guide-header {
+        height: auto;
+        min-height: 70px;
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+      .guide-brand { min-width: 0; flex: 1 1 auto; }
+      .guide-brand span { white-space: normal; line-height: 1.2; }
+      .guide-search-wrap { width: 100%; order: 3; }
+      .guide-container { min-height: auto; }
+      .guide-content { padding: 1rem; min-width: 0; }
+      .guide-content h1 { font-size: 1.65rem !important; }
+      .guide-content h2 { font-size: 1.25rem; }
+      .guide-content h3 { font-size: 1.05rem; }
+      .guide-content pre,
+      .guide-content .code-block,
+      .guide-content .formula-box,
+      .guide-content .callout { max-width: 100%; overflow-x: auto; }
+      .guide-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .guide-table thead,
+      .guide-table tbody { display: table; min-width: 620px; width: 100%; }
+      .guide-table th,
+      .guide-table td { white-space: nowrap; padding: 0.65rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header class="guide-header">
+    <div class="guide-brand">
+      <div style="font-size: 1.6rem; color: #38bdf8;"><i class="bi bi-book-half"></i></div>
+      <div>
+        <div style="font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 0.5rem;">
+          <span>Bachat Gat Platform</span>
+          <span class="badge-tag">Documentation & Master Guide</span>
+        </div>
+        <div style="font-size: 0.75rem; color: #94a3b8;">End-to-End System Architecture, Financial Workflows & Module Reference</div>
+      </div>
+    </div>
+
+    <!-- Quick Search -->
+    <div class="guide-search-wrap">
+      <i class="bi bi-search"></i>
+      <input type="text" id="guideSearchInput" placeholder="Filter modules, formulas, APIs (e.g. interest rate, loan)..." onkeyup="filterGuide()">
+    </div>
+
+    <!-- Quick Portal Links -->
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="/login.html" class="btn-primary-custom" style="padding: 0.45rem 1rem; font-size: 0.85rem; border-radius: 6px; background: #0284c7; color: #fff; text-decoration: none;">
+        <i class="bi bi-box-arrow-in-right"></i> Open Portal
+      </a>
+      <a href="/index.html" class="btn-outline-custom" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; border-radius: 6px; color: #94a3b8; border: 1px solid rgba(255,255,255,0.2); text-decoration: none;">
+        <i class="bi bi-house"></i> Home
+      </a>
+    </div>
+  </header>
+
+  <!-- Layout Container -->
+  <div class="guide-container">
+
+    <!-- Sticky Navigation Sidebar -->
+    <nav class="guide-nav">
+      <div class="guide-nav-title">System Overview</div>
+      <ul>
+        <li><a href="#domain-intro" class="active"><i class="bi bi-info-circle"></i> 1. What is Bachat Gat?</a></li>
+        <li><a href="#tech-stack"><i class="bi bi-stack"></i> 2. Architecture & Tech Stack</a></li>
+        <li><a href="#user-roles"><i class="bi bi-shield-check"></i> 3. Roles & Multi-Tenancy</a></li>
+        <li><a href="#system-flow"><i class="bi bi-arrow-repeat"></i> 4. End-to-End System Flow</a></li>
+      </ul>
+
+      <div class="guide-nav-title">Core Modules Deep-Dive</div>
+      <ul>
+        <li><a href="#mod-auth"><i class="bi bi-key-fill"></i> Auth & Security <span class="module-badge">MOD-01</span></a></li>
+        <li><a href="#mod-groups"><i class="bi bi-buildings-fill"></i> Group Governance <span class="module-badge">MOD-02</span></a></li>
+        <li><a href="#mod-masterdata"><i class="bi bi-sliders"></i> Master Rules & Interest <span class="module-badge">MOD-03</span></a></li>
+        <li><a href="#mod-members"><i class="bi bi-people-fill"></i> Member & KYC Directory <span class="module-badge">MOD-04</span></a></li>
+        <li><a href="#mod-collections"><i class="bi bi-wallet2"></i> Monthly Collections <span class="module-badge">MOD-05</span></a></li>
+        <li><a href="#mod-loans"><i class="bi bi-cash-stack"></i> Loans & Repayment <span class="module-badge">MOD-06</span></a></li>
+        <li><a href="#mod-transactions"><i class="bi bi-journal-text"></i> Double-Entry Ledger <span class="module-badge">MOD-07</span></a></li>
+        <li><a href="#mod-income-expense"><i class="bi bi-receipt"></i> Income & Expenses <span class="module-badge">MOD-08</span></a></li>
+        <li><a href="#mod-meetings"><i class="bi bi-calendar-event"></i> Meetings & Attendance <span class="module-badge">MOD-09</span></a></li>
+        <li><a href="#mod-reports"><i class="bi bi-bar-chart-line-fill"></i> Reports & Passbooks <span class="module-badge">MOD-10</span></a></li>
+        <li><a href="#mod-documents"><i class="bi bi-folder-fill"></i> Document Vault <span class="module-badge">MOD-11</span></a></li>
+        <li><a href="#mod-audit"><i class="bi bi-shield-lock-fill"></i> Audit Trail & Compliance <span class="module-badge">MOD-12</span></a></li>
+        <li><a href="#mod-portal"><i class="bi bi-person-circle"></i> Member Self-Service <span class="module-badge">MOD-13</span></a></li>
+        <li><a href="#mod-i18n"><i class="bi bi-translate"></i> Multilingual Engine <span class="module-badge">MOD-14</span></a></li>
+      </ul>
+
+      <div class="guide-nav-title">Reference & Runbooks</div>
+      <ul>
+        <li><a href="#financial-math"><i class="bi bi-calculator"></i> Loan & Interest Math</a></li>
+        <li><a href="#db-schema"><i class="bi bi-database"></i> Entity Relationship Map</a></li>
+        <li><a href="#api-reference"><i class="bi bi-braces"></i> REST API Catalog</a></li>
+        <li><a href="#runbooks"><i class="bi bi-journal-bookmark-fill"></i> Step-by-Step Operator Runbooks</a></li>
+        <li><a href="#faq"><i class="bi bi-question-circle"></i> FAQ & Troubleshooting</a></li>
+      </ul>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="guide-content">
+
+      <!-- HERO BANNER -->
+      <div style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; padding: 2.5rem; border-radius: 1rem; margin-bottom: 2.5rem; box-shadow: 0 10px 25px -5px rgba(2, 132, 199, 0.3);">
+        <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem;">
+          <span style="background: rgba(255,255,255,0.2); padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;">ENTERPRISE ARCHITECTURE GUIDE</span>
+          <span style="background: #10b981; color: #fff; padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700;">PRODUCTION READY</span>
+        </div>
+        <h1 style="font-size: 2.3rem; font-weight: 800; line-height: 1.2; margin-bottom: 1rem;">
+          Bachat Gat (SHG) Management Platform
+        </h1>
+        <p style="font-size: 1.1rem; opacity: 0.95; max-width: 850px; line-height: 1.6; margin-bottom: 1.5rem;">
+          A complete, end-to-end digital banking and micro-lending operating system designed specifically for women's Self-Help Groups (बचत गट). From recurring monthly savings dues to dynamic loan sanctions, reducing-balance EMI schedules, double-entry financial ledger accounting, and member passbooks.
+        </p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <a href="#domain-intro" style="background: #ffffff; color: #0284c7; padding: 0.6rem 1.25rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.9rem; text-decoration: none;">
+            <i class="bi bi-compass"></i> Start Learning From The Basics
+          </a>
+          <a href="#financial-math" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 0.6rem 1.25rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; text-decoration: none;">
+            <i class="bi bi-calculator"></i> Loan Interest Formulas
+          </a>
+          <a href="#api-reference" style="background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); padding: 0.6rem 1.25rem; border-radius: 0.5rem; font-weight: 600; font-size: 0.9rem; text-decoration: none;">
+            <i class="bi bi-braces"></i> API Reference
+          </a>
+        </div>
+      </div>
+
+      <!-- SECTION 1: DOMAIN INTRO -->
+      <section id="domain-intro" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-info-circle-fill"></i> 1. What is a Bachat Gat? The Domain Fundamentals</h2>
+        <div class="section-subtitle">Understanding the socio-economic foundation and operational cycle of Self-Help Groups in India</div>
+
+        <p>
+          A <strong>Bachat Gat</strong> (Self-Help Group or SHG / महिला बचत गट) is a community-based microfinance group typically comprising <strong>10 to 20 women</strong> from similar socio-economic backgrounds. Guided by India's <em>National Rural Livelihoods Mission (NRLM)</em> and <em>NABARD</em> guidelines, the group pools small regular savings, deposits them in a collective bank account, and provides low-interest internal loans to members for agriculture, small enterprises, healthcare, or emergencies.
+        </p>
+
+        <div class="callout callout-info">
+          <i class="bi bi-lightbulb-fill"></i>
+          <div>
+            <strong>Core Philosophy:</strong> Mutual trust, collective financial empowerment, and zero reliance on high-cost informal moneylenders. All interest earned on member loans is <em>not an external profit</em>—it belongs to the group, expanding the total corpus and distributed back to members as annual dividends.
+          </div>
+        </div>
+
+        <h3 class="sub-heading"><i class="bi bi-clock-history"></i> The Real-World Monthly Cycle</h3>
+        <div class="grid-3">
+          <div class="mini-card">
+            <div class="mini-card-title"><span class="pill pill-blue">Step 1</span> Monthly Savings Pool</div>
+            <p style="font-size: 0.85rem; color: #64748b;">
+              Every member commits to saving a fixed amount (e.g. ₹5,000) by a designated due date (e.g. 10th of every month). 20 members x ₹5,000 = ₹1,00,000 monthly fresh capital.
+            </p>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title"><span class="pill pill-green">Step 2</span> Internal Lending</div>
+            <p style="font-size: 0.85rem; color: #64748b;">
+              Members apply for loans. Group leaders (President, Secretary, Treasurer) review the request during the monthly meeting, set repayment tenure and interest rate, and disburse funds.
+            </p>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title"><span class="pill pill-amber">Step 3</span> Repayment & Compounding</div>
+            <p style="font-size: 0.85rem; color: #64748b;">
+              Borrowers repay EMIs (Principal + Interest). The principal returns to the savings pool for new loans, while interest increases group earnings and member net worth.
+            </p>
+          </div>
+        </div>
+
+        <h3 class="sub-heading"><i class="bi bi-exclamation-diamond-fill" style="color: #ef4444;"></i> Why Digital Software is Essential</h3>
+        <p>Traditionally, Bachat Gats maintain handwritten notebooks (हस्ताक्षरातील वह्या). This suffers from severe drawbacks:</p>
+        <ul style="padding-left: 1.5rem; margin-bottom: 1rem;">
+          <li><strong>Human Calculation Mistakes:</strong> Calculating reducing-balance compound interest and apportioning principal vs interest is error-prone.</li>
+          <li><strong>Disputes Over Collections:</strong> Missing receipts lead to arguments regarding who paid, who defaulted, or who owes late penalties.</li>
+          <li><strong>No Real-Time Visibility for Members:</strong> Members only learn their cumulative savings or loan balance by asking the treasurer once a month.</li>
+          <li><strong>Audit & Bank Linkage Hurdles:</strong> Commercial banks demand transparent, auditable digital records before sanctioning SHG credit linkage loans.</li>
+        </ul>
+        <p><strong>This platform digitizes every single step</strong>—providing an automated, transparent, multi-tenant cloud banking solution tailored for Bachat Gats.</p>
+      </section>
+
+      <!-- SECTION 2: ARCHITECTURE & TECH STACK -->
+      <section id="tech-stack" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-stack"></i> 2. System Architecture & Technology Stack</h2>
+        <div class="section-subtitle">Architectural design, component interactions, and production runtime environment</div>
+
+        <p>
+          The application follows a clean <strong>Three-Tier Layered Architecture</strong> with stateless authentication, financial precision models, and multi-tenant data isolation.
+        </p>
+
+        <div class="diagram-container">
+          <pre class="mermaid">
+graph TD
+    Client["Client Browsers (Desktop / Mobile / Tablet)"]
+    
+    subgraph Frontend["Frontend Tier (Static Web Server)"]
+        UI_Admin["Admin UI (/admin/*.html)"]
+        UI_User["Member Portal (/user/*.html)"]
+        JS_Lib["Vanilla ES6 Modules (api.js, auth.js, common.js, i18n.js)"]
+    end
+    
+    subgraph Security["Security & API Gateway (Spring Security 6)"]
+        Filter["JwtAuthenticationFilter (Stateless Bearer Verification)"]
+        CORS["CORS & CSRF Configuration"]
+    end
+
+    subgraph Backend["Backend Tier (Spring Boot 3 / Java 21)"]
+        Controllers["REST Controllers (@RestController /api/**)"]
+        Services["Business Services (@Service & @Transactional)"]
+        Repos["Data Access Layer (Spring Data JPA / Hibernate)"]
+    end
+
+    subgraph Data["Database & Cloud Services Tier"]
+        DB[(Cloud SQL / PostgreSQL / H2 Embedded)]
+        Storage["Cloud Storage (KYC Docs & Receipts)"]
+        Audit["Audit Logs & Immutable Transactions"]
+    end
+
+    Client --> Frontend
+    Frontend --> Security
+    Security --> Controllers
+    Controllers --> Services
+    Services --> Repos
+    Repos --> DB
+    Services --> Storage
+    Services --> Audit
+          </pre>
+        </div>
+
+        <h3 class="sub-heading">Technology Breakdown</h3>
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th>Layer</th>
+              <th>Technologies Used</th>
+              <th>Key Responsibilities</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Backend Framework</strong></td>
+              <td><span class="pill pill-blue">Java 21</span> <span class="pill pill-slate">Spring Boot 3.2.x</span></td>
+              <td>REST API processing, dependency injection, transaction management, background schedulers.</td>
+            </tr>
+            <tr>
+              <td><strong>Security & Auth</strong></td>
+              <td><span class="pill pill-purple">Spring Security</span> <span class="pill pill-slate">JJWT 0.11.5</span> <span class="pill pill-slate">BCrypt</span></td>
+              <td>Stateless JWT token issuance, password salting/hashing, role-based method security (<code>@PreAuthorize</code>).</td>
+            </tr>
+            <tr>
+              <td><strong>Data & Persistence</strong></td>
+              <td><span class="pill pill-amber">Spring Data JPA</span> <span class="pill pill-slate">Hibernate</span> <span class="pill pill-slate">BigDecimal</span></td>
+              <td>Relational mapping, strict financial math (<code>RoundingMode.HALF_UP</code>), foreign key constraints.</td>
+            </tr>
+            <tr>
+              <td><strong>Frontend & UI</strong></td>
+              <td><span class="pill pill-green">HTML5</span> <span class="pill pill-slate">Vanilla CSS3</span> <span class="pill pill-slate">JavaScript (ES6+)</span></td>
+              <td>Zero heavy framework overhead, blazing fast load times, responsive flex/grid layouts.</td>
+            </tr>
+            <tr>
+              <td><strong>Icons & Charts</strong></td>
+              <td><span class="pill pill-slate">Bootstrap Icons 1.11.3</span> <span class="pill pill-slate">Chart.js 4.4</span></td>
+              <td>Interactive visual passbooks, loan breakdown charts, collection status trend graphs.</td>
+            </tr>
+            <tr>
+              <td><strong>Cloud & Deployment</strong></td>
+              <td><span class="pill pill-blue">Google Cloud Run</span> <span class="pill pill-slate">Docker</span> <span class="pill pill-slate">Cloud Storage</span></td>
+              <td>Serverless auto-scaling containerization, environment secrets in Secret Manager.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- SECTION 3: ROLES & MULTI-TENANCY -->
+      <section id="user-roles" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-shield-check"></i> 3. User Roles, Security & Multi-Tenancy</h2>
+        <div class="section-subtitle">Strict tenant boundary isolation and granular role-based authorization</div>
+
+        <p>
+          Security and financial confidentiality are paramount. A member of <em>Mahila Pragati Bachat Gat</em> must never be able to view financial transactions, savings, or member records of <em>Saraswati Bachat Gat</em>.
+        </p>
+
+        <div class="grid-3">
+          <div class="mini-card" style="border-top: 4px solid #8b5cf6;">
+            <div class="mini-card-title"><span class="pill pill-purple">ROLE_SUPER_ADMIN</span> System Administrator</div>
+            <p style="font-size: 0.85rem; color: #475569; margin: 0.5rem 0;">
+              High-level administrative authority. Can create new Bachat Gats, manage client admins, monitor system health, inspect global audit trails, and review cross-group analytics.
+            </p>
+            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">Portal: /admin/super-dashboard.html</div>
+          </div>
+
+          <div class="mini-card" style="border-top: 4px solid #0284c7;">
+            <div class="mini-card-title"><span class="pill pill-blue">ROLE_ADMIN</span> Group President / Secretary</div>
+            <p style="font-size: 0.85rem; color: #475569; margin: 0.5rem 0;">
+              <strong>Group Tenant Admin:</strong> Scoped strictly to their assigned <code>groupId</code> (e.g., <code>bg-001</code>). Manages members, configures interest rate policies, sanctions loans, logs savings collections, expenses, and meeting minutes.
+            </p>
+            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">Portal: /admin/dashboard.html</div>
+          </div>
+
+          <div class="mini-card" style="border-top: 4px solid #10b981;">
+            <div class="mini-card-title"><span class="pill pill-green">ROLE_USER</span> Individual SHG Member</div>
+            <p style="font-size: 0.85rem; color: #475569; margin: 0.5rem 0;">
+              <strong>Strict Single-Member Privacy:</strong> Scoped strictly to their own member ID. Can view personal savings balance, passbook transactions, loan repayment schedule, and apply for loans online.
+            </p>
+            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">Portal: /user/dashboard.html</div>
+          </div>
+        </div>
+
+        <h3 class="sub-heading"><i class="bi bi-lock-fill"></i> Multi-Tenant Isolation Enforcement</h3>
+        <p>Multi-tenancy is enforced at three distinct checkpoints:</p>
+        <ol style="padding-left: 1.5rem; margin-bottom: 1rem;">
+          <li><strong>JWT Claims Injection:</strong> During authentication, the backend signs the user's assigned <code>groupId</code> and <code>memberId</code> directly into the cryptographic JWT token payload.</li>
+          <li><strong>Spring Security Context:</strong> Controller requests extract the logged-in user's identity via <code>@AuthenticationPrincipal UserDetails</code> or <code>SecurityContextHolder</code>.</li>
+          <li><strong>Database Scoped Queries:</strong> Every repository query filters records by <code>WHERE group.id = :groupId</code>. Group admins attempting to query another group's ID receive an immediate <code>403 Access Denied</code> error.</li>
+        </ol>
+      </section>
+
+      <!-- SECTION 4: SYSTEM FLOW -->
+      <section id="system-flow" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-arrow-repeat"></i> 4. End-to-End System Operational Flow</h2>
+        <div class="section-subtitle">Visual lifecycle of standard Bachat Gat operations from group setup to monthly close</div>
+
+        <div class="diagram-container">
+          <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Admin as Group Admin (President)
+    actor Member as SHG Member
+    participant Sys as Bachat Gat Platform
+    participant DB as Cloud Database
+
+    Note over Admin, Sys: Phase 1: Onboarding & Policy Setup
+    Admin->>Sys: 1. Configure Group Profile & Master Rules (Monthly Bachat ₹5,000, Interest 2%/mo)
+    Sys->>DB: Save Group & GroupMasterData
+    Admin->>Sys: 2. Register Members (Personal details, Aadhaar, Bank Info)
+    Sys->>DB: Save Member entities & generate user login credentials
+
+    Note over Member, Sys: Phase 2: Monthly Recurring Savings Collections
+    Admin->>Sys: 3. Click "Generate Monthly Dues" for current month
+    Sys->>DB: Create idempotent CollectionRecords for all active members
+    Member->>Admin: 4. Pays ₹5,000 via Cash / UPI
+    Admin->>Sys: 5. Record Payment (Receipt generated, Status -> PAID)
+    Sys->>DB: Log Transaction (SAVINGS_DEPOSIT) & increment Member cumulative savings
+
+    Note over Member, Sys: Phase 3: Loan Lifecycle & Repayment
+    Member->>Sys: 6. Submits Loan Application (₹50,000 for 12 months)
+    Admin->>Sys: 7. Reviews application & adjusts Sanction Terms (Interest Rate, Reducing Balance)
+    Admin->>Sys: 8. Sanctions & Disburses Loan
+    Sys->>DB: Generate 12-Month LoanRepaymentSchedule (EMIs)
+    Sys->>DB: Log Transaction (LOAN_DISBURSEMENT)
+    
+    loop Every Month
+        Member->>Admin: 9. Pays Monthly Loan EMI (Principal + Interest)
+        Admin->>Sys: 10. Record Loan Repayment
+        Sys->>DB: Mark RepaymentSchedule entry PAID, update Loan outstanding balance
+        Sys->>DB: Log Transaction (LOAN_REPAYMENT)
+    end
+          </pre>
+        </div>
+      </section>
+
+      <!-- SECTION 5: MODULE-BY-MODULE BREAKDOWN -->
+      <section class="section-card">
+        <h2 class="section-title"><i class="bi bi-boxes"></i> 5. Module-by-Module Deep Dive</h2>
+        <div class="section-subtitle">Detailed breakdown of every subsystem, database entity, REST API, and business rules</div>
+
+        <!-- MODULE 1: AUTHENTICATION -->
+        <div id="mod-auth" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-key-fill" style="color: #6366f1;"></i> Module 1: Authentication, User Management & First-Login Security</h3>
+            <span class="pill pill-purple">Security Subsystem</span>
+          </div>
+
+          <p>
+            Handles user authentication, password salting with BCrypt, JSON Web Token (JWT) generation, first-time login mandatory password change, and automatic routing to role-specific dashboards.
+          </p>
+
+          <h4 class="topic-heading">Key Files & Artifacts</h4>
+          <ul style="font-size: 0.88rem; font-family: monospace; color: #0369a1;">
+            <li>Backend: com.bachatgat.controller.AuthController.java</li>
+            <li>Backend: com.bachatgat.security.JwtAuthenticationFilter.java, JwtTokenProvider.java</li>
+            <li>Backend: com.bachatgat.model.User.java, Role.java</li>
+            <li>Frontend: /login.html, /first-login.html, /js/auth.js, /js/api.js</li>
+          </ul>
+
+          <h4 class="topic-heading">Authentication Workflow</h4>
+          <ol style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li>User enters username & password at <code>/login.html</code>.</li>
+            <li>Request sent to <code>POST /api/auth/login</code>.</li>
+            <li><code>DaoAuthenticationProvider</code> verifies BCrypt hashed password in <code>User</code> table.</li>
+            <li>If <code>user.isFirstLogin() == true</code>, user is redirected to <code>/first-login.html</code> to force a secure password change before accessing any financial records.</li>
+            <li>Successful login issues a JWT bearer token. Client stores token in <code>localStorage</code> and routes:
+              <ul>
+                <li><code>ROLE_SUPER_ADMIN</code> &rarr; <code>/admin/super-dashboard.html</code></li>
+                <li><code>ROLE_ADMIN</code> &rarr; <code>/admin/dashboard.html</code></li>
+                <li><code>ROLE_USER</code> &rarr; <code>/user/dashboard.html</code></li>
+              </ul>
+            </li>
+          </ol>
+        </div>
+
+        <!-- MODULE 2: GROUP GOVERNANCE -->
+        <div id="mod-groups" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-buildings-fill" style="color: #0284c7;"></i> Module 2: Group Multi-Tenancy & Governance</h3>
+            <span class="pill pill-blue">Core Entity</span>
+          </div>
+
+          <p>
+            The root organizational unit. Every Bachat Gat is registered as a distinct <code>Group</code> entity with unique code (e.g. <code>bg-001</code>), registration number, official address, office bearers, and linked bank account.
+          </p>
+
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th>Entity Field</th>
+                <th>Type</th>
+                <th>Business Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>id</code> / <code>groupCode</code></td>
+                <td>String</td>
+                <td>Unique tenant key (e.g. <code>bg-001</code>, <code>BG-MH-2026-0001</code>).</td>
+              </tr>
+              <tr>
+                <td><code>name</code></td>
+                <td>String</td>
+                <td>Official name of the SHG (e.g. <em>Mahila Pragati Bachat Gat</em>).</td>
+              </tr>
+              <tr>
+                <td><code>president</code>, <code>secretary</code>, <code>treasurer</code></td>
+                <td>String</td>
+                <td>Duly elected office bearers responsible for approvals and signoffs.</td>
+              </tr>
+              <tr>
+                <td><code>defaultInterestRate</code></td>
+                <td>BigDecimal</td>
+                <td>Base annual interest rate policy (e.g. <code>24.00</code> for 24% p.a.).</td>
+              </tr>
+              <tr>
+                <td><code>loanInterestType</code></td>
+                <td>String</td>
+                <td><code>REDUCING_BALANCE</code> or <code>FLAT</code>.</td>
+              </tr>
+              <tr>
+                <td><code>bankAccountNumber</code>, <code>ifscCode</code></td>
+                <td>String</td>
+                <td>Commercial bank account details where collective corpus is deposited.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MODULE 3: MASTER DATA & DYNAMIC INTEREST RATES -->
+        <div id="mod-masterdata" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-sliders" style="color: #d97706;"></i> Module 3: Master Data & Dynamic Interest Rate Policy</h3>
+            <span class="pill pill-amber">Configurable Financial Rules</span>
+          </div>
+
+          <div class="callout callout-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>Manual Interest Rate Customization:</strong> In response to Bachat Gat operational requirements, interest rates are <em>never fixed or hardcoded</em>. Each group's admin has full manual control to customize the interest rate in both <strong>Monthly (%/month)</strong> and <strong>Annual (% p.a.)</strong> terms, along with the calculation method.
+            </div>
+          </div>
+
+          <h4 class="topic-heading">Configurable Policy Parameters</h4>
+          <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li><strong>Monthly Bachat (₹):</strong> The fixed monthly savings contribution per member (e.g. ₹2,000, ₹5,000).</li>
+            <li><strong>Collection Due Day:</strong> Calendar day each month when dues must be paid (e.g. 10th).</li>
+            <li><strong>Loan Interest Rate (% / month & % p.a.):</strong> Two-way synchronized inputs. E.g., setting 2% per month automatically sets 24% p.a.</li>
+            <li><strong>Loan Calculation Type:</strong>
+              <ul>
+                <li><code>REDUCING_BALANCE</code>: EMI decreases interest burden as principal is repaid.</li>
+                <li><code>FLAT</code>: Interest is charged on initial principal across entire duration.</li>
+              </ul>
+            </li>
+            <li><strong>Maximum Loan Limit (₹):</strong> Upper ceiling on member borrowability (e.g. ₹1,00,000).</li>
+            <li><strong>Late Payment Penalty (₹):</strong> Flat fee per overdue occurrence (e.g. ₹100.00).</li>
+            <li><strong>Dividend Allocation:</strong> % of annual profit distributed back to members (e.g. 100%).</li>
+          </ul>
+
+          <h4 class="topic-heading">Where to Configure</h4>
+          <p style="font-size: 0.9rem;">
+            Group admins can configure these rules via <code>/admin/master-data.html</code> (Master Data Settings) or directly in <code>/admin/groups.html</code> under the "Financial Rules & Policies" modal.
+          </p>
+        </div>
+
+        <!-- MODULE 4: MEMBERS & KYC -->
+        <div id="mod-members" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-people-fill" style="color: #10b981;"></i> Module 4: Member Registration, KYC & Directory</h3>
+            <span class="pill pill-green">Membership Subsystem</span>
+          </div>
+
+          <p>
+            Manages digital onboarding of members. Every member is assigned a unique member code (e.g. <code>MEM-001</code>) and linked to a system user account for self-service portal access.
+          </p>
+
+          <h4 class="topic-heading">Member Data Model Highlights</h4>
+          <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li><strong>Personal Info:</strong> Full name, Marathi/regional name, date of birth, mobile number, residential address.</li>
+            <li><strong>KYC Identifiers:</strong> Masked Aadhaar number (<code>XXXX-XXXX-1234</code>) and PAN number with verification status badges.</li>
+            <li><strong>Bank Account:</strong> Member's personal savings account for electronic loan disbursements.</li>
+            <li><strong>Nominee Details:</strong> Nominee name, relationship, and contact for emergency settlement.</li>
+            <li><strong>Financial Standing:</strong> Tracks <code>totalSavingsAccumulated</code>, active loans, and status (<code>ACTIVE</code>, <code>SUSPENDED</code>, <code>EXITED</code>).</li>
+          </ul>
+        </div>
+
+        <!-- MODULE 5: MONTHLY COLLECTIONS -->
+        <div id="mod-collections" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-wallet2" style="color: #0284c7;"></i> Module 5: Monthly Savings Collections & Due Generation Engine</h3>
+            <span class="pill pill-blue">Automated Billing Engine</span>
+          </div>
+
+          <p>
+            The recurring engine that drives group capitalization. Every month, the platform generates collection records for all active members.
+          </p>
+
+          <div class="callout callout-warning">
+            <i class="bi bi-shield-exclamation"></i>
+            <div>
+              <strong>Idempotent Due Generation:</strong> The generation algorithm uses a unique composite constraint <code>(groupId, memberId, collectionMonth, collectionYear)</code>. Clicking "Generate Monthly Due" multiple times will <em>never duplicate dues</em> or double-charge members.
+            </div>
+          </div>
+
+          <h4 class="topic-heading">Collection Status State Transitions</h4>
+          <div class="diagram-container">
+            <pre class="mermaid">
+stateDiagram-v2
+    [*] --> PENDING: Generation Engine creates due (e.g. ₹5,000 on 1st of month)
+    PENDING --> PAID: Full payment recorded before due date
+    PENDING --> PARTIAL: Member pays partial amount (e.g. ₹3,000 paid, ₹2,000 remaining)
+    PARTIAL --> PAID: Balance amount recorded
+    PENDING --> OVERDUE: Due date expires without payment (+ Late Penalty applied)
+    OVERDUE --> PAID: Full overdue amount + penalty cleared
+            </pre>
+          </div>
+
+          <h4 class="topic-heading">Payment Recording Features</h4>
+          <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li><strong>Payment Modes:</strong> <code>CASH</code> (physical meeting collection), <code>UPI</code> (PhonePe, Google Pay, Paytm), <code>BANK_TRANSFER</code> (NEFT / IMPS).</li>
+            <li><strong>Automated Ledger Entry:</strong> Recording a collection automatically creates a <code>SAVINGS_DEPOSIT</code> transaction and updates the member's cumulative savings passbook.</li>
+            <li><strong>Digital Receipt:</strong> Instant receipt number (e.g. <code>REC-202610-0012</code>) printable or downloadable as PDF.</li>
+          </ul>
+        </div>
+
+        <!-- MODULE 6: LOANS & REPAYMENTS -->
+        <div id="mod-loans" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-cash-stack" style="color: #10b981;"></i> Module 6: End-to-End Loan Management Lifecycle</h3>
+            <span class="pill pill-green">Micro-Lending Engine</span>
+          </div>
+
+          <p>
+            Provides complete lifecycle automation from loan application by the member, admin committee review, manual interest rate configuration, sanctioning, disbursement, monthly EMI schedule generation, to full loan closure.
+          </p>
+
+          <h4 class="topic-heading">Complete Loan State Machine</h4>
+          <div class="diagram-container">
+            <pre class="mermaid">
+stateDiagram-v2
+    [*] --> APPLIED: Member applies via portal (/user/loan-application.html)
+    APPLIED --> UNDER_REVIEW: Admin committee inspects member savings & eligibility
+    UNDER_REVIEW --> REJECTED: Application denied with mandatory audit remarks
+    UNDER_REVIEW --> SANCTIONED: Approved with manual interest rate override & tenure
+    SANCTIONED --> DISBURSED: Funds transferred to member bank account or cash handed
+    DISBURSED --> ACTIVE: Repayment schedule generated (Monthly EMIs)
+    ACTIVE --> ACTIVE: Member pays monthly EMIs (Principal + Interest)
+    ACTIVE --> CLOSED: Final EMI paid or early pre-closure settled
+            </pre>
+          </div>
+
+          <h4 class="topic-heading">Manual Interest Rate Customization During Sanction</h4>
+          <p style="font-size: 0.9rem;">
+            When an admin opens the sanction modal in <code>/admin/loans.html</code> or <code>/admin/loan-applications.html</code>, the platform provides:
+          </p>
+          <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li><strong>Monthly Interest Rate (% / month):</strong> E.g., <code>1.50%</code> or <code>2.00%</code>.</li>
+            <li><strong>Annual Interest Rate (% p.a.):</strong> Automatically calculates <code>Monthly x 12</code> (e.g. <code>18.00%</code> or <code>24.00%</code>).</li>
+            <li><strong>Live EMI Preview:</strong> Dynamically calculates monthly EMI, total interest, and total payable in real time before sanctioning.</li>
+            <li><strong>Disbursement Mode:</strong> Bank transfer reference number or cash voucher note.</li>
+          </ul>
+        </div>
+
+        <!-- MODULE 7: DOUBLE-ENTRY LEDGER -->
+        <div id="mod-transactions" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-journal-text" style="color: #6366f1;"></i> Module 7: Double-Entry Financial Accounting & Transaction Journal</h3>
+            <span class="pill pill-purple">Accounting Integrity</span>
+          </div>
+
+          <p>
+            Every financial event in the platform logs an immutable <code>Transaction</code> record. This ensures strict compliance with double-entry accounting principles and eliminates discrepancy between cash-in-hand, bank balances, and member ledgers.
+          </p>
+
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th>Transaction Type</th>
+                <th>Debit / Credit</th>
+                <th>Account Affected</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>SAVINGS_DEPOSIT</code></td>
+                <td><span class="pill pill-green">CREDIT</span></td>
+                <td>Group Cash/Bank (+), Member Savings (+)</td>
+                <td>Member deposits monthly savings share.</td>
+              </tr>
+              <tr>
+                <td><code>LOAN_DISBURSEMENT</code></td>
+                <td><span class="pill pill-rose">DEBIT</span></td>
+                <td>Group Cash/Bank (-), Member Loan Liability (+)</td>
+                <td>Sanctioned loan amount given to borrower.</td>
+              </tr>
+              <tr>
+                <td><code>LOAN_REPAYMENT</code></td>
+                <td><span class="pill pill-green">CREDIT</span></td>
+                <td>Group Cash/Bank (+), Member Loan Liability (-)</td>
+                <td>Monthly EMI received (split into Principal & Interest).</td>
+              </tr>
+              <tr>
+                <td><code>PENALTY</code></td>
+                <td><span class="pill pill-green">CREDIT</span></td>
+                <td>Group Cash/Bank (+), Group Income (+)</td>
+                <td>Late payment fine collected.</td>
+              </tr>
+              <tr>
+                <td><code>EXPENSE</code></td>
+                <td><span class="pill pill-rose">DEBIT</span></td>
+                <td>Group Cash/Bank (-), Group Expense (+)</td>
+                <td>Operational cost (tea, audit, stationery) paid.</td>
+              </tr>
+              <tr>
+                <td><code>DIVIDEND</code></td>
+                <td><span class="pill pill-rose">DEBIT</span></td>
+                <td>Group Surplus (-), Member Savings (+)</td>
+                <td>Year-end profit distribution among members.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- MODULE 8: INCOME & EXPENSES -->
+        <div id="mod-income-expense" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-receipt" style="color: #be123c;"></i> Module 8: Group Income & Operational Expenses</h3>
+            <span class="pill pill-rose">Expense Management</span>
+          </div>
+
+          <p>
+            Beyond member savings, Bachat Gats incur day-to-day administrative costs and receive non-member revenues:
+          </p>
+          <div class="grid-2">
+            <div class="mini-card">
+              <div class="mini-card-title"><i class="bi bi-piggy-bank-fill" style="color: #10b981;"></i> Other Income Categories</div>
+              <ul style="font-size: 0.85rem; padding-left: 1.25rem;">
+                <li>Commercial bank interest on fixed deposits or savings account.</li>
+                <li>New member admission/registration fees.</li>
+                <li>Government subsidies or NGO development grants.</li>
+                <li>Proceeds from collective SHG stall or exhibition sales.</li>
+              </ul>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-title"><i class="bi bi-receipt" style="color: #ef4444;"></i> Group Expense Categories</div>
+              <ul style="font-size: 0.85rem; padding-left: 1.25rem;">
+                <li>Annual financial audit and accountant fees.</li>
+                <li>Meeting refreshments (tea, snacks for members).</li>
+                <li>Stationery, passbooks, registers, and printing.</li>
+                <li>Travel allowance for bank visits and block meetings.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODULE 9: MEETINGS -->
+        <div id="mod-meetings" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-calendar-event" style="color: #0d9488;"></i> Module 9: Meeting Minutes & Attendance Register</h3>
+            <span class="pill pill-slate">Governance & Records</span>
+          </div>
+          <p>
+            SHG bylaws mandate monthly group gatherings. This module records meeting date, venue, agenda, individual member attendance (Present/Absent/Excused), resolutions passed, and digital minutes signed by the Secretary.
+          </p>
+        </div>
+
+        <!-- MODULE 10: REPORTS & PASSBOOKS -->
+        <div id="mod-reports" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-bar-chart-line-fill" style="color: #0284c7;"></i> Module 10: Financial Reports, Balance Sheets & Member Passbooks</h3>
+            <span class="pill pill-blue">Auditing & Analytics</span>
+          </div>
+          <p>
+            Provides instant one-click generation of statutory financial reports compliant with NABARD and bank credit inspection norms:
+          </p>
+          <ul style="padding-left: 1.5rem; font-size: 0.9rem;">
+            <li><strong>Member Savings Passbook:</strong> Detailed chronological ledger of every monthly deposit and interest earned.</li>
+            <li><strong>Group Balance Sheet:</strong> Assets (Cash in bank, Cash in hand, Outstanding loans receivable) vs Liabilities (Total member savings deposits, Retained earnings).</li>
+            <li><strong>Loan Portfolio NPA / Overdue Report:</strong> Flags delayed EMIs, delinquency aging (30/60/90 days), and risk provisions.</li>
+            <li><strong>Export Capabilities:</strong> Formatted print-ready PDF and CSV/Excel exports for auditor review.</li>
+          </ul>
+        </div>
+
+        <!-- MODULE 11: DOCUMENTS -->
+        <div id="mod-documents" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-folder-fill" style="color: #d97706;"></i> Module 11: Document Vault & Cloud Storage</h3>
+            <span class="pill pill-amber">Digital Records</span>
+          </div>
+          <p>
+            Secure, encrypted document management for SHG registration certificates, member Aadhaar/PAN cards, signed promissory loan agreements, and bank statements. Stored in Google Cloud Storage with restricted pre-signed URL access.
+          </p>
+        </div>
+
+        <!-- MODULE 12: AUDIT LOGS -->
+        <div id="mod-audit" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-shield-lock-fill" style="color: #64748b;"></i> Module 12: Audit Logs & Compliance Trail</h3>
+            <span class="pill pill-purple">Tamper Evident</span>
+          </div>
+          <p>
+            Every critical action—changing loan interest rates, sanctioning a loan, recording a collection, modifying group rules, or resetting a password—creates an immutable <code>AuditLog</code> record containing:
+          </p>
+          <div style="font-family: monospace; font-size: 0.85rem; background: #f1f5f9; padding: 0.75rem 1rem; border-radius: 6px; margin: 0.5rem 0;">
+            [Timestamp] [User: groupadmin] [Role: ADMIN] [Action: UPDATE_INTEREST_RATE] [Entity: GROUP_MASTER_DATA] [Details: Interest rate updated from 2.0% to 1.5% per month] [Client IP: 192.168.1.10]
+          </div>
+        </div>
+
+        <!-- MODULE 13: MEMBER PORTAL -->
+        <div id="mod-portal" class="searchable-section" style="margin-bottom: 2.5rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-person-circle" style="color: #10b981;"></i> Module 13: Member Self-Service Portal</h3>
+            <span class="pill pill-green">Empowerment UI</span>
+          </div>
+          <p>
+            Dedicated responsive portal accessible on smartphones. Women members can log in 24/7 to inspect their total savings, view upcoming payment due dates, check active loan repayment progress, apply for new loans, and review official group rules.
+          </p>
+        </div>
+
+        <!-- MODULE 14: MULTILINGUAL -->
+        <div id="mod-i18n" class="searchable-section" style="margin-bottom: 1rem; padding-top: 1rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1rem;">
+            <h3 class="sub-heading" style="margin: 0;"><i class="bi bi-translate" style="color: #0284c7;"></i> Module 14: Multilingual Translation Engine</h3>
+            <span class="pill pill-blue">Localization</span>
+          </div>
+          <p>
+            Supports full native localization in <strong>English, Marathi (मराठी), and Hindi (हिन्दी)</strong>. All UI labels dynamically translate via <code>/js/i18n.js</code> and JSON dictionary files without page reload.
+          </p>
+        </div>
+      </section>
+
+      <!-- SECTION 6: FINANCIAL MATH & INTEREST FORMULAS -->
+      <section id="financial-math" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-calculator"></i> 6. Financial Math & Loan Calculation Formulas</h2>
+        <div class="section-subtitle">Precise mathematical formulation for Reducing Balance EMI vs Flat Interest Rate</div>
+
+        <p>
+          Bachat Gats in India use two different methodologies for loan interest calculations. The platform supports both dynamically.
+        </p>
+
+        <div class="grid-2">
+          <!-- Method 1: Reducing Balance -->
+          <div class="mini-card" style="border: 2px solid #0284c7; background: #fff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-blue">Method 1</span>
+              <strong style="color: #0284c7;">Reducing Balance (घटती बाकी)</strong>
+            </div>
+            <p style="font-size: 0.85rem; color: #475569;">
+              Interest is charged <em>only on the remaining unpaid principal</em> each month. As the borrower repays principal, the monthly interest shrinks.
+            </p>
+            <div class="code-block" style="padding: 0.75rem; font-size: 0.8rem;">
+EMI = [P &times; r &times; (1 + r)^n] / [(1 + r)^n - 1]
+
+Where:
+P = Principal Loan Amount (e.g. ₹50,000)
+r = Monthly Interest Rate (e.g. 2% = 0.02)
+n = Tenure in Months (e.g. 12)
+            </div>
+            <div style="font-size: 0.85rem; background: #f0f9ff; padding: 0.6rem; border-radius: 4px; color: #0369a1;">
+              <strong>Example (₹50,000 @ 2%/mo for 12 mos):</strong><br>
+              Monthly EMI: <strong>₹4,727.98</strong><br>
+              Total Interest Paid: <strong>₹6,735.75</strong><br>
+              Total Repayment: <strong>₹56,735.75</strong>
+            </div>
+          </div>
+
+          <!-- Method 2: Flat Rate -->
+          <div class="mini-card" style="border: 2px solid #10b981; background: #fff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span class="pill pill-green">Method 2</span>
+              <strong style="color: #10b981;">Flat Interest (सरळ व्याज)</strong>
+            </div>
+            <p style="font-size: 0.85rem; color: #475569;">
+              Interest is calculated on the <em>entire initial principal</em> for the full duration, regardless of repayments made.
+            </p>
+            <div class="code-block" style="padding: 0.75rem; font-size: 0.8rem;">
+Total Interest = P &times; (Annual Rate / 100) &times; (n / 12)
+EMI = (Principal + Total Interest) / n
+
+Where:
+P = Principal Loan Amount (e.g. ₹50,000)
+Annual Rate = Monthly Rate &times; 12 (e.g. 2% &times; 12 = 24%)
+n = Tenure in Months (e.g. 12)
+            </div>
+            <div style="font-size: 0.85rem; background: #ecfdf5; padding: 0.6rem; border-radius: 4px; color: #065f46;">
+              <strong>Example (₹50,000 @ 2%/mo for 12 mos):</strong><br>
+              Total Interest: ₹50,000 &times; 24% &times; 1 = <strong>₹12,000.00</strong><br>
+              Monthly EMI: (₹50,000 + ₹12,000) / 12 = <strong>₹5,166.67</strong><br>
+              Total Repayment: <strong>₹62,000.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info" style="margin-top: 1.5rem;">
+          <i class="bi bi-info-circle-fill"></i>
+          <div>
+            <strong>Indian SHG Interest Rate Conventions:</strong> In rural Maharashtra and across India, SHG women traditionally state rates as <em>"२ रुपये शेकडा"</em> (2 Rupees per hundred per month = 2% per month). The platform automatically converts and synchronizes <code>Monthly % x 12 = Annual %</code> so both parties have complete clarity.
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 7: DATABASE SCHEMA & ER MAP -->
+      <section id="db-schema" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-database"></i> 7. Entity Relationship (ER) & Database Schema</h2>
+        <div class="section-subtitle">Relational data models, foreign keys, and structural associations</div>
+
+        <div class="diagram-container">
+          <pre class="mermaid">
+erDiagram
+    GROUP ||--o{ GROUP_MASTER_DATA : "has policy"
+    GROUP ||--o{ MEMBER : "contains"
+    GROUP ||--o{ GROUP_INCOME : "records"
+    GROUP ||--o{ GROUP_EXPENSE : "incurs"
+    GROUP ||--o{ MEETING_RECORD : "conducts"
+    GROUP ||--o{ DOCUMENT_RECORD : "stores"
+
+    MEMBER ||--o| USER : "authenticates as"
+    MEMBER ||--o{ COLLECTION_RECORD : "pays monthly dues"
+    MEMBER ||--o{ LOAN_APPLICATION : "submits"
+    MEMBER ||--o{ LOAN : "borrows"
+    MEMBER ||--o{ TRANSACTION : "transacts"
+
+    LOAN ||--o{ LOAN_REPAYMENT_SCHEDULE : "amortizes into"
+    LOAN ||--o| LOAN_APPLICATION : "originated from"
+          </pre>
+        </div>
+      </section>
+
+      <!-- SECTION 8: REST API REFERENCE -->
+      <section id="api-reference" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-braces"></i> 8. REST API Catalog & Data Contracts</h2>
+        <div class="section-subtitle">Summary of primary endpoints organized by business domain</div>
+
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Endpoint URI</th>
+              <th>Role Required</th>
+              <th>Description & Key Payload</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill pill-green">POST</span></td>
+              <td><code>/api/auth/login</code></td>
+              <td>Public</td>
+              <td>Authenticates credentials, returns JWT bearer token and user metadata.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-blue">GET</span></td>
+              <td><code>/api/admin/dashboard/stats</code></td>
+              <td>ADMIN, SUPER_ADMIN</td>
+              <td>Fetches live group financial statistics, pending dues, and active loans.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-green">POST</span></td>
+              <td><code>/api/admin/collections/generate-monthly</code></td>
+              <td>ADMIN</td>
+              <td>Generates idempotent monthly collection records for active members.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-amber">PUT</span></td>
+              <td><code>/api/admin/collections/{id}/record-payment</code></td>
+              <td>ADMIN</td>
+              <td>Records payment (mode, amount, reference), issues receipt, logs transaction.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-green">POST</span></td>
+              <td><code>/api/admin/loans/applications/{id}/sanction</code></td>
+              <td>ADMIN</td>
+              <td>Sanctions loan with custom interest rate, tenure, and repayment schedule.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-green">POST</span></td>
+              <td><code>/api/admin/loans/{id}/repayments</code></td>
+              <td>ADMIN</td>
+              <td>Records monthly loan EMI repayment against amortization schedule.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-blue">GET</span></td>
+              <td><code>/api/me/profile</code></td>
+              <td>USER (Member)</td>
+              <td>Fetches logged-in member's personal information, KYC, and nominee details.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-blue">GET</span></td>
+              <td><code>/api/me/group-rules</code></td>
+              <td>USER (Member)</td>
+              <td>Fetches live configured interest rates and penalties for the member's group.</td>
+            </tr>
+            <tr>
+              <td><span class="pill pill-green">POST</span></td>
+              <td><code>/api/me/loan-applications</code></td>
+              <td>USER (Member)</td>
+              <td>Submits online loan application with requested amount, tenure, and purpose.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- SECTION 9: STEP-BY-STEP OPERATOR RUNBOOKS -->
+      <section id="runbooks" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-journal-bookmark-fill"></i> 9. Step-by-Step Operator Runbooks</h2>
+        <div class="section-subtitle">Practical execution workflows for daily Bachat Gat administrators</div>
+
+        <div class="mini-card" style="margin-bottom: 1.25rem;">
+          <h4 class="topic-heading" style="color: #0284c7; margin-top: 0;"><i class="bi bi-1-circle-fill"></i> Runbook 1: How to Change Group Loan Interest Rate</h4>
+          <ol style="font-size: 0.9rem; padding-left: 1.5rem;">
+            <li>Log in as Group Admin &rarr; Navigate to <strong>Group Profile</strong> (<code>/admin/groups.html</code>).</li>
+            <li>Click <strong>Edit Group Details</strong> button.</li>
+            <li>Under the <strong>Financial Rules & Policies</strong> section, modify the <strong>Monthly Interest Rate (% / month)</strong>. Notice how the Annual Interest Rate (% p.a.) syncs automatically!</li>
+            <li>Select the preferred <strong>Interest Calculation Method</strong> (<code>Reducing Balance</code> or <code>Flat Rate</code>).</li>
+            <li>Click <strong>Save Changes</strong>. The new rate immediately governs all subsequent loan applications and member rule views.</li>
+          </ol>
+        </div>
+
+        <div class="mini-card" style="margin-bottom: 1.25rem;">
+          <h4 class="topic-heading" style="color: #10b981; margin-top: 0;"><i class="bi bi-2-circle-fill"></i> Runbook 2: Running the Monthly Collection Meeting</h4>
+          <ol style="font-size: 0.9rem; padding-left: 1.5rem;">
+            <li>On meeting day, navigate to <strong>Collections</strong> (<code>/admin/collections.html</code>).</li>
+            <li>Click <strong>Generate Monthly Due</strong>. The system populates dues for all active members.</li>
+            <li>As each member submits their cash or UPI payment, click <strong>Record Payment</strong>.</li>
+            <li>Select payment mode (Cash, UPI, Bank Transfer), enter reference number, and click <strong>Confirm Payment</strong>.</li>
+            <li>Click <strong>Print Receipt</strong> to hand over the physical receipt slip or SMS notification.</li>
+          </ol>
+        </div>
+
+        <div class="mini-card">
+          <h4 class="topic-heading" style="color: #d97706; margin-top: 0;"><i class="bi bi-3-circle-fill"></i> Runbook 3: Processing and Disbursing a Member Loan</h4>
+          <ol style="font-size: 0.9rem; padding-left: 1.5rem;">
+            <li>Open <strong>Loan Applications</strong> (<code>/admin/loan-applications.html</code>) to review submitted requests.</li>
+            <li>Inspect the member's total accumulated savings and past repayment discipline.</li>
+            <li>Click <strong>Sanction / Approve</strong> to open the interactive Sanction Modal.</li>
+            <li>Verify or manually adjust the <strong>Sanction Amount</strong>, <strong>Tenure (Months)</strong>, and <strong>Interest Rate</strong>.</li>
+            <li>Inspect the dynamic EMI preview and click <strong>Approve & Disburse</strong>. Funds are disbursed, transaction is logged, and the 12-month schedule is live.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- SECTION 10: FAQ & TROUBLESHOOTING -->
+      <section id="faq" class="section-card searchable-section">
+        <h2 class="section-title"><i class="bi bi-question-circle"></i> 10. Frequently Asked Questions & Troubleshooting</h2>
+        <div class="section-subtitle">Solutions to common operational questions and edge cases</div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <h4 class="topic-heading"><i class="bi bi-chat-left-dots-fill" style="color: #0284c7;"></i> Q: Can different loans within the same Bachat Gat have different interest rates?</h4>
+          <p style="font-size: 0.9rem;">
+            <strong>Yes!</strong> The master data rate serves as the default group baseline, but the Group Admin can manually override the interest rate for individual loans during the sanctioning process (e.g. charging 1.5% for an emergency medical loan vs 2% for a general loan).
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <h4 class="topic-heading"><i class="bi bi-chat-left-dots-fill" style="color: #0284c7;"></i> Q: What happens if a member pays only part of their monthly savings share?</h4>
+          <p style="font-size: 0.9rem;">
+            The collection status transitions to <code>PARTIAL</code>. The system accurately records the amount paid, maintains the remaining balance as outstanding due, and credits the partial amount to the member's cumulative savings passbook.
+          </p>
+        </div>
+
+        <div style="margin-bottom: 1.25rem;">
+          <h4 class="topic-heading"><i class="bi bi-chat-left-dots-fill" style="color: #0284c7;"></i> Q: Can a member view other members' loan amounts or balances?</h4>
+          <p style="font-size: 0.9rem;">
+            <strong>Never.</strong> The platform enforces strict single-member privacy. When logged in under <code>ROLE_USER</code>, APIs restrict all queries strictly to the authenticated member's ID.
+          </p>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer style="text-align: center; padding: 2rem 0; color: #64748b; font-size: 0.85rem; border-top: 1px solid #e2e8f0;">
+        <p>&copy; 2026 Bachat Gat / Self-Help Group Management Platform. Built for Google Cloud Platform.</p>
+        <p style="margin-top: 0.25rem;">Designed for transparency, financial empowerment, and compliance.</p>
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Interactive JavaScript Search & ScrollSpy -->
+  <script>
+    // Search & Filter functionality
+    function filterGuide() {
+      const q = document.getElementById('guideSearchInput').value.toLowerCase().trim();
+      const sections = document.querySelectorAll('.searchable-section');
+
+      sections.forEach(sec => {
+        const text = sec.innerText.toLowerCase();
+        if (q === '' || text.includes(q)) {
+          sec.style.display = 'block';
+        } else {
+          sec.style.display = 'none';
+        }
+      });
+    }
+
+    // ScrollSpy for active sidebar navigation
+    window.addEventListener('scroll', () => {
+      const links = document.querySelectorAll('.guide-nav li a');
+      let currentSectionId = '';
+
+      document.querySelectorAll('section[id], div[id^="mod-"]').forEach(section => {
+        const top = section.getBoundingClientRect().top;
+        if (top <= 140) {
+          currentSectionId = section.getAttribute('id');
+        }
+      });
+
+      if (currentSectionId) {
+        links.forEach(link => {
+          if (link.getAttribute('href') === '#' + currentSectionId) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -491,19 +491,13 @@
       document.getElementById('pay-memberId').addEventListener('change', (e) => {
         const memId = e.target.value;
         populateMemberLoans(memId);
-        if (memId && memberList && memberList.length > 0) {
-          const m = memberList.find(x => x.memberId === memId);
-          if (m && m.monthlyBachatAmount) {
-            const currentCat = document.getElementById('pay-type-select').value;
-            if (currentCat === 'SAVINGS' || currentCat === 'COMBINED') {
-              document.getElementById('pay-share').value = m.monthlyBachatAmount;
-              if (currentCat === 'SAVINGS') {
-                document.getElementById('pay-amount').value = m.monthlyBachatAmount;
-              }
-              recalcAllocations();
-            }
-          }
-        }
+        syncShareAllocationToRemaining(memId);
+      });
+
+      ['pay-month', 'pay-year'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+          syncShareAllocationToRemaining(document.getElementById('pay-memberId').value);
+        });
       });
 
       // Dynamic Dropdown Details for Payment Allocation Type (Requirement 5)
@@ -531,7 +525,13 @@
           allocShareSec.style.display = 'block';
           allocLoanSec.style.display = 'none';
           allocOtherSec.style.display = 'none';
-          document.getElementById('pay-share').value = totalAmt;
+          const selectedMemberId = document.getElementById('pay-memberId').value;
+          document.getElementById('pay-share').value = selectedMemberId
+            ? getRemainingShareForForm(selectedMemberId)
+            : totalAmt;
+          if (selectedMemberId) {
+            document.getElementById('pay-amount').value = getRemainingShareForForm(selectedMemberId);
+          }
           document.getElementById('pay-loan-principal').value = 0;
           document.getElementById('pay-loan-interest').value = 0;
           document.getElementById('pay-other').value = 0;
@@ -573,6 +573,7 @@
           allocShareSec.style.display = 'block';
           allocLoanSec.style.display = 'block';
           allocOtherSec.style.display = 'block';
+          document.getElementById('pay-share').value = getRemainingShareForForm(document.getElementById('pay-memberId').value);
         } else if (cat === 'OTHER') {
           payCatDetails.style.borderLeft = '4px solid #0284c7';
           payCatDetails.style.background = '#f0f9ff';
@@ -706,6 +707,32 @@
       document.getElementById('pay-idempotency').value = key;
     }
 
+    function getRemainingShareForForm(memberId) {
+      if (!memberId) return 0;
+      const month = Number(document.getElementById('pay-month').value);
+      const year = Number(document.getElementById('pay-year').value);
+      const record = allCollections.find(c => c.memberId === memberId && c.month === month && c.year === year);
+      if (record) {
+        const expected = Number(record.expectedAmount || 0);
+        const paid = Number(record.paidAmount || 0);
+        return Math.max(0, expected - paid);
+      }
+      const member = memberList.find(m => m.memberId === memberId);
+      return Math.max(0, Number(member?.monthlyBachatAmount || 0));
+    }
+
+    function syncShareAllocationToRemaining(memberId) {
+      const remaining = getRemainingShareForForm(memberId);
+      const category = document.getElementById('pay-type-select').value;
+      if (category === 'SAVINGS') {
+        document.getElementById('pay-share').value = remaining;
+        document.getElementById('pay-amount').value = remaining;
+      } else if (category === 'COMBINED') {
+        document.getElementById('pay-share').value = remaining;
+      }
+      recalcAllocations();
+    }
+
     function recalcAllocations() {
       const received = parseFloat(document.getElementById('pay-amount').value || 0);
       const share = parseFloat(document.getElementById('pay-share').value || 0);
@@ -834,6 +861,11 @@
       document.getElementById('pay-month').value = month;
       document.getElementById('pay-year').value = year;
       document.getElementById('pay-amount').value = pendingAmount > 0 ? pendingAmount : 5000;
+      document.getElementById('pay-type-select').value = 'SAVINGS';
+      document.getElementById('pay-share').value = pendingAmount > 0 ? pendingAmount : getRemainingShareForForm(memberId);
+      document.getElementById('pay-loan-principal').value = 0;
+      document.getElementById('pay-loan-interest').value = 0;
+      document.getElementById('pay-other').value = 0;
       generateIdempotencyKey();
       recalcAllocations();
       Common.openModal('payment-modal');

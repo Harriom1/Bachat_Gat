@@ -361,12 +361,14 @@ public class CollectionService {
         BigDecimal waivedFee = request.getWaivedLateFee() != null ? request.getWaivedLateFee() : BigDecimal.ZERO;
         BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
 
-        // Fallback for single-field legacy payment (applies directly to share)
-        if (sharePart == null && loanPrincPart.compareTo(BigDecimal.ZERO) == 0 &&
-                loanIntPart.compareTo(BigDecimal.ZERO) == 0 && otherPart.compareTo(BigDecimal.ZERO) == 0) {
-            sharePart = totalReceived;
-        } else if (sharePart == null) {
-            sharePart = BigDecimal.ZERO;
+        // A missing share component means zero when the payment is loan/other-only.
+        // Keep the legacy single-amount savings behaviour only when no other
+        // allocation was supplied. This prevents a combined payment from
+        // silently reusing the full monthly share after it is already paid.
+        if (sharePart == null) {
+            boolean hasOtherAllocation = loanPrincPart.signum() > 0 || loanIntPart.signum() > 0
+                    || otherPart.signum() > 0 || netLateFee.signum() > 0;
+            sharePart = hasOtherAllocation ? BigDecimal.ZERO : totalReceived;
         }
 
         BigDecimal expectedShare = record.getExpectedAmount() != null

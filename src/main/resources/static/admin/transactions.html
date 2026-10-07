@@ -10,6 +10,22 @@
   <link rel="stylesheet" href="/css/tables.css">
   <link rel="stylesheet" href="/css/responsive.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    .transaction-filter-grid { display: grid; grid-template-columns: minmax(220px, 2fr) repeat(4, minmax(130px, 1fr)); gap: .75rem; align-items: center; width: 100%; }
+    .transaction-filter-grid > * { min-width: 0; }
+    .transaction-filter-grid select, .transaction-filter-grid input { width: 100%; min-width: 0; }
+    .transaction-table-wrap { overflow-x: auto; overflow-y: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
+    .transaction-table-wrap .data-table { min-width: 1120px; }
+    @media (max-width: 900px) {
+      .transaction-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .transaction-filter-grid .transaction-search { grid-column: 1 / -1; }
+    }
+    @media (max-width: 560px) {
+      .transaction-filter-grid { grid-template-columns: 1fr; }
+      .transaction-filter-grid .transaction-search { grid-column: auto; }
+      .transaction-filter-grid + .filter-count { justify-self: start; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-wrapper">
@@ -125,12 +141,12 @@
         <!-- Filter Bar -->
         <div class="content-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
           <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; flex: 1;">
-              <div style="flex: 2; min-width: 200px; position: relative;">
+            <div class="transaction-filter-grid" style="flex: 1;">
+              <div class="transaction-search" style="position: relative;">
                 <input type="text" id="search-transactions" class="form-control" placeholder="Search by ID, Member, Loan, or Reference...">
                 <i class="bi bi-search" style="position: absolute; right: 12px; top: 10px; color: var(--text-muted);"></i>
               </div>
-              <div style="width: 170px;">
+              <div>
                 <select id="filter-type" class="form-select">
                   <option value="">All Categories</option>
                   <option value="MEMBER_SAVING">Monthly Savings</option>
@@ -143,7 +159,7 @@
                   <option value="REPORTS">Reports</option>
                 </select>
               </div>
-              <div style="width: 120px;">
+              <div>
                 <select id="filter-month" class="form-select">
                   <option value="">All Months</option>
                   <option value="1">Jan</option>
@@ -160,7 +176,7 @@
                   <option value="12">Dec</option>
                 </select>
               </div>
-              <div style="width: 110px;">
+              <div>
                 <select id="filter-year" class="form-select">
                   <option value="">All Years</option>
                   <option value="2026">2026</option>
@@ -168,13 +184,13 @@
                   <option value="2024">2024</option>
                 </select>
               </div>
-              <div style="width: 160px;">
+              <div>
                 <select id="filter-member" class="form-select">
                   <option value="">All Members</option>
                 </select>
               </div>
             </div>
-            <div style="color: var(--text-muted); font-size: 0.875rem;">
+            <div class="filter-count" style="color: var(--text-muted); font-size: 0.875rem; white-space: nowrap;">
               Showing <strong id="showing-count">0</strong> entries
             </div>
           </div>
@@ -187,7 +203,7 @@
 
         <!-- Transactions Table -->
         <div class="content-card">
-          <div class="table-responsive">
+          <div class="table-responsive transaction-table-wrap">
             <table class="data-table">
               <thead>
                 <tr>
@@ -305,7 +321,7 @@
         if (typeFilter === 'MEETING' || typeFilter === 'REPORTS') {
           matchesType = false;
         } else if (typeFilter) {
-          matchesType = (t.type === typeFilter);
+          matchesType = matchesTransactionCategory(t.type, typeFilter);
         }
 
         const searchStr = `${t.id || ''} ${t.memberId || ''} ${t.loanId || ''} ${t.reference || ''} ${t.description || ''} ${t.createdBy || ''}`.toLowerCase();
@@ -333,13 +349,30 @@
       renderTransactions(currentFilteredTransactions);
     }
 
+    function matchesTransactionCategory(actualType, selectedType) {
+      if (!actualType || !selectedType) return true;
+      if (selectedType === 'MEMBER_SAVING') {
+        return ['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'SHARE_COLLECTION'].includes(actualType);
+      }
+      if (selectedType === 'LOAN_REPAYMENT') {
+        return ['LOAN_REPAYMENT', 'LOAN_PRINCIPAL_PAYMENT', 'LOAN_PRINCIPAL_REPAYMENT', 'LOAN_INTEREST_PAYMENT'].includes(actualType);
+      }
+      if (selectedType === 'EXTRA_LOAN_PAYMENT') {
+        return ['EXTRA_LOAN_PAYMENT', 'LOAN_EXTRA_PAYMENT'].includes(actualType);
+      }
+      if (selectedType === 'OTHER_INCOME') {
+        return ['OTHER_INCOME', 'LOAN_INTEREST_INCOME', 'LOAN_PENALTY_INCOME', 'SHARE_LATE_FEE'].includes(actualType);
+      }
+      return actualType === selectedType;
+    }
+
     function renderDynamicDropdownDetails(selectedType, allTxns) {
       const container = document.getElementById('dynamic-dropdown-details');
       if (!container) return;
 
       let html = '';
       if (selectedType === 'MEMBER_SAVING') {
-        const list = allTxns.filter(t => t.type === 'MEMBER_SAVING');
+        const list = allTxns.filter(t => matchesTransactionCategory(t.type, 'MEMBER_SAVING'));
         const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         const uniqueMembers = new Set(list.map(t => t.memberId).filter(Boolean)).size;
 
@@ -379,7 +412,7 @@
           </div>
         `;
       } else if (selectedType === 'LOAN_DISBURSEMENT') {
-        const list = allTxns.filter(t => t.type === 'LOAN_DISBURSEMENT');
+        const list = allTxns.filter(t => matchesTransactionCategory(t.type, 'LOAN_DISBURSEMENT'));
         const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
         html = `
@@ -414,7 +447,7 @@
           </div>
         `;
       } else if (selectedType === 'LOAN_REPAYMENT' || selectedType === 'EXTRA_LOAN_PAYMENT') {
-        const list = allTxns.filter(t => t.type === 'LOAN_REPAYMENT' || t.type === 'EXTRA_LOAN_PAYMENT');
+        const list = allTxns.filter(t => matchesTransactionCategory(t.type, selectedType));
         const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
         const principal = list.reduce((sum, t) => sum + (parseFloat(t.principalAmount) || 0), 0);
         const interest = list.reduce((sum, t) => sum + (parseFloat(t.interestAmount) || 0), 0);
@@ -455,7 +488,7 @@
           </div>
         `;
       } else if (selectedType === 'EXPENSE') {
-        const list = allTxns.filter(t => t.type === 'EXPENSE');
+        const list = allTxns.filter(t => matchesTransactionCategory(t.type, 'EXPENSE'));
         const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
         html = `
@@ -490,7 +523,7 @@
           </div>
         `;
       } else if (selectedType === 'OTHER_INCOME') {
-        const list = allTxns.filter(t => t.type === 'OTHER_INCOME');
+        const list = allTxns.filter(t => matchesTransactionCategory(t.type, 'OTHER_INCOME'));
         const total = list.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
 
         html = `

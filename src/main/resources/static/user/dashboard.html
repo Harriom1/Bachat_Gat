@@ -295,6 +295,10 @@
                   <span class="text-muted">Loan EMI (Principal + Interest):</span>
                   <strong id="modal-breakdown-loan">₹0</strong>
                 </div>
+                <div id="modal-breakdown-extra-row" style="display: none; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                  <span class="text-muted">Extra Principal Payment:</span>
+                  <strong id="modal-breakdown-extra">₹0</strong>
+                </div>
                 <div id="modal-breakdown-penalty-row" style="display: none; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
                   <span class="text-muted">Late Fee / Overdue Penalty:</span>
                   <strong id="modal-breakdown-penalty" style="color: var(--danger);">₹0</strong>
@@ -303,6 +307,15 @@
                   <span>Total Amount Payable:</span>
                   <span id="modal-breakdown-total">₹5,000</span>
                 </div>
+              </div>
+
+              <div id="extra-loan-payment-wrap" class="form-group mb-3" style="display:none;">
+                <label class="form-label">Pay Extra Toward Principal (Optional)</label>
+                <div class="input-group">
+                  <span class="input-group-text">₹</span>
+                  <input type="number" id="extra-loan-payment" class="form-control" min="0" step="1" value="0" placeholder="e.g. 1000">
+                </div>
+                <small class="text-muted">This reduces principal immediately. Future interest and EMI schedule will be recalculated on the reduced balance.</small>
               </div>
 
               <!-- Payment Method Selection -->
@@ -672,9 +685,9 @@
         let princAmt = 0;
         let intAmt = 0;
         if (d.activeLoan && parseFloat(d.activeLoan.totalOutstanding || 0) > 0) {
-          emiAmt = parseFloat(d.activeLoan.monthlyInstallment || 0);
-          intAmt = Math.round((parseFloat(d.activeLoan.outstandingPrincipal || 0) * (parseFloat(d.activeLoan.interestRate || 12) / 1200)) * 100) / 100;
-          princAmt = Math.max(0, emiAmt - intAmt);
+          emiAmt = parseFloat(d.currentEmi ?? d.nextPaymentAmount ?? 0);
+          intAmt = parseFloat(d.currentInterest ?? 0);
+          princAmt = parseFloat(d.currentPrincipal ?? Math.max(0, emiAmt - intAmt));
 
           document.getElementById('u-upcoming-emi').textContent = Common.formatIndianCurrency(emiAmt);
           document.getElementById('u-upcoming-principal').textContent = Common.formatIndianCurrency(princAmt);
@@ -698,6 +711,7 @@
           emiAmt: emiAmt,
           princAmt: princAmt,
           intAmt: intAmt,
+          extraLoanAmt: 0,
           lateFee: lateFee,
           activeLoanId: d.activeLoan ? d.activeLoan.id : null,
           groupName: d.groupName || 'Mahila Pragati Bachat Gat',
@@ -747,6 +761,14 @@
         loanRow.style.display = 'none';
       }
 
+      const extraWrap = document.getElementById('extra-loan-payment-wrap');
+      if (ctx.activeLoanId && ctx.emiAmt > 0) {
+        extraWrap.style.display = 'block';
+        document.getElementById('extra-loan-payment').value = '0';
+      } else {
+        extraWrap.style.display = 'none';
+      }
+
       const penaltyRow = document.getElementById('modal-breakdown-penalty-row');
       if (ctx.lateFee > 0) {
         penaltyRow.style.display = 'flex';
@@ -778,6 +800,14 @@
           const methodRadio = document.querySelector('input[name="pay-method-radio"]:checked');
           const method = methodRadio ? methodRadio.value : 'UPI';
           const remarks = document.getElementById('pay-modal-remarks').value.trim();
+          const extraLoanAmt = Math.max(0, parseFloat(document.getElementById('extra-loan-payment')?.value || '0') || 0);
+          ctx.extraLoanAmt = extraLoanAmt;
+          const payableTotal = ctx.totalDue + extraLoanAmt;
+          if (extraLoanAmt > 0) {
+            document.getElementById('modal-breakdown-extra-row').style.display = 'flex';
+            document.getElementById('modal-breakdown-extra').textContent = Common.formatIndianCurrency(extraLoanAmt);
+            document.getElementById('modal-breakdown-total').textContent = Common.formatIndianCurrency(payableTotal);
+          }
           const btn = document.getElementById('btn-confirm-pay');
 
           btn.disabled = true;
@@ -786,12 +816,13 @@
           try {
             // Step 1: Create Server Payment Order
             const orderPayload = {
-              amount: ctx.totalDue,
+              amount: payableTotal,
               paymentType: ctx.emiAmt > 0 ? (ctx.shareAmt > 0 ? 'COMBINED' : 'LOAN_EMI') : 'MONTHLY_SAVINGS',
               monthlyBachatAmount: ctx.shareAmt,
               loanId: ctx.activeLoanId,
               loanPrincipalAmount: ctx.princAmt,
               loanInterestAmount: ctx.intAmt,
+              extraLoanPaymentAmount: extraLoanAmt,
               lateFeeAmount: ctx.lateFee,
               idempotencyKey: `ORD-${Date.now()}-${Math.floor(Math.random() * 10000)}`
             };

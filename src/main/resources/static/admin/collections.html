@@ -598,22 +598,34 @@
 
       payTypeSelect.addEventListener('change', updatePaymentTypeDetails);
 
-      // Loan selector changed
-      document.getElementById('pay-loan-select').addEventListener('change', (e) => {
+      // Loan selector changed. Read the current unpaid installment from the same
+      // persisted schedule shown on the loan-details page; do not derive it from
+      // the original principal and rate on the client.
+      document.getElementById('pay-loan-select').addEventListener('change', async (e) => {
         const loanId = e.target.value;
         if (!loanId) {
           document.getElementById('pay-loan-principal').value = 0;
           document.getElementById('pay-loan-interest').value = 0;
         } else {
-          const l = groupLoans.find(x => x.id === loanId);
-          if (l) {
-            const emi = parseFloat(l.monthlyInstallment || 0);
-            const rate = parseFloat(l.interestRate || 12) / 100 / 12;
-            const prin = parseFloat(l.outstandingPrincipal || l.principalAmount || 0);
-            const intComp = Math.round(prin * rate);
-            const prinComp = Math.max(0, emi - intComp);
-            document.getElementById('pay-loan-principal').value = prinComp;
-            document.getElementById('pay-loan-interest').value = intComp;
+          try {
+            const schedule = await api.getLoanSchedule(loanId);
+            const current = (schedule || []).find(s => s.status !== 'PAID');
+            if (current) {
+              const paid = Number(current.paidAmount || 0);
+              const scheduledInterest = Number(current.interestAmount || current.interestComponent || 0);
+              const unpaidInterest = Math.max(0, scheduledInterest - Math.min(paid, scheduledInterest));
+              const paidPrincipal = Math.max(0, paid - scheduledInterest);
+              const principalDue = Math.max(0, Number(current.principalAmount || current.principalComponent || 0) - paidPrincipal);
+              document.getElementById('pay-loan-principal').value = principalDue;
+              document.getElementById('pay-loan-interest').value = unpaidInterest;
+            } else {
+              document.getElementById('pay-loan-principal').value = 0;
+              document.getElementById('pay-loan-interest').value = 0;
+            }
+          } catch (err) {
+            console.error('Failed to load current loan installment:', err);
+            document.getElementById('pay-loan-principal').value = 0;
+            document.getElementById('pay-loan-interest').value = 0;
           }
         }
         recalcAllocations();

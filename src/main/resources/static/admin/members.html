@@ -551,6 +551,13 @@
           topSelect.value = user.groupId;
           topSelect.disabled = true;
           formSelect.value = user.groupId;
+          // Office bearers can register members only in their assigned group.
+          // Remove other options instead of merely disabling the selector so
+          // the browser cannot submit a cross-group value.
+          [...formSelect.options].forEach(option => {
+            if (option.value !== user.groupId) option.remove();
+          });
+          formSelect.disabled = true;
         } else {
           const savedGroupId = localStorage.getItem('activeGroupId');
           if (savedGroupId && allGroups.some(g => g.id === savedGroupId)) {

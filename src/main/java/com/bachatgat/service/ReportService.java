@@ -43,6 +43,12 @@ public class ReportService {
                 .filter(c -> c.getMonth() == month && c.getYear() == year)
                 .toList();
         report.put("collections", monthCollections);
+        List<Member> groupMembers = dataService.getMembersByGroupId(groupId).stream()
+                .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
+                .toList();
+        report.put("members", groupMembers);
+        report.put("loans", dataService.getLoansByGroupId(groupId).stream()
+                .filter(l -> l.getStatus() != LoanStatus.CANCELLED).toList());
 
         BigDecimal expected = monthCollections.stream().map(c -> nz(c.getExpectedAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal collected = monthCollections.stream().map(c -> nz(c.getPaidAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -61,9 +67,15 @@ public class ReportService {
                 .filter(e -> e.getExpenseDate() != null && !e.getExpenseDate().isBefore(start) && e.getExpenseDate().isBefore(endExclusive))
                 .toList();
 
-        BigDecimal principalRecovered = sumTransactions(monthTransactions, TransactionType.LOAN_PRINCIPAL_PAYMENT, TransactionType.LOAN_PRINCIPAL_REPAYMENT);
-        BigDecimal interestIncome = sumTransactions(monthTransactions, TransactionType.LOAN_INTEREST_PAYMENT, TransactionType.LOAN_INTEREST_INCOME, TransactionType.LOAN_INTEREST);
-        BigDecimal penaltyIncome = sumTransactions(monthTransactions, TransactionType.LOAN_PENALTY_INCOME, TransactionType.SHARE_LATE_FEE);
+        BigDecimal principalRecovered = monthTransactions.stream()
+                .filter(t -> isLoanPayment(t))
+                .map(t -> nz(t.getPrincipalAmount()).signum() > 0 ? nz(t.getPrincipalAmount()) : nz(t.getAmount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal interestIncome = monthTransactions.stream()
+                .filter(t -> isLoanPayment(t))
+                .map(t -> nz(t.getInterestAmount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal penaltyIncome = sumTransactions(monthTransactions, TransactionType.LOAN_PENALTY_INCOME, TransactionType.SHARE_LATE_FEE, TransactionType.PENALTY_INCOME);
         BigDecimal otherIncome = sumTransactions(monthTransactions, TransactionType.OTHER_INCOME);
         BigDecimal loanDisbursement = sumTransactions(monthTransactions, TransactionType.LOAN_DISBURSEMENT);
         BigDecimal expenses = monthExpenses.stream().map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -94,6 +106,44 @@ public class ReportService {
         report.put("loansGivenThisMonth", !loansGiven.isEmpty());
         report.put("savingsPaidMembers", monthCollections.stream().filter(c -> c.getStatus() == CollectionStatus.PAID || c.getStatus() == CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
         report.put("pendingShareMembers", monthCollections.stream().filter(c -> c.getStatus() != CollectionStatus.PAID && c.getStatus() != CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
+        report.put("memberLoanLedger", groupMembers.stream()
+                .map(m -> {
+                    Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    row.put("memberId", m.getMemberId());
+                    row.put("memberName", m.getFullName());
+                    row.put("monthlyBachat", m.getMonthlyBachatAmount());
+                    row.put("totalSavings", m.getTotalSavingsBalance());
+                    row.put("loanOutstanding", m.getCurrentLoanOutstanding());
+                    row.put("loanId", m.getActiveLoanId());
+                    return row;
+                }).toList());
+
+        // Complete member-wise report payload used by both member and admin report pages.
+        // Keep historical members visible unless they explicitly exited the group.
+        List<Map<String, Object>> memberReports = groupMembers.stream().map(member -> {
+            Map<String, Object> memberReport = new java.util.LinkedHashMap<>();
+            List<CollectionRecord> memberCollections = dataService.getCollectionsByMemberId(member.getMemberId());
+            List<Loan> memberLoans = dataService.getLoansByMemberId(member.getMemberId()).stream()
+                    .filter(l -> l.getStatus() != LoanStatus.CANCELLED).toList();
+            List<Map<String, Object>> loanReports = memberLoans.stream().map(loan -> {
+                Map<String, Object> loanReport = new java.util.LinkedHashMap<>();
+                loanReport.put("loan", loan);
+                loanReport.put("schedule", dataService.getLoanSchedule(loan.getId()));
+                return loanReport;
+            }).toList();
+            List<Transaction> memberTransactions = dataService.getTransactionsByMemberId(member.getMemberId());
+            memberReport.put("member", member);
+            memberReport.put("collections", memberCollections);
+            memberReport.put("loans", memberLoans);
+            memberReport.put("loanReports", loanReports);
+            memberReport.put("transactions", memberTransactions);
+            memberReport.put("adjustments", dataService.getAdjustmentsByMemberId(member.getMemberId()));
+            memberReport.put("totalSavings", nz(member.getTotalSavingsBalance()));
+            memberReport.put("loanOutstanding", nz(member.getCurrentLoanOutstanding()));
+            memberReport.put("monthlyBachat", nz(member.getMonthlyBachatAmount()));
+            return memberReport;
+        }).toList();
+        report.put("memberReports", memberReports);
 
         report.put("totalExpected", expected);
         report.put("totalCollected", collected);
@@ -111,6 +161,16 @@ public class ReportService {
         java.util.Set<TransactionType> accepted = java.util.EnumSet.noneOf(TransactionType.class);
         java.util.Collections.addAll(accepted, types);
         return transactions.stream().filter(t -> accepted.contains(t.getType())).map(t -> nz(t.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private boolean isLoanPayment(Transaction transaction) {
+        if (transaction == null || transaction.getType() == null) return false;
+        return switch (transaction.getType()) {
+            case LOAN_REPAYMENT, LOAN_PRINCIPAL_PAYMENT, LOAN_PRINCIPAL_REPAYMENT,
+                    LOAN_INTEREST_PAYMENT, LOAN_INTEREST_INCOME, LOAN_INTEREST,
+                    LOAN_PENALTY_INCOME, LOAN_EXTRA_PAYMENT, EXTRA_LOAN_PAYMENT -> true;
+            default -> false;
+        };
     }
 
     private BigDecimal nz(BigDecimal value) {

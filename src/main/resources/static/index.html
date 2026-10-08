@@ -4,6 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bachat Gat / SHG Management Platform</title>
+  <script>
+    // The root is the single entry point. Route only at the UI boundary;
+    // backend authentication and authorization remain enforced by Spring Security.
+    (function () {
+      const token = localStorage.getItem('token');
+      let user = null;
+      try { user = JSON.parse(localStorage.getItem('user') || 'null'); } catch (_) { user = null; }
+      if (!token || !user) {
+        window.location.replace('/login.html');
+        return;
+      }
+      const role = String(user.role || '').toUpperCase();
+      if (role === 'SUPER_ADMIN') window.location.replace('/admin/super-dashboard.html');
+      else if (['ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER'].includes(role)) window.location.replace('/admin/dashboard.html');
+      else window.location.replace('/user/dashboard.html');
+    }());
+  </script>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/responsive.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">

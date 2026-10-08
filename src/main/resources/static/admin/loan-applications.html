@@ -178,6 +178,12 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label class="form-label" for="rev-chequeNumber">Cheque Number</label>
+            <input id="rev-chequeNumber" class="form-control" type="text" maxlength="64"
+                   placeholder="Optional cheque / disbursement reference">
+          </div>
+
           <div id="rev-interest-details" style="padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.825rem; line-height: 1.4; border-left: 4px solid var(--primary); background: #f8fafc;">
             <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.25rem;" id="rev-interest-title">
               Flat Interest Method (स्थिर व्याज)
@@ -241,6 +247,7 @@
           interestRate: Number(document.getElementById('rev-interestRate').value),
           durationMonths: Number(document.getElementById('rev-durationMonths').value),
           interestType: document.getElementById('rev-interestType').value,
+          chequeNumber: document.getElementById('rev-chequeNumber').value.trim() || null,
           adminNotes: document.getElementById('rev-adminNotes').value
         };
 

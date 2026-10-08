@@ -1,6 +1,7 @@
 package com.bachatgat.util;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 
 /**
@@ -69,12 +70,14 @@ public final class FinancialCalculator {
         if (ratePercent.compareTo(BigDecimal.ZERO) == 0) {
             return principal.divide(BigDecimal.valueOf(durationMonths), MONEY_SCALE, ROUNDING);
         }
-        double p = principal.doubleValue();
-        double r = isMonthlyRate ? (ratePercent.doubleValue() / 100.0) : (ratePercent.doubleValue() / 1200.0);
-        int n = durationMonths;
-        double factor = Math.pow(1.0 + r, n);
-        double emi = (p * r * factor) / (factor - 1.0);
-        return BigDecimal.valueOf(emi).setScale(MONEY_SCALE, ROUNDING);
+        MathContext mc = new MathContext(18, ROUNDING);
+        BigDecimal monthlyRate = isMonthlyRate
+                ? ratePercent.divide(BigDecimal.valueOf(100), mc)
+                : ratePercent.divide(BigDecimal.valueOf(1200), mc);
+        BigDecimal factor = BigDecimal.ONE.add(monthlyRate, mc).pow(durationMonths, mc);
+        BigDecimal numerator = principal.multiply(monthlyRate, mc).multiply(factor, mc);
+        BigDecimal denominator = factor.subtract(BigDecimal.ONE, mc);
+        return numerator.divide(denominator, MONEY_SCALE, ROUNDING);
     }
 
     /**

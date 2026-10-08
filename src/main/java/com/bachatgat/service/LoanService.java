@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.ArrayList;
 
 @Service
 public class LoanService {
@@ -138,7 +139,16 @@ public class LoanService {
 
         BigDecimal scheduledInterestDue;
         if (currentInst != null && currentInst.getInterestAmount() != null && currentInst.getInterestAmount().compareTo(BigDecimal.ZERO) > 0) {
-            scheduledInterestDue = currentInst.getInterestAmount().min(loan.getOutstandingInterest());
+            // A partially paid installment may already have paid some of its interest.
+            // Charge only the unpaid interest for this installment; using the full
+            // scheduled interest here makes the loan summary disagree with the schedule.
+            BigDecimal alreadyPaid = currentInst.getPaidAmount() != null
+                    ? currentInst.getPaidAmount() : BigDecimal.ZERO;
+            BigDecimal interestAlreadyPaid = alreadyPaid.min(currentInst.getInterestAmount());
+            scheduledInterestDue = currentInst.getInterestAmount()
+                    .subtract(interestAlreadyPaid)
+                    .max(BigDecimal.ZERO)
+                    .min(loan.getOutstandingInterest());
         } else {
             scheduledInterestDue = loan.getTotalInterest()
                     .divide(BigDecimal.valueOf(Math.max(1, loan.getDurationMonths())), 2, FinancialCalculator.ROUNDING)
@@ -162,7 +172,8 @@ public class LoanService {
 
         for (LoanRepaymentSchedule item : schedule) {
             if (item.getStatus() != RepaymentStatus.PAID && remainingForSchedule.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal needed = item.getOutstandingAmount();
+                BigDecimal needed = item.getOutstandingAmount() != null
+                        ? item.getOutstandingAmount() : BigDecimal.ZERO;
                 if (remainingForSchedule.compareTo(needed) >= 0) {
                     item.setPaidAmount(item.getPaidAmount().add(needed));
                     item.setOutstandingAmount(BigDecimal.ZERO);
@@ -261,6 +272,7 @@ public class LoanService {
         }
 
         BigDecimal extraAmount = FinancialCalculator.round(request.getAmount());
+        BigDecimal previousTotalOutstanding = loan.getTotalOutstanding();
 
         if (extraAmount.compareTo(loan.getTotalOutstanding()) > 0) {
             throw new InvalidFinancialOperationException("Extra payment of ₹" + extraAmount + 
@@ -273,6 +285,13 @@ public class LoanService {
         loan.setOutstandingPrincipal(loan.getOutstandingPrincipal().subtract(extraAmount));
         loan.setTotalOutstanding(loan.getTotalOutstanding().subtract(extraAmount));
 
+        // Rebuild only the unpaid reducing-balance portion. This makes the
+        // next month's interest use the principal after the extra payment,
+        // while preserving the already-paid ledger installments.
+        if ("REDUCING".equalsIgnoreCase(loan.getInterestType())) {
+            recalculateUnpaidScheduleAfterExtraPayment(loan);
+        }
+
         if (loan.getTotalOutstanding().compareTo(BigDecimal.ZERO) <= 0) {
             loan.setStatus(LoanStatus.COMPLETED);
             loan.setTotalOutstanding(BigDecimal.ZERO);
@@ -281,6 +300,16 @@ public class LoanService {
         }
 
         Loan savedLoan = dataService.saveLoan(loan);
+
+        Group group = dataService.findGroupById(loan.getGroupId()).orElse(null);
+        if (group != null) {
+            BigDecimal groupOutstanding = group.getTotalLoanOutstanding() != null
+                    ? group.getTotalLoanOutstanding() : BigDecimal.ZERO;
+            BigDecimal adjusted = groupOutstanding.subtract(previousTotalOutstanding)
+                    .add(savedLoan.getTotalOutstanding());
+            group.setTotalLoanOutstanding(adjusted.max(BigDecimal.ZERO));
+            dataService.saveGroup(group);
+        }
 
         // Update Member profile
         Member member = dataService.findMemberByMemberId(loan.getMemberId()).orElse(null);
@@ -314,5 +343,42 @@ public class LoanService {
                 loan.getLoanId(), null, "Extra prepayment of ₹" + extraAmount + " recorded", "127.0.0.1");
 
         return savedLoan;
+    }
+
+    private void recalculateUnpaidScheduleAfterExtraPayment(Loan loan) {
+        List<LoanRepaymentSchedule> existing = dataService.getLoanSchedule(loan.getId());
+        List<LoanRepaymentSchedule> paid = existing.stream()
+                .filter(s -> s.getStatus() == RepaymentStatus.PAID)
+                .toList();
+        int remainingMonths = Math.max(1, loan.getDurationMonths() - paid.size());
+        LocalDate startDate = paid.isEmpty()
+                ? (loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now())
+                : paid.get(paid.size() - 1).getDueDate();
+        boolean monthlyRate = "REDUCING".equalsIgnoreCase(loan.getInterestType())
+                && loan.getInterestRate() != null
+                && loan.getInterestRate().compareTo(BigDecimal.valueOf(5)) <= 0;
+        List<LoanRepaymentSchedule> rebuilt = FinancialCalculator.generateBachatGatReducingSchedule(
+                loan.getOutstandingPrincipal(), loan.getInterestRate(), monthlyRate, remainingMonths, startDate);
+        int nextInstallment = paid.size() + 1;
+        BigDecimal futureInterest = BigDecimal.ZERO;
+        for (LoanRepaymentSchedule item : rebuilt) {
+            item.setId(loan.getId() + "-" + (nextInstallment + item.getInstallmentNo() - 1));
+            item.setLoanId(loan.getId());
+            item.setGroupId(loan.getGroupId());
+            item.setMemberId(loan.getMemberId());
+            item.setInstallmentNo(nextInstallment + item.getInstallmentNo() - 1);
+            futureInterest = futureInterest.add(item.getInterestAmount());
+        }
+        List<LoanRepaymentSchedule> combined = new ArrayList<>(paid);
+        combined.addAll(rebuilt);
+        dataService.saveLoanSchedule(loan.getId(), combined);
+        loan.setOutstandingInterest(futureInterest);
+        loan.setTotalInterest(loan.getInterestPaid().add(futureInterest));
+        loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(futureInterest));
+        loan.setTotalPayable(loan.getTotalPaid().add(loan.getTotalOutstanding()));
+        rebuilt.stream().findFirst().ifPresent(next -> {
+            loan.setMonthlyInstallment(next.getEmiAmount());
+            loan.setNextDueDate(next.getDueDate());
+        });
     }
 }

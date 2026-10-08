@@ -2,6 +2,7 @@ package com.bachatgat.service;
 
 import com.bachatgat.dto.CollectionPaymentRequest;
 import com.bachatgat.dto.LoanRepaymentRequest;
+import com.bachatgat.dto.LoanExtraPaymentRequest;
 import com.bachatgat.exception.DuplicateRecordException;
 import com.bachatgat.exception.InvalidFinancialOperationException;
 import com.bachatgat.exception.ResourceNotFoundException;
@@ -54,7 +55,7 @@ public class CollectionService {
         List<CollectionRecord> records = dataService.getCollectionsByGroupId(groupId);
         Group group = dataService.findGroupById(groupId).orElse(null);
         int dueDay = (group != null && group.getCollectionDueDay() > 0) ? group.getCollectionDueDay() : 10;
-        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.valueOf(50);
+        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.ZERO;
         int graceDays = (group != null && group.getGracePeriodDays() > 0) ? group.getGracePeriodDays() : 5;
         LocalDate today = LocalDate.now();
 
@@ -74,7 +75,7 @@ public class CollectionService {
         String groupId = member.getGroupId();
         Group group = dataService.findGroupById(groupId).orElse(null);
         int dueDay = (group != null && group.getCollectionDueDay() > 0) ? group.getCollectionDueDay() : 10;
-        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.valueOf(50);
+        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.ZERO;
         int graceDays = (group != null && group.getGracePeriodDays() > 0) ? group.getGracePeriodDays() : 5;
         LocalDate today = LocalDate.now();
         GroupMasterData currentRules = dataService.getMasterDataForDate(groupId, today).orElse(null);
@@ -149,13 +150,11 @@ public class CollectionService {
         }
 
         LocalDate dueDate = cr.getDueDate();
-        LocalDate graceCutoff = dueDate.plusDays(graceDays);
-
         // Check if upcoming month
         if (today.getYear() < cr.getYear() || (today.getYear() == cr.getYear() && today.getMonthValue() < cr.getMonth())) {
             cr.setStatus(CollectionStatus.UPCOMING);
             cr.setDaysLate(0);
-        } else if (today.isAfter(graceCutoff)) {
+        } else if (today.isAfter(dueDate)) {
             cr.setStatus(CollectionStatus.OVERDUE);
             int daysLate = (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);
             cr.setDaysLate(daysLate);
@@ -181,15 +180,14 @@ public class CollectionService {
         GroupMasterData masterData = dataService.getMasterDataForDate(groupId, LocalDate.of(year, month, 1)).orElse(null);
         int dueDay = masterData != null ? masterData.getCollectionDueDay() : 10;
         int graceDays = masterData != null ? masterData.getGracePeriodDays() : 5;
-        BigDecimal lateFeeConfig = masterData != null && masterData.getLatePaymentFee() != null 
-                ? masterData.getLatePaymentFee() 
-                : BigDecimal.valueOf(100);
+        BigDecimal lateFeeConfig = masterData != null && masterData.getLatePaymentFee() != null
+                ? masterData.getLatePaymentFee()
+                : dataService.findGroupById(groupId).map(Group::getLateFeeAmount).orElse(BigDecimal.ZERO);
 
         int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
         LocalDate dueDate = LocalDate.of(year, month, Math.min(dueDay, maxDaysInMonth));
-        LocalDate graceCutoff = dueDate.plusDays(graceDays);
         LocalDate today = LocalDate.now();
-        int daysOverdue = today.isAfter(graceCutoff) ? (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today) : 0;
+        int daysOverdue = today.isAfter(dueDate) ? (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today) : 0;
         BigDecimal calculatedLateFee = daysOverdue > 0 ? lateFeeConfig : BigDecimal.ZERO;
 
         List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
@@ -354,9 +352,13 @@ public class CollectionService {
         // Component 2: Loan Principal & Interest
         BigDecimal loanPrincPart = request.getLoanPrincipalAmount() != null ? request.getLoanPrincipalAmount() : BigDecimal.ZERO;
         BigDecimal loanIntPart = request.getLoanInterestAmount() != null ? request.getLoanInterestAmount() : BigDecimal.ZERO;
+        BigDecimal extraLoanPart = request.getExtraLoanPaymentAmount() != null ? request.getExtraLoanPaymentAmount() : BigDecimal.ZERO;
         // Component 3: Other
         BigDecimal otherPart = request.getOtherAmount() != null ? request.getOtherAmount() : BigDecimal.ZERO;
         // Late fee
+        LocalDate payDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
+        BigDecimal configuredLateFee = masterData != null && masterData.getLatePaymentFee() != null
+                ? masterData.getLatePaymentFee() : BigDecimal.ZERO;
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
         BigDecimal waivedFee = request.getWaivedLateFee() != null ? request.getWaivedLateFee() : BigDecimal.ZERO;
         BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
@@ -371,6 +373,25 @@ public class CollectionService {
             sharePart = hasOtherAllocation ? BigDecimal.ZERO : totalReceived;
         }
 
+        // Late fees are authoritative backend values. A browser may display a
+        // preview, but it cannot opt out of a configured fee or invent one.
+        if (lateFee.signum() == 0 && waivedFee.signum() == 0 && sharePart.signum() > 0
+                && payDate.isAfter(calculatedDueDate)) {
+            lateFee = configuredLateFee.max(BigDecimal.ZERO);
+        }
+
+        // Validate the payment's accounting equation before period-specific
+        // rules so callers receive the precise error when allocations do not
+        // reconcile, even if the savings component would also exceed the
+        // remaining monthly amount.
+        BigDecimal totalAllocated = sharePart.add(loanPrincPart).add(loanIntPart).add(extraLoanPart).add(otherPart).add(netLateFee);
+        if (totalAllocated.compareTo(totalReceived) != 0) {
+            throw new InvalidFinancialOperationException(
+                    "Total allocated amount (₹" + totalAllocated + ") does not equal amount received (₹" + totalReceived + "). " +
+                    "Every rupee must be explicitly allocated to Share, Loan EMI, Extra Principal, Late Fee, or Other."
+            );
+        }
+
         BigDecimal expectedShare = record.getExpectedAmount() != null
                 ? record.getExpectedAmount()
                 : configuredMonthlyBachat;
@@ -381,15 +402,6 @@ public class CollectionService {
             throw new InvalidFinancialOperationException(
                     "Monthly bachat payment cannot exceed the remaining configured amount of ₹" + remainingShare +
                     ". Extra payment must be allocated to a loan, late fee, or other category."
-            );
-        }
-
-        // VALIDATION: Total allocated MUST equal payment amount
-        BigDecimal totalAllocated = sharePart.add(loanPrincPart).add(loanIntPart).add(otherPart).add(netLateFee);
-        if (totalAllocated.compareTo(totalReceived) != 0) {
-            throw new InvalidFinancialOperationException(
-                    "Total allocated amount (₹" + totalAllocated + ") does not equal amount received (₹" + totalReceived + "). " +
-                    "Every rupee must be explicitly allocated to Share, Loan, Late Fee, or Other."
             );
         }
 
@@ -409,7 +421,6 @@ public class CollectionService {
             record.setWaivedLateFee(waivedFee);
             record.setPaidLateFee((record.getPaidLateFee() != null ? record.getPaidLateFee() : BigDecimal.ZERO).add(netLateFee));
 
-            LocalDate payDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
             record.setPaymentDate(payDate);
             record.setPaymentMethod(request.getPaymentMethod());
             record.setReferenceNumber(request.getReferenceNumber());
@@ -420,7 +431,7 @@ public class CollectionService {
             int graceDays = masterData != null ? masterData.getGracePeriodDays() : 5;
             LocalDate dueDate = record.getDueDate() != null ? record.getDueDate() : calculatedDueDate;
             record.setDueDate(dueDate);
-            if (payDate.isAfter(dueDate.plusDays(graceDays))) {
+            if (payDate.isAfter(dueDate)) {
                 record.setDaysLate((int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, payDate));
             }
 
@@ -471,7 +482,7 @@ public class CollectionService {
                 Transaction lateFeeTxn = new Transaction(
                         "TXN-" + System.currentTimeMillis() + "-LF",
                         groupId, member.getMemberId(), member.getFullName(), null,
-                        TransactionType.SHARE_LATE_FEE, netLateFee, BigDecimal.ZERO, BigDecimal.ZERO,
+                        TransactionType.PENALTY_INCOME, netLateFee, BigDecimal.ZERO, BigDecimal.ZERO,
                         payDate, request.getReferenceNumber(),
                         "Late Payment Charge for " + month + "/" + year + " (Days late: " + record.getDaysLate() + ")",
                         request.getPaymentMethod(), recordedBy
@@ -500,7 +511,7 @@ public class CollectionService {
         }
 
         // 5. PROCESS OPTION 2: LOAN PAYMENT (PRINCIPAL & INTEREST)
-        if (loanPrincPart.compareTo(BigDecimal.ZERO) > 0 || loanIntPart.compareTo(BigDecimal.ZERO) > 0) {
+        if (loanPrincPart.compareTo(BigDecimal.ZERO) > 0 || loanIntPart.compareTo(BigDecimal.ZERO) > 0 || extraLoanPart.compareTo(BigDecimal.ZERO) > 0) {
             String loanId = request.getLoanId();
             if (loanId == null || loanId.isBlank()) {
                 loanId = member.getActiveLoanId();
@@ -511,16 +522,27 @@ public class CollectionService {
                         .orElse(null);
             }
             if (loanId != null && !loanId.isBlank()) {
-                BigDecimal totalLoanPayment = loanPrincPart.add(loanIntPart);
-                LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
-                        totalLoanPayment,
-                        request.getPaymentDate(),
-                        request.getPaymentMethod(),
-                        request.getReferenceNumber()
-                );
-                loanReq.setNotes("Multi-category Collection Payment [Principal: ₹" + loanPrincPart + ", Interest: ₹" + loanIntPart + "]");
                 try {
-                    loanService.recordRepayment(loanId, loanReq, recordedBy);
+                    BigDecimal totalLoanPayment = loanPrincPart.add(loanIntPart);
+                    if (totalLoanPayment.signum() > 0) {
+                        LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
+                                totalLoanPayment,
+                                request.getPaymentDate(),
+                                request.getPaymentMethod(),
+                                request.getReferenceNumber()
+                        );
+                        loanReq.setNotes("Multi-category Collection Payment [Principal: ₹" + loanPrincPart + ", Interest: ₹" + loanIntPart + "]");
+                        loanService.recordRepayment(loanId, loanReq, recordedBy);
+                    }
+                    if (extraLoanPart.signum() > 0) {
+                        LoanExtraPaymentRequest extraReq = new LoanExtraPaymentRequest();
+                        extraReq.setAmount(extraLoanPart);
+                        extraReq.setPaymentDate(request.getPaymentDate());
+                        extraReq.setPaymentMethod(request.getPaymentMethod());
+                        extraReq.setReferenceNumber(request.getReferenceNumber());
+                        extraReq.setNotes("Member extra principal payment");
+                        loanService.recordExtraPayment(loanId, extraReq, recordedBy);
+                    }
                 } catch (Exception ex) {
                     throw new InvalidFinancialOperationException("Failed to credit loan payment component: " + ex.getMessage());
                 }

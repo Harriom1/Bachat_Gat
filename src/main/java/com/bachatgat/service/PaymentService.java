@@ -11,6 +11,7 @@ import com.bachatgat.security.GroupSecurityService;
 import com.bachatgat.security.UserPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
@@ -29,7 +30,7 @@ import java.util.stream.Collectors;
 public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
-    private static final String HMAC_SECRET = "BachatGatSecurePaymentKey2026_HMAC_Secret";
+    private final String hmacSecret;
 
     private final FirestoreDataService dataService;
     private final CollectionService collectionService;
@@ -47,7 +48,8 @@ public class PaymentService {
                           LoanService loanService,
                           MasterDataService masterDataService,
                           GroupSecurityService groupSecurityService,
-                          AuditService auditService) {
+                          AuditService auditService,
+                          @Value("${payment.hmac-secret:}") String configuredHmacSecret) {
         this.dataService = dataService;
         this.collectionService = collectionService;
         this.memberService = memberService;
@@ -56,6 +58,12 @@ public class PaymentService {
         this.masterDataService = masterDataService;
         this.groupSecurityService = groupSecurityService;
         this.auditService = auditService;
+        if (configuredHmacSecret == null || configuredHmacSecret.isBlank()) {
+            this.hmacSecret = UUID.randomUUID().toString() + UUID.randomUUID();
+            log.warn("payment.hmac-secret is not configured; using an ephemeral signing key. Configure it before enabling a real gateway.");
+        } else {
+            this.hmacSecret = configuredHmacSecret;
+        }
     }
 
     /**
@@ -91,6 +99,7 @@ public class PaymentService {
         BigDecimal shareAmount = request.getShareAmount();
         BigDecimal loanPrincipal = request.getLoanPrincipalAmount() != null ? request.getLoanPrincipalAmount() : BigDecimal.ZERO;
         BigDecimal loanInterest = request.getLoanInterestAmount() != null ? request.getLoanInterestAmount() : BigDecimal.ZERO;
+        BigDecimal extraLoanPayment = request.getExtraLoanPaymentAmount() != null ? request.getExtraLoanPaymentAmount() : BigDecimal.ZERO;
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
         BigDecimal otherAmount = request.getOtherAmount() != null ? request.getOtherAmount() : BigDecimal.ZERO;
 
@@ -144,27 +153,34 @@ public class PaymentService {
             if ("LOAN_EMI".equalsIgnoreCase(request.getPaymentType()) && loanId != null) {
                 shareAmount = BigDecimal.ZERO;
                 Loan loan = loanService.getLoanById(loanId);
-                BigDecimal monthlyEmi = loan.getMonthlyInstallment();
-                BigDecimal rate = loan.getInterestRate().divide(BigDecimal.valueOf(1200), 6, RoundingMode.HALF_UP);
-                loanInterest = loan.getOutstandingPrincipal().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+                loanInterest = currentUnpaidInterest(loan);
                 loanPrincipal = totalRequested.subtract(loanInterest).max(BigDecimal.ZERO);
             } else if ("COMBINED".equalsIgnoreCase(request.getPaymentType()) && loanId != null) {
                 shareAmount = expectedShare;
                 BigDecimal remaining = totalRequested.subtract(shareAmount).max(BigDecimal.ZERO);
                 Loan loan = loanService.getLoanById(loanId);
-                BigDecimal rate = loan.getInterestRate().divide(BigDecimal.valueOf(1200), 6, RoundingMode.HALF_UP);
-                loanInterest = loan.getOutstandingPrincipal().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+                loanInterest = currentUnpaidInterest(loan);
                 loanPrincipal = remaining.subtract(loanInterest).max(BigDecimal.ZERO);
             } else {
                 shareAmount = totalRequested;
             }
         }
 
+        // Loan payments must always use the persisted schedule, even when an
+        // older member page sends stale principal/interest fields.
+        if (loanId != null && ("LOAN_EMI".equalsIgnoreCase(request.getPaymentType())
+                || "COMBINED".equalsIgnoreCase(request.getPaymentType()))) {
+            Loan loan = loanService.getLoanById(loanId);
+            loanInterest = currentUnpaidInterest(loan);
+            BigDecimal nonLoanAmount = shareAmount.add(extraLoanPayment).add(lateFee).add(otherAmount);
+            loanPrincipal = totalRequested.subtract(nonLoanAmount).subtract(loanInterest).max(BigDecimal.ZERO);
+        }
+
         // Validate that breakdown matches total amount requested
-        BigDecimal computedTotal = shareAmount.add(loanPrincipal).add(loanInterest).add(lateFee).add(otherAmount);
+        BigDecimal computedTotal = shareAmount.add(loanPrincipal).add(loanInterest).add(extraLoanPayment).add(lateFee).add(otherAmount);
         if (computedTotal.compareTo(totalRequested) != 0) {
             // Adjust monthly bachat to balance
-            shareAmount = totalRequested.subtract(loanPrincipal).subtract(loanInterest).subtract(lateFee).subtract(otherAmount).max(BigDecimal.ZERO);
+            shareAmount = totalRequested.subtract(loanPrincipal).subtract(loanInterest).subtract(extraLoanPayment).subtract(lateFee).subtract(otherAmount).max(BigDecimal.ZERO);
         }
 
         String orderId = "ORD-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
@@ -185,6 +201,7 @@ public class PaymentService {
         order.setLoanId(loanId);
         order.setLoanPrincipalAmount(loanPrincipal);
         order.setLoanInterestAmount(loanInterest);
+        order.setExtraLoanPaymentAmount(extraLoanPayment);
         order.setLateFeeAmount(lateFee);
         order.setOtherAmount(otherAmount);
 
@@ -196,6 +213,19 @@ public class PaymentService {
         PaymentOrder saved = dataService.savePaymentOrder(order);
         log.info("Created payment order {} for member {} amount ₹{}", saved.getOrderId(), effectiveMemberId, totalRequested);
         return saved;
+    }
+
+    private BigDecimal currentUnpaidInterest(Loan loan) {
+        return dataService.getLoanSchedule(loan.getId()).stream()
+                .filter(item -> item.getStatus() != RepaymentStatus.PAID)
+                .findFirst()
+                .map(item -> {
+                    BigDecimal scheduled = item.getInterestAmount() != null ? item.getInterestAmount() : BigDecimal.ZERO;
+                    BigDecimal paid = item.getPaidAmount() != null ? item.getPaidAmount() : BigDecimal.ZERO;
+                    return scheduled.subtract(paid.min(scheduled)).max(BigDecimal.ZERO)
+                            .min(loan.getOutstandingInterest() != null ? loan.getOutstandingInterest() : BigDecimal.ZERO);
+                })
+                .orElse(BigDecimal.ZERO);
     }
 
     /**
@@ -259,6 +289,7 @@ public class PaymentService {
         colReq.setLoanId(order.getLoanId());
         colReq.setLoanPrincipalAmount(order.getLoanPrincipalAmount());
         colReq.setLoanInterestAmount(order.getLoanInterestAmount());
+        colReq.setExtraLoanPaymentAmount(order.getExtraLoanPaymentAmount());
         colReq.setLateFeeAmount(order.getLateFeeAmount());
         colReq.setOtherAmount(order.getOtherAmount());
         colReq.setPaymentMethod(paymentMethod);
@@ -477,7 +508,7 @@ public class PaymentService {
         try {
             String data = orderId + "|" + amount.setScale(2, RoundingMode.HALF_UP).toPlainString() + "|" + memberId;
             Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(HMAC_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
             sha256_HMAC.init(secret_key);
             byte[] hash = sha256_HMAC.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(hash);

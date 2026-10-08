@@ -269,6 +269,7 @@ public class LoanApplicationService {
         loan.setMemberId(app.getMemberId());
         loan.setMemberName(app.getMemberName());
         loan.setPurpose(app.getPurpose() != null ? app.getPurpose() : "Member Personal / Household Need");
+        loan.setChequeNumber(normalizeChequeNumber(request.getChequeNumber()));
         loan.setPrincipalAmount(approvedPrincipal);
         loan.setInterestRate(rate);
         loan.setDurationMonths(durationMonths);
@@ -354,6 +355,12 @@ public class LoanApplicationService {
                 "SANCTIONED: " + approvedPrincipal + " @ " + rate + "% (disbursed: " + disburseNow + ")", "127.0.0.1");
 
         return savedLoan;
+    }
+
+    private String normalizeChequeNumber(String chequeNumber) {
+        if (chequeNumber == null) return null;
+        String normalized = chequeNumber.trim();
+        return normalized.isBlank() ? null : normalized;
     }
 
     /**

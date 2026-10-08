@@ -221,6 +221,32 @@ public class DashboardService {
             dto.setTotalInterestPaid(loan.getInterestPaid());
             dto.setNextPaymentAmount(loan.getMonthlyInstallment());
             dto.setNextPaymentDueDate(loan.getNextDueDate());
+            List<LoanRepaymentSchedule> remainingSchedule = dataService.getLoanSchedule(loan.getId()).stream()
+                    .filter(item -> item.getStatus() != RepaymentStatus.PAID)
+                    .limit(2)
+                    .toList();
+            if (!remainingSchedule.isEmpty()) {
+                LoanRepaymentSchedule current = remainingSchedule.get(0);
+                BigDecimal paid = nz(current.getPaidAmount());
+                BigDecimal scheduledInterest = nz(current.getInterestAmount());
+                BigDecimal interestDue = scheduledInterest.subtract(paid.min(scheduledInterest)).max(BigDecimal.ZERO);
+                BigDecimal principalAlreadyPaid = paid.subtract(scheduledInterest).max(BigDecimal.ZERO);
+                BigDecimal principalDue = nz(current.getPrincipalAmount()).subtract(principalAlreadyPaid).max(BigDecimal.ZERO);
+                BigDecimal currentDue = interestDue.add(principalDue);
+                dto.setCurrentEmi(currentDue);
+                dto.setCurrentPrincipal(principalDue);
+                dto.setCurrentInterest(interestDue);
+                dto.setNextPaymentAmount(currentDue);
+                dto.setNextPaymentDueDate(current.getDueDate());
+                dto.setRemainingTenure(dataService.getLoanSchedule(loan.getId()).stream()
+                        .filter(item -> item.getStatus() != RepaymentStatus.PAID).toList().size());
+            }
+            if (remainingSchedule.size() > 1) {
+                LoanRepaymentSchedule next = remainingSchedule.get(1);
+                dto.setNextEmi(nz(next.getTotalDue()));
+                dto.setNextPrincipal(nz(next.getPrincipalAmount()));
+                dto.setNextInterest(nz(next.getInterestAmount()));
+            }
             dto.setActiveLoan(loan);
         });
 
@@ -229,5 +255,9 @@ public class DashboardService {
         dto.setRecentTransactions(memberTxns.stream().limit(10).toList());
 
         return dto;
+    }
+
+    private BigDecimal nz(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
     }
 }

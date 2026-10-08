@@ -83,8 +83,10 @@ public class MasterDataService {
         LocalDate effectiveFrom = dto.getEffectiveFrom() != null
                 ? dto.getEffectiveFrom().withDayOfMonth(1)
                 : LocalDate.now().plusMonths(1).withDayOfMonth(1);
-        if (!effectiveFrom.isAfter(current.getEffectiveFrom())) {
-            throw new IllegalArgumentException("Monthly Bachat changes must start from a future month");
+        LocalDate currentEffectiveMonth = current.getEffectiveFrom() != null
+                ? current.getEffectiveFrom().withDayOfMonth(1) : LocalDate.now().withDayOfMonth(1);
+        if (effectiveFrom.isBefore(currentEffectiveMonth)) {
+            throw new IllegalArgumentException("Monthly Bachat changes cannot start before the current configuration");
         }
 
         // Archive previous version without changing already-recorded months.

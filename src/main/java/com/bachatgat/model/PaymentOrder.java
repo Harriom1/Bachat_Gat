@@ -20,6 +20,7 @@ public class PaymentOrder {
     private String loanId;
     private BigDecimal loanPrincipalAmount = BigDecimal.ZERO;
     private BigDecimal loanInterestAmount = BigDecimal.ZERO;
+    private BigDecimal extraLoanPaymentAmount = BigDecimal.ZERO;
     private BigDecimal lateFeeAmount = BigDecimal.ZERO;
     private BigDecimal otherAmount = BigDecimal.ZERO;
 
@@ -91,6 +92,8 @@ public class PaymentOrder {
 
     public BigDecimal getLoanInterestAmount() { return loanInterestAmount; }
     public void setLoanInterestAmount(BigDecimal loanInterestAmount) { this.loanInterestAmount = loanInterestAmount; }
+    public BigDecimal getExtraLoanPaymentAmount() { return extraLoanPaymentAmount; }
+    public void setExtraLoanPaymentAmount(BigDecimal extraLoanPaymentAmount) { this.extraLoanPaymentAmount = extraLoanPaymentAmount; }
 
     public BigDecimal getLateFeeAmount() { return lateFeeAmount; }
     public void setLateFeeAmount(BigDecimal lateFeeAmount) { this.lateFeeAmount = lateFeeAmount; }

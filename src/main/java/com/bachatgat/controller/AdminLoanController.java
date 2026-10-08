@@ -17,7 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/loans")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER')")
 public class AdminLoanController {
 
     private final LoanService loanService;
@@ -39,7 +39,7 @@ public class AdminLoanController {
         if (groupId != null && !groupId.isBlank()) {
             groupSecurityService.validateGroupAccess(principal, groupId);
         }
-        String effectiveGroupId = (principal.getRole() == Role.ADMIN) ? principal.getGroupId() : groupId;
+        String effectiveGroupId = groupSecurityService.resolveEffectiveGroupId(principal, groupId);
         List<Loan> loans = loanService.getLoansByGroupId(effectiveGroupId);
 
         List<Loan> filtered = loans.stream()
@@ -84,7 +84,7 @@ public class AdminLoanController {
         if (groupId != null && !groupId.isBlank()) {
             groupSecurityService.validateGroupAccess(principal, groupId);
         }
-        String effectiveGroupId = (principal.getRole() == Role.ADMIN) ? principal.getGroupId() : groupId;
+        String effectiveGroupId = groupSecurityService.resolveEffectiveGroupId(principal, groupId);
         int targetMonth = (month != null && month > 0) ? month : java.time.LocalDate.now().getMonthValue();
         int targetYear = (year != null && year > 0) ? year : java.time.LocalDate.now().getYear();
 

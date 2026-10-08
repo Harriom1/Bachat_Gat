@@ -23,6 +23,7 @@ public class PaymentOrderRequest {
     private String loanId;
     private BigDecimal loanPrincipalAmount;
     private BigDecimal loanInterestAmount;
+    private BigDecimal extraLoanPaymentAmount;
     private BigDecimal lateFeeAmount;
     private BigDecimal otherAmount;
 
@@ -61,6 +62,8 @@ public class PaymentOrderRequest {
 
     public BigDecimal getLoanInterestAmount() { return loanInterestAmount; }
     public void setLoanInterestAmount(BigDecimal loanInterestAmount) { this.loanInterestAmount = loanInterestAmount; }
+    public BigDecimal getExtraLoanPaymentAmount() { return extraLoanPaymentAmount; }
+    public void setExtraLoanPaymentAmount(BigDecimal extraLoanPaymentAmount) { this.extraLoanPaymentAmount = extraLoanPaymentAmount; }
 
     public BigDecimal getLateFeeAmount() { return lateFeeAmount; }
     public void setLateFeeAmount(BigDecimal lateFeeAmount) { this.lateFeeAmount = lateFeeAmount; }

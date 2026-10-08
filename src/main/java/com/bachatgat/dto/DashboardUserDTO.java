@@ -31,6 +31,13 @@ public class DashboardUserDTO {
     private BigDecimal totalInterestPaid = BigDecimal.ZERO;
     private BigDecimal nextPaymentAmount = BigDecimal.ZERO;
     private LocalDate nextPaymentDueDate;
+    private BigDecimal currentEmi = BigDecimal.ZERO;
+    private BigDecimal currentPrincipal = BigDecimal.ZERO;
+    private BigDecimal currentInterest = BigDecimal.ZERO;
+    private BigDecimal nextEmi = BigDecimal.ZERO;
+    private BigDecimal nextPrincipal = BigDecimal.ZERO;
+    private BigDecimal nextInterest = BigDecimal.ZERO;
+    private int remainingTenure;
     
     private Loan activeLoan;
     private List<Transaction> recentTransactions = new ArrayList<>();
@@ -80,6 +87,20 @@ public class DashboardUserDTO {
     public void setNextPaymentAmount(BigDecimal nextPaymentAmount) { this.nextPaymentAmount = nextPaymentAmount; }
     public LocalDate getNextPaymentDueDate() { return nextPaymentDueDate; }
     public void setNextPaymentDueDate(LocalDate nextPaymentDueDate) { this.nextPaymentDueDate = nextPaymentDueDate; }
+    public BigDecimal getCurrentEmi() { return currentEmi; }
+    public void setCurrentEmi(BigDecimal currentEmi) { this.currentEmi = currentEmi; }
+    public BigDecimal getCurrentPrincipal() { return currentPrincipal; }
+    public void setCurrentPrincipal(BigDecimal currentPrincipal) { this.currentPrincipal = currentPrincipal; }
+    public BigDecimal getCurrentInterest() { return currentInterest; }
+    public void setCurrentInterest(BigDecimal currentInterest) { this.currentInterest = currentInterest; }
+    public BigDecimal getNextEmi() { return nextEmi; }
+    public void setNextEmi(BigDecimal nextEmi) { this.nextEmi = nextEmi; }
+    public BigDecimal getNextPrincipal() { return nextPrincipal; }
+    public void setNextPrincipal(BigDecimal nextPrincipal) { this.nextPrincipal = nextPrincipal; }
+    public BigDecimal getNextInterest() { return nextInterest; }
+    public void setNextInterest(BigDecimal nextInterest) { this.nextInterest = nextInterest; }
+    public int getRemainingTenure() { return remainingTenure; }
+    public void setRemainingTenure(int remainingTenure) { this.remainingTenure = remainingTenure; }
     public Loan getActiveLoan() { return activeLoan; }
     public void setActiveLoan(Loan activeLoan) { this.activeLoan = activeLoan; }
     public List<Transaction> getRecentTransactions() { return recentTransactions; }

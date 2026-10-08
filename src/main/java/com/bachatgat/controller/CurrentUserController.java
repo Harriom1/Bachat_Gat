@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/me")
@@ -136,7 +137,14 @@ public class CurrentUserController {
             throw new ForbiddenException("You are not authorized to view another member's loan schedule.");
         }
         List<LoanRepaymentSchedule> schedule = loanService.getLoanSchedule(loanId);
-        return ResponseEntity.ok(ApiResponse.ok(schedule));
+        List<LoanRepaymentSchedule> visibleSchedule = new ArrayList<>(2);
+        for (LoanRepaymentSchedule installment : schedule) {
+            if (installment.getStatus() != RepaymentStatus.PAID) {
+                visibleSchedule.add(installment);
+                if (visibleSchedule.size() == 2) break;
+            }
+        }
+        return ResponseEntity.ok(ApiResponse.ok(visibleSchedule));
     }
 
     @PostMapping("/loan-applications")

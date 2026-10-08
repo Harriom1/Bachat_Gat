@@ -25,6 +25,7 @@ public class CollectionPaymentRequest {
     private String loanId;
     private BigDecimal loanPrincipalAmount;
     private BigDecimal loanInterestAmount;
+    private BigDecimal extraLoanPaymentAmount;
 
     // OPTION 3: Other
     private BigDecimal otherAmount;
@@ -64,6 +65,8 @@ public class CollectionPaymentRequest {
     public void setLoanPrincipalAmount(BigDecimal loanPrincipalAmount) { this.loanPrincipalAmount = loanPrincipalAmount; }
     public BigDecimal getLoanInterestAmount() { return loanInterestAmount; }
     public void setLoanInterestAmount(BigDecimal loanInterestAmount) { this.loanInterestAmount = loanInterestAmount; }
+    public BigDecimal getExtraLoanPaymentAmount() { return extraLoanPaymentAmount; }
+    public void setExtraLoanPaymentAmount(BigDecimal extraLoanPaymentAmount) { this.extraLoanPaymentAmount = extraLoanPaymentAmount; }
     public BigDecimal getOtherAmount() { return otherAmount; }
     public void setOtherAmount(BigDecimal otherAmount) { this.otherAmount = otherAmount; }
     public String getOtherCategory() { return otherCategory; }

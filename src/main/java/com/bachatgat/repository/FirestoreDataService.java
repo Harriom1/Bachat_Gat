@@ -3,6 +3,8 @@ package com.bachatgat.repository;
 import com.bachatgat.model.*;
 import com.bachatgat.util.FinancialCalculator;
 import com.google.cloud.firestore.Firestore;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +26,7 @@ public class FirestoreDataService {
 
     private final Firestore firestore;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
 
     // In-memory synchronized stores ensuring zero downtime and offline/local compatibility
     private final Map<String, User> users = new ConcurrentHashMap<>();
@@ -46,9 +49,12 @@ public class FirestoreDataService {
 
     @Autowired
 
-    public FirestoreDataService(@Autowired(required = false) Firestore firestore, PasswordEncoder passwordEncoder) {
+    public FirestoreDataService(@Autowired(required = false) Firestore firestore,
+                                PasswordEncoder passwordEncoder,
+                                ObjectMapper objectMapper) {
         this.firestore = firestore;
         this.passwordEncoder = passwordEncoder;
+        this.objectMapper = objectMapper;
     }
 
     @PostConstruct
@@ -799,7 +805,9 @@ public class FirestoreDataService {
     private void persistToFirestoreAsync(String collectionName, String documentId, Object object) {
         if (firestore != null) {
             try {
-                firestore.collection(collectionName).document(documentId).set(object);
+                Map<String, Object> firestoreData = objectMapper.convertValue(
+                        object, new TypeReference<Map<String, Object>>() {});
+                firestore.collection(collectionName).document(documentId).set(firestoreData);
             } catch (Exception ex) {
                 log.debug("Async write to Firestore skipped/failed: {}", ex.getMessage());
             }
@@ -1075,16 +1083,24 @@ public class FirestoreDataService {
                 col.setDueDate(LocalDate.of(currentYear, month, 10));
 
                 if (month <= 6) {
-                    // Months 1 to 6 fully paid
-                    col.setPaidAmount(BigDecimal.valueOf(5000));
-                    col.setPendingAmount(BigDecimal.ZERO);
-                    col.setStatus(CollectionStatus.PAID);
-                    col.setPaymentDate(LocalDate.of(currentYear, month, 5));
-                    col.setPaymentMethod(month % 2 == 0 ? "UPI" : "CASH");
-                    col.setRecordedBy("admin");
+                    // Keep the March record for M001 open so the manual
+                    // payment flow has an unambiguous historical example.
+                    if (month == 3 && m.getMemberId().endsWith("001")) {
+                        col.setPaidAmount(BigDecimal.ZERO);
+                        col.setPendingAmount(BigDecimal.valueOf(5000));
+                        col.setStatus(CollectionStatus.PENDING);
+                    } else {
+                        col.setPaidAmount(BigDecimal.valueOf(5000));
+                        col.setPendingAmount(BigDecimal.ZERO);
+                        col.setStatus(CollectionStatus.PAID);
+                        col.setPaymentDate(LocalDate.of(currentYear, month, 5));
+                        col.setPaymentMethod(month % 2 == 0 ? "UPI" : "CASH");
+                        col.setRecordedBy("admin");
+                    }
                 } else if (month == 7 || month == 8 || month == 9) {
-                    // Leave MPBG-M001 unpaid in month 7/8/9 so tests testing payment recording can execute cleanly
-                    if (m.getMemberId().endsWith("001")) {
+                    // Leave M001 and M003 open in their exercised periods so
+                    // payment and idempotency flows start from a clean state.
+                    if (m.getMemberId().endsWith("001") || (month == 9 && m.getMemberId().endsWith("003"))) {
                         col.setPaidAmount(BigDecimal.ZERO);
                         col.setPendingAmount(BigDecimal.valueOf(5000));
                         col.setStatus(CollectionStatus.PENDING);

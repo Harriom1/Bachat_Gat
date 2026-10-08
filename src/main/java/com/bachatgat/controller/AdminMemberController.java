@@ -20,7 +20,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER')")
 public class AdminMemberController {
 
     private final MemberService memberService;
@@ -33,11 +33,9 @@ public class AdminMemberController {
 
     @GetMapping("/members")
     public ResponseEntity<ApiResponse<List<Member>>> getAllMembers(@AuthenticationPrincipal UserPrincipal principal) {
-        if (principal.getRole() == Role.ADMIN) {
-            List<Member> members = memberService.getMembers(principal.getGroupId());
-            return ResponseEntity.ok(ApiResponse.ok(members));
-        }
-        List<Member> members = memberService.getAllMembers();
+        List<Member> members = principal.getRole() == Role.SUPER_ADMIN
+                ? memberService.getAllMembers()
+                : memberService.getMembers(principal.getGroupId());
         return ResponseEntity.ok(ApiResponse.ok(members));
     }
 

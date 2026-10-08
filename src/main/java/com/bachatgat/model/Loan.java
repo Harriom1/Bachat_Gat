@@ -38,6 +38,7 @@ public class Loan {
     private int overdueInstallments = 0;
     
     private String purpose = "General / Household Need";
+    private String chequeNumber;
     private LoanStatus status = LoanStatus.ACTIVE;
     private String createdBy;
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -47,6 +48,8 @@ public class Loan {
 
     public String getPurpose() { return purpose; }
     public void setPurpose(String purpose) { this.purpose = purpose; }
+    public String getChequeNumber() { return chequeNumber; }
+    public void setChequeNumber(String chequeNumber) { this.chequeNumber = chequeNumber; }
 
     // Getters and Setters
     public String getId() { return id; }

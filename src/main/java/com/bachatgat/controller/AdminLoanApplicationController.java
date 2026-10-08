@@ -4,7 +4,6 @@ import com.bachatgat.dto.ApiResponse;
 import com.bachatgat.dto.LoanApprovalRequest;
 import com.bachatgat.model.Loan;
 import com.bachatgat.model.LoanApplication;
-import com.bachatgat.model.Role;
 import com.bachatgat.security.GroupSecurityService;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.LoanApplicationService;
@@ -19,7 +18,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/loan-applications")
-@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'PRESIDENT', 'SECRETARY', 'TREASURER')")
 public class AdminLoanApplicationController {
 
     private final LoanApplicationService loanApplicationService;
@@ -38,7 +37,7 @@ public class AdminLoanApplicationController {
         if (groupId != null && !groupId.isBlank()) {
             groupSecurityService.validateGroupAccess(principal, groupId);
         }
-        String effectiveGroupId = (principal.getRole() == Role.ADMIN) ? principal.getGroupId() : groupId;
+        String effectiveGroupId = groupSecurityService.resolveEffectiveGroupId(principal, groupId);
         List<LoanApplication> apps = loanApplicationService.getApplicationsByGroupId(effectiveGroupId);
         return ResponseEntity.ok(ApiResponse.ok(apps));
     }

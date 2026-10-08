@@ -22,6 +22,7 @@ public class LoanApprovalRequest {
     private String interestType = "FLAT"; // FLAT or REDUCING
     private Boolean isMonthlyRate;         // true for e.g. 2% per month, false/null for annual
     private Boolean disburseImmediately = true; // if false, stays in APPROVED status until separate disbursement
+    private String chequeNumber;
     private String adminNotes;
 
     public LoanApprovalRequest() {}
@@ -30,6 +31,8 @@ public class LoanApprovalRequest {
     public void setIsMonthlyRate(Boolean isMonthlyRate) { this.isMonthlyRate = isMonthlyRate; }
     public Boolean getDisburseImmediately() { return disburseImmediately != null ? disburseImmediately : true; }
     public void setDisburseImmediately(Boolean disburseImmediately) { this.disburseImmediately = disburseImmediately; }
+    public String getChequeNumber() { return chequeNumber; }
+    public void setChequeNumber(String chequeNumber) { this.chequeNumber = chequeNumber; }
 
     public BigDecimal getApprovedAmount() { return approvedAmount; }
     public void setApprovedAmount(BigDecimal approvedAmount) { this.approvedAmount = approvedAmount; }

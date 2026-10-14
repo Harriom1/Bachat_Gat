@@ -21,6 +21,7 @@
           <div class="brand-title" data-i18n="appName">Bachat Gat</div>
           <span class="brand-badge">ADMIN</span>
         </div>
+
       </div>
       <ul class="sidebar-menu">
         <li class="menu-category">MAIN</li>
@@ -155,6 +156,12 @@
               <span id="members-page-info" style="font-weight:600; min-width:5rem; text-align:center;">Page 1 of 1</span>
               <button type="button" id="members-page-next" class="btn btn-outline-secondary" disabled>Next <i class="bi bi-chevron-right"></i></button>
             </div>
+          </div>
+        </div>
+        <div class="card-box" style="margin-top: 1rem;">
+          <div class="section-header"><div><h3 class="section-title"><i class="bi bi-arrow-counterclockwise"></i> Member Refunds</h3><p class="section-subtitle">Exit refunds reserved from group funds; bank status is updated separately.</p></div></div>
+          <div class="table-responsive-wrapper">
+            <table class="data-table"><thead><tr><th>Member</th><th>Amount</th><th>Request Date</th><th>Expected Credit</th><th>Status</th><th>Action</th></tr></thead><tbody id="member-refunds-tbody"><tr><td colspan="6">Loading refunds...</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -467,6 +474,7 @@
 
       // Load members for active selection
       await loadMembers();
+      await loadMemberRefunds();
 
       // Topbar group change
       document.getElementById('active-group-select').addEventListener('change', () => {
@@ -605,12 +613,32 @@
       }
     }
 
+    async function loadMemberRefunds() {
+      const tbody = document.getElementById('member-refunds-tbody');
+      if (!tbody) return;
+      try {
+        const refunds = await api.getMemberRefunds(null);
+        tbody.innerHTML = refunds.length ? refunds.map(r => `<tr>
+          <td><strong>${escapeHtml(r.memberName)}</strong><br><small>${escapeHtml(r.memberId)}</small></td>
+          <td class="table-currency">${Common.formatIndianCurrency(r.amount)}</td>
+          <td>${Common.formatDate(r.requestDate)}</td><td>${Common.formatDate(r.expectedCreditDate)}</td>
+          <td>${Common.getStatusBadge(r.status)}</td>
+          <td>${r.status === 'PENDING' ? `<button class="btn btn-sm btn-outline-primary" onclick="setRefundStatus('${r.refundId}','PROCESSING')">Mark Processing</button>` : r.status === 'PROCESSING' ? `<button class="btn btn-sm btn-outline-success" onclick="setRefundStatus('${r.refundId}','COMPLETED')">Mark Completed</button>` : ''}</td>
+        </tr>`).join('') : '<tr><td colspan="6">No member refunds recorded.</td></tr>';
+      } catch (error) { tbody.innerHTML = `<tr><td colspan="6">${escapeHtml(error.message)}</td></tr>`; }
+    }
+
+    async function setRefundStatus(refundId, status) {
+      try { await api.updateRefundStatus(refundId, status); await loadMemberRefunds(); Common.showToast('Refund status updated.', 'success'); }
+      catch (error) { Common.showToast(error.message, 'danger'); }
+    }
+
     function updateSummaryMetrics(members) {
       document.getElementById('stat-total-members').textContent = members.length;
       const active = members.filter(m => m.status === 'ACTIVE');
       document.getElementById('stat-active-savers').textContent = active.length;
 
-      const totalSavings = members.reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
+      const totalSavings = active.reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
       document.getElementById('stat-total-savings').textContent = Common.formatIndianCurrency(totalSavings);
 
       const noLoans = members.filter(m => !m.activeLoanId || parseFloat(m.currentLoanOutstanding || 0) <= 0);
@@ -843,6 +871,7 @@
               <button class="btn-action-icon" title="Change Status" onclick="promptStatusChange('${m.id}', '${escapeHtml(m.fullName)}', '${m.status}')">
                 <i class="bi bi-arrow-left-right"></i>
               </button>
+              ${m.status === 'ACTIVE' ? `<button class="btn-action-icon" title="Exit member and reserve refund" onclick="confirmMemberExit('${m.id || m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-person-dash-fill text-danger"></i></button>` : ''}
             </div>
           </td>
         </tr>
@@ -909,6 +938,19 @@
       try {
         await api.updateMemberStatus(id, newStatus.toUpperCase());
         Common.showToast(`Status updated to ${newStatus.toUpperCase()}`, 'success');
+        await loadMembers();
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    async function confirmMemberExit(id, name) {
+      if (!confirm(`Exit ${name} from this Bachat Gat? The backend will calculate and reserve the refundable amount immediately.`)) return;
+      try {
+        const refund = await api.removeMemberFromGroup(null, id);
+        await loadMembers();
+        await loadMemberRefunds();
+        Common.showToast(`Exit confirmed. Refund ${refund.refundId || ''} is ${refund.status || 'PENDING'}.`, 'success');
         await loadMembers();
       } catch (err) {
         Common.showToast(err.message, 'danger');

@@ -419,7 +419,9 @@
         document.getElementById('metric-loans-disbursed').textContent = Common.formatINR(data.totalLoansDisbursed);
         document.getElementById('metric-interest-collected').textContent = Common.formatINR(data.totalInterestCollected);
         if (document.getElementById('metric-available-fund')) {
-          document.getElementById('metric-available-fund').textContent = Common.formatINR(data.groupAvailableFund || 0);
+          const availableFund = Number(data.groupAvailableFund || 0);
+          document.getElementById('metric-available-fund').textContent = Common.formatINR(availableFund);
+          document.getElementById('metric-available-fund').style.color = availableFund < 0 ? '#b91c1c' : '#15803d';
         }
 
         // Section 14 Fund Transparency Breakdown
@@ -431,6 +433,7 @@
           document.getElementById('trans-disbursed').textContent = '- ' + Common.formatINR(data.totalLoansDisbursed || 0);
           document.getElementById('trans-principal-repaid').textContent = '+ ' + Common.formatINR(data.totalPrincipalRecovered || 0);
           document.getElementById('trans-available-fund').textContent = Common.formatINR(data.groupAvailableFund || 0);
+          document.getElementById('trans-available-fund').style.color = Number(data.groupAvailableFund || 0) < 0 ? '#b91c1c' : '#047857';
         }
 
         // Pending Applications Banner
@@ -477,7 +480,9 @@
 
         // Populate Group Overview Financial Cards (Requirements 17 & 18)
         if (document.getElementById('card-total-group-fund')) {
-          document.getElementById('card-total-group-fund').textContent = Common.formatINR(data.groupAvailableFund || 0);
+          const groupFund = Number(data.groupAvailableFund || 0);
+          document.getElementById('card-total-group-fund').textContent = Common.formatINR(groupFund);
+          document.getElementById('card-total-group-fund').style.color = groupFund < 0 ? '#b91c1c' : '#047857';
           document.getElementById('card-monthly-collection').textContent = Common.formatINR(data.monthlyCollected || 0);
           document.getElementById('card-loans-given').textContent = Common.formatINR(data.totalLoansDisbursed || 0);
           document.getElementById('card-interest-income').textContent = Common.formatINR(data.totalInterestCollected || 0);

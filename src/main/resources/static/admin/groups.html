@@ -1252,7 +1252,7 @@
       const totalTarget = members.length * share;
       document.getElementById('grp-stat-target').textContent = Common.formatIndianCurrency(totalTarget);
 
-      const totalSavings = members.reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
+      const totalSavings = members.filter(m => m.status === 'ACTIVE').reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
       document.getElementById('grp-stat-savings').textContent = Common.formatIndianCurrency(totalSavings);
 
       const noLoans = members.filter(m => !m.activeLoanId || parseFloat(m.currentLoanOutstanding || 0) <= 0);

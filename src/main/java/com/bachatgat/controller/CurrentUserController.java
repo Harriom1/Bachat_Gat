@@ -32,13 +32,14 @@ public class CurrentUserController {
     private final ReportService reportService;
     private final GroupService groupService;
     private final MasterDataService masterDataService;
+    private final MemberExitService memberExitService;
 
     public CurrentUserController(MemberService memberService, DashboardService dashboardService,
                                  CollectionService collectionService, LoanService loanService,
                                  LoanApplicationService loanApplicationService, TransactionService transactionService,
                                  DocumentService documentService, NotificationService notificationService,
                                  ReportService reportService, GroupService groupService,
-                                 MasterDataService masterDataService) {
+                                 MasterDataService masterDataService, MemberExitService memberExitService) {
         this.memberService = memberService;
         this.dashboardService = dashboardService;
         this.collectionService = collectionService;
@@ -50,6 +51,7 @@ public class CurrentUserController {
         this.reportService = reportService;
         this.groupService = groupService;
         this.masterDataService = masterDataService;
+        this.memberExitService = memberExitService;
     }
 
     private String requireMemberId(UserPrincipal principal) {
@@ -246,6 +248,21 @@ public class CurrentUserController {
         String memberId = requireMemberId(principal);
         Map<String, Object> statement = reportService.getMemberStatement(memberId);
         return ResponseEntity.ok(ApiResponse.ok(statement));
+    }
+
+    @GetMapping("/exit-refunds")
+    public ResponseEntity<ApiResponse<List<MemberRefund>>> getMyExitRefunds(@AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.ok(memberExitService.getMemberRefunds(requireMemberId(principal))));
+    }
+
+    @PostMapping("/exit")
+    public ResponseEntity<ApiResponse<MemberRefund>> selfExit(
+            @RequestBody(required = false) Map<String, String> body,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        String memberId = requireMemberId(principal);
+        String reason = body == null ? "Member self-exit" : body.getOrDefault("reason", "Member self-exit");
+        return ResponseEntity.ok(ApiResponse.ok("Exit confirmed and refund reserved successfully",
+                memberExitService.exitMember(memberId, principal.getUsername(), reason)));
     }
 
     @GetMapping("/report/monthly")

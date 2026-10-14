@@ -5,6 +5,7 @@ import com.bachatgat.model.GroupExpense;
 import com.bachatgat.model.GroupIncome;
 import com.bachatgat.model.Loan;
 import com.bachatgat.model.LoanStatus;
+import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Transaction;
 import com.bachatgat.model.TransactionType;
 import com.bachatgat.repository.FirestoreDataService;
@@ -45,7 +46,10 @@ public class GroupFundService {
             TransactionType.LOAN_DISBURSEMENT,
             TransactionType.EXPENSE,
             TransactionType.OTHER_EXPENSE,
-            TransactionType.BANK_WITHDRAWAL
+            TransactionType.BANK_WITHDRAWAL,
+            // Exit refunds reserve group cash immediately. Bank processing later
+            // updates only the refund status and must not debit cash twice.
+            TransactionType.REFUND
     );
 
     private final FirestoreDataService dataService;
@@ -55,7 +59,16 @@ public class GroupFundService {
     }
 
     public BigDecimal getAvailableFund(String groupId) {
-        return getAvailableFund(groupId, null);
+        return getFundBreakdown(groupId).availableFund();
+    }
+
+    /**
+     * Amount that can safely be lent. Reporting keeps a signed balance so a
+     * shortfall is visible, while lending and refund checks cannot use a
+     * negative balance as if it were available capacity.
+     */
+    public BigDecimal getLendingCapacity(String groupId) {
+        return getAvailableFund(groupId).max(BigDecimal.ZERO);
     }
 
     public BigDecimal getAvailableFundBefore(String groupId, LocalDate date) {
@@ -68,7 +81,10 @@ public class GroupFundService {
                 .toList();
 
         if (!transactions.isEmpty()) {
-            return transactions.stream().map(this::signedAmount).reduce(BigDecimal.ZERO, BigDecimal::add).max(BigDecimal.ZERO);
+            // Keep the signed balance. Clamping a shortfall to zero hides real
+            // changes (for example, a new savings payment cannot be seen while
+            // the group is still below its disbursed-loan position).
+            return transactions.stream().map(this::signedAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         }
 
         // Safe compatibility path for records created before the central ledger.
@@ -90,7 +106,113 @@ public class GroupFundService {
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
                 .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return savings.add(principalRecovered).add(interest).add(income).subtract(expenses).subtract(disbursed).max(BigDecimal.ZERO);
+        return savings.add(principalRecovered).add(interest).add(income).subtract(expenses).subtract(disbursed);
+    }
+
+    /**
+     * Single source of truth for the dashboard accounting breakdown. Every
+     * displayed component and the final available fund are derived from the
+     * same successful ledger entries, so the numbers cannot drift apart.
+     */
+    public FundBreakdown getFundBreakdown(String groupId) {
+        List<Transaction> transactions = dataService.getTransactionsByGroupId(groupId).stream()
+                .filter(this::isSuccessful).toList();
+        if (!transactions.isEmpty()) {
+            BigDecimal savings = BigDecimal.ZERO;
+            BigDecimal interest = BigDecimal.ZERO;
+            BigDecimal otherIncome = BigDecimal.ZERO;
+            BigDecimal expenses = BigDecimal.ZERO;
+            BigDecimal disbursed = BigDecimal.ZERO;
+            BigDecimal principalRepaid = BigDecimal.ZERO;
+            BigDecimal refunds = BigDecimal.ZERO;
+
+            for (Transaction transaction : transactions) {
+                TransactionType type = transaction.getType();
+                BigDecimal amount = nz(transaction.getAmount());
+                BigDecimal principal = nz(transaction.getPrincipalAmount());
+                BigDecimal interestComponent = nz(transaction.getInterestAmount());
+                if (type == null) continue;
+                if (type == TransactionType.SHARE_CONTRIBUTION || type == TransactionType.SHARE_COLLECTION || type == TransactionType.MEMBER_SAVING) {
+                    savings = savings.add(amount);
+                } else if (type == TransactionType.LOAN_DISBURSEMENT) {
+                    disbursed = disbursed.add(amount);
+                } else if (type == TransactionType.EXPENSE || type == TransactionType.OTHER_EXPENSE || type == TransactionType.BANK_WITHDRAWAL) {
+                    expenses = expenses.add(amount);
+                } else if (type == TransactionType.REFUND) {
+                    refunds = refunds.add(amount);
+                } else if (isLoanRepayment(type)) {
+                    principalRepaid = principalRepaid.add(principal.signum() > 0 ? principal : amount.subtract(interestComponent).max(BigDecimal.ZERO));
+                    interest = interest.add(interestComponent);
+                } else if (type == TransactionType.LOAN_INTEREST_PAYMENT || type == TransactionType.LOAN_INTEREST_INCOME || type == TransactionType.LOAN_INTEREST) {
+                    interest = interest.add(amount);
+                } else if (type == TransactionType.LOAN_PENALTY_INCOME || type == TransactionType.PENALTY_INCOME || type == TransactionType.SHARE_LATE_FEE || type == TransactionType.OTHER_INCOME) {
+                    otherIncome = otherIncome.add(amount);
+                }
+            }
+            // Member balances are the cumulative savings source of truth. A group
+            // can contain historical collection records plus newer ledger entries;
+            // using only the ledger here would replace (and hide) all historical
+            // savings as soon as the first new payment is recorded.
+            LegacyFundValues legacy = getLegacyFundValues(groupId);
+            boolean savingsFromLegacy = legacy.savings().signum() > 0;
+            if (savingsFromLegacy) {
+                savings = legacy.savings();
+            } else {
+                // Keep support for imported groups whose member balances have not
+                // yet been populated, while reserving refunds from ledger savings.
+                savings = savings.subtract(refunds).max(BigDecimal.ZERO);
+            }
+            if (interest.signum() == 0) interest = legacy.interest();
+            if (otherIncome.signum() == 0) otherIncome = legacy.otherIncome();
+            if (expenses.signum() == 0) expenses = legacy.expenses();
+            if (disbursed.signum() == 0) disbursed = legacy.disbursed();
+            if (principalRepaid.signum() == 0) principalRepaid = legacy.principalRepaid();
+            return new FundBreakdown(savings, interest, otherIncome, expenses, disbursed, principalRepaid, refunds);
+        }
+
+        // Compatibility path for legacy records which predate the central ledger.
+        Group group = dataService.findGroupById(groupId).orElse(null);
+        if (group == null) return new FundBreakdown(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        LegacyFundValues legacy = getLegacyFundValues(groupId);
+        return new FundBreakdown(legacy.savings(), legacy.interest(), legacy.otherIncome(),
+                legacy.expenses(), legacy.disbursed(), legacy.principalRepaid(), BigDecimal.ZERO);
+    }
+
+    private LegacyFundValues getLegacyFundValues(String groupId) {
+        BigDecimal savings = dataService.getMembersByGroupId(groupId).stream()
+                .filter(m -> m.getStatus() == null || m.getStatus() == MemberStatus.ACTIVE)
+                .map(m -> nz(m.getTotalSavingsBalance())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal principalRepaid = dataService.getLoansByGroupId(groupId).stream()
+                .map(l -> nz(l.getPrincipalPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal interest = dataService.getLoansByGroupId(groupId).stream()
+                .map(l -> nz(l.getInterestPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal otherIncome = dataService.getIncomesByGroupId(groupId).stream()
+                .filter(i -> !"LOAN_INTEREST".equalsIgnoreCase(i.getCategory()))
+                .map(i -> nz(i.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal expenses = dataService.getExpensesByGroupId(groupId).stream()
+                .map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal disbursed = dataService.getLoansByGroupId(groupId).stream()
+                .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
+                .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new LegacyFundValues(savings, interest, otherIncome, expenses, disbursed, principalRepaid);
+    }
+
+    private record LegacyFundValues(BigDecimal savings, BigDecimal interest, BigDecimal otherIncome,
+                                    BigDecimal expenses, BigDecimal disbursed, BigDecimal principalRepaid) {}
+
+    private boolean isLoanRepayment(TransactionType type) {
+        return type == TransactionType.LOAN_REPAYMENT || type == TransactionType.LOAN_PRINCIPAL_PAYMENT
+                || type == TransactionType.LOAN_PRINCIPAL_REPAYMENT || type == TransactionType.LOAN_EXTRA_PAYMENT
+                || type == TransactionType.EXTRA_LOAN_PAYMENT;
+    }
+
+    public record FundBreakdown(BigDecimal savings, BigDecimal interest, BigDecimal otherIncome,
+                                BigDecimal expenses, BigDecimal loansDisbursed,
+                                BigDecimal principalRepaid, BigDecimal refunds) {
+        public BigDecimal availableFund() {
+            return savings.add(interest).add(otherIncome).add(principalRepaid)
+                    .subtract(expenses).subtract(loansDisbursed);
+        }
     }
 
     public BigDecimal getBalanceByPaymentMethod(String groupId, boolean bank) {

@@ -6,6 +6,7 @@ import com.bachatgat.dto.MemberDTO;
 import com.bachatgat.model.Member;
 import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Role;
+import com.bachatgat.model.MemberRefund;
 import com.bachatgat.security.GroupSecurityService;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.MemberService;
@@ -25,10 +26,13 @@ public class AdminMemberController {
 
     private final MemberService memberService;
     private final GroupSecurityService groupSecurityService;
+    private final com.bachatgat.service.MemberExitService memberExitService;
 
-    public AdminMemberController(MemberService memberService, GroupSecurityService groupSecurityService) {
+    public AdminMemberController(MemberService memberService, GroupSecurityService groupSecurityService,
+                                 com.bachatgat.service.MemberExitService memberExitService) {
         this.memberService = memberService;
         this.groupSecurityService = groupSecurityService;
+        this.memberExitService = memberExitService;
     }
 
     @GetMapping("/members")
@@ -87,13 +91,32 @@ public class AdminMemberController {
     }
 
     @DeleteMapping("/groups/{groupId}/members/{memberId}")
-    public ResponseEntity<ApiResponse<Void>> removeMemberFromGroup(
+    public ResponseEntity<ApiResponse<MemberRefund>> removeMemberFromGroup(
             @PathVariable String groupId,
             @PathVariable String memberId,
             @AuthenticationPrincipal UserPrincipal principal) {
         groupSecurityService.validateGroupAccess(principal, groupId);
-        memberService.removeMemberFromGroup(groupId, memberId, principal.getUsername());
-        return ResponseEntity.ok(ApiResponse.ok("Member removed from group successfully", null));
+        MemberRefund refund = memberExitService.exitMember(memberId, principal.getUsername(), "President removal");
+        return ResponseEntity.ok(ApiResponse.ok("Member exited and refund reserved successfully", refund));
+    }
+
+    @GetMapping("/groups/{groupId}/refunds")
+    public ResponseEntity<ApiResponse<List<MemberRefund>>> getGroupRefunds(
+            @PathVariable String groupId, @AuthenticationPrincipal UserPrincipal principal) {
+        groupSecurityService.validateGroupAccess(principal, groupId);
+        return ResponseEntity.ok(ApiResponse.ok(memberExitService.getGroupRefunds(groupId)));
+    }
+
+    @PatchMapping("/refunds/{refundId}/status")
+    public ResponseEntity<ApiResponse<MemberRefund>> updateRefundStatus(
+            @PathVariable String refundId, @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        MemberRefund refund = memberExitService.getGroupRefunds(principal.getGroupId()).stream()
+                .filter(r -> refundId.equalsIgnoreCase(r.getRefundId()) || refundId.equalsIgnoreCase(r.getId()))
+                .findFirst().orElseThrow(() -> new com.bachatgat.exception.ResourceNotFoundException("Refund not found"));
+        groupSecurityService.validateGroupAccess(principal, refund.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok("Refund status updated", memberExitService.updateStatus(
+                refundId, body.get("status"), principal.getUsername(), body.get("failureReason"))));
     }
 
     @GetMapping("/members/{id}")

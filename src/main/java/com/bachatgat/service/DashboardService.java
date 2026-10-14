@@ -63,54 +63,31 @@ public class DashboardService {
             dto.setCollectionPercentage(Math.round(pct * 10.0) / 10.0);
         }
 
-        // Savings Aggregates
-        BigDecimal totalSavings = groupMembers.stream()
-                .map(m -> m.getTotalSavingsBalance() != null ? m.getTotalSavingsBalance() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        dto.setTotalSavings(totalSavings);
+        GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(targetGroupId);
+        dto.setTotalSavings(fund.savings());
 
         // Loans Aggregates
         List<Loan> groupLoans = dataService.getLoansByGroupId(targetGroupId);
-        BigDecimal disbursed = groupLoans.stream()
-                .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
-                .map(l -> l.getPrincipalAmount() != null ? l.getPrincipalAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal principalRecovered = groupLoans.stream()
-                .map(l -> l.getPrincipalPaid() != null ? l.getPrincipalPaid() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal disbursed = fund.loansDisbursed();
+        BigDecimal principalRecovered = fund.principalRepaid();
 
         BigDecimal outstandingPrincipal = groupLoans.stream()
                 .map(l -> l.getOutstandingPrincipal() != null ? l.getOutstandingPrincipal() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal interestCollected = groupLoans.stream()
-                .map(l -> l.getInterestPaid() != null ? l.getInterestPaid() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal interestCollected = fund.interest();
 
         dto.setTotalLoansDisbursed(disbursed);
         dto.setTotalPrincipalRecovered(principalRecovered);
         dto.setTotalOutstandingLoans(outstandingPrincipal);
         dto.setTotalInterestCollected(interestCollected);
 
-        // Other Income
-        List<GroupIncome> incomes = dataService.getIncomesByGroupId(targetGroupId);
-        BigDecimal totalOtherIncome = incomes.stream()
-                .filter(inc -> !"LOAN_INTEREST".equalsIgnoreCase(inc.getCategory()))
-                .map(inc -> inc.getAmount() != null ? inc.getAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        dto.setTotalOtherIncome(totalOtherIncome);
-
-        // Expenses
-        List<GroupExpense> expenses = dataService.getExpensesByGroupId(targetGroupId);
-        BigDecimal totalExpenses = expenses.stream()
-                .map(e -> e.getAmount() != null ? e.getAmount() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        dto.setTotalExpenses(totalExpenses);
+        dto.setTotalOtherIncome(fund.otherIncome());
+        dto.setTotalExpenses(fund.expenses());
 
         // Group Fund Transparency & Available Cash Calculation (Sections 11 & 14):
         // Available Fund = Savings + Principal Recovered + Loan Interest + Other Income - Disbursed Loans - Expenses
-        BigDecimal availableCash = groupFundService.getAvailableFund(targetGroupId);
+        BigDecimal availableCash = fund.availableFund();
         dto.setGroupAvailableFund(availableCash);
         dto.setTotalGroupCorpus(availableCash.add(outstandingPrincipal));
         dto.setBankBalance(groupFundService.getBalanceByPaymentMethod(targetGroupId, true));

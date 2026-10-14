@@ -168,6 +168,73 @@ button {
   }
 }
 
+/* Final mobile-table policy: this must come after the legacy card-table rules
+   below so the table is never forced into a fixed 100% layout. */
+@media (max-width: 768px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .table-responsive-wrapper, .table-responsive {
+    width: 100%; max-width: 100%; overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.mobile-card-table, table.data-table {
+    display: table !important; width: max-content !important;
+    min-width: 680px !important; table-layout: auto !important;
+  }
+  table.mobile-card-table thead { display: table-header-group !important; }
+  table.mobile-card-table tbody { display: table-row-group !important; }
+  table.mobile-card-table tr { display: table-row !important; }
+  table.mobile-card-table th, table.mobile-card-table td {
+    display: table-cell !important; width: auto !important;
+    min-width: max-content !important; white-space: nowrap !important;
+    overflow-wrap: normal !important; word-break: normal !important;
+    font-size: .78rem !important; padding: .55rem .65rem !important;
+  }
+}
+
+/* Keep wide financial tables usable on phones. The previous fixed-layout
+   override compressed every column into a few pixels (often one letter per
+   line). Scrolling is contained by the table wrapper, not the page. */
+@media (max-width: 768px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .table-responsive-wrapper,
+  .table-responsive,
+  .content-card > .table-responsive-wrapper,
+  .card-box > .table-responsive-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table.mobile-card-table,
+  table.data-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 680px !important;
+    table-layout: auto !important;
+    overflow: visible !important;
+  }
+
+  table.mobile-card-table thead { display: table-header-group !important; }
+  table.mobile-card-table tbody { display: table-row-group !important; }
+  table.mobile-card-table tr { display: table-row !important; }
+  table.mobile-card-table th,
+  table.mobile-card-table td {
+    display: table-cell !important;
+    width: auto !important;
+    min-width: max-content !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-size: .78rem !important;
+    padding: .55rem .65rem !important;
+  }
+
+  .page-content, .content-card, .card-box, .modal-content { max-width: 100%; }
+  .page-header, .app-topbar { gap: .65rem; }
+  .btn, button, input, select, textarea { max-width: 100%; }
+}
+
 /* Compact, print-friendly financial ledgers matching the member report
    layout: strong section title, dense bordered rows, and no clipped columns. */
 .report-ledger-card h2 {
@@ -689,4 +756,27 @@ button {
     border-bottom: 1px solid var(--border-color) !important;
   }
   table.mobile-card-table td::before { content: none !important; }
+}
+
+/* Final override for legacy mobile-card rules: financial tables stay intact
+   and scroll inside their wrapper instead of collapsing into vertical text. */
+@media (max-width: 768px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  .table-responsive-wrapper, .table-responsive {
+    width: 100%; max-width: 100%; overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  table.mobile-card-table, table.data-table {
+    display: table !important; width: max-content !important;
+    min-width: 680px !important; table-layout: auto !important;
+  }
+  table.mobile-card-table thead { display: table-header-group !important; }
+  table.mobile-card-table tbody { display: table-row-group !important; }
+  table.mobile-card-table tr { display: table-row !important; }
+  table.mobile-card-table th, table.mobile-card-table td {
+    display: table-cell !important; width: auto !important;
+    min-width: max-content !important; white-space: nowrap !important;
+    overflow-wrap: normal !important; word-break: normal !important;
+    font-size: .78rem !important; padding: .55rem .65rem !important;
+  }
 }

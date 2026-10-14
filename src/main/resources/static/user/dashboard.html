@@ -310,7 +310,7 @@
               </div>
 
               <div id="extra-loan-payment-wrap" class="form-group mb-3" style="display:none;">
-                <label class="form-label">Pay Extra Toward Principal (Optional)</label>
+                <label class="form-label">Other</label>
                 <div class="input-group">
                   <span class="input-group-text">₹</span>
                   <input type="number" id="extra-loan-payment" class="form-control" min="0" step="1" value="0" placeholder="e.g. 1000">
@@ -765,6 +765,8 @@
       if (ctx.activeLoanId && ctx.emiAmt > 0) {
         extraWrap.style.display = 'block';
         document.getElementById('extra-loan-payment').value = '0';
+        document.getElementById('modal-breakdown-extra-row').style.display = 'none';
+        document.getElementById('modal-breakdown-extra').textContent = Common.formatIndianCurrency(0);
       } else {
         extraWrap.style.display = 'none';
       }
@@ -792,6 +794,17 @@
     document.addEventListener('DOMContentLoaded', () => {
       const payForm = document.getElementById('form-member-pay');
       if (payForm) {
+        const otherInput = document.getElementById('extra-loan-payment');
+        const updateOtherPreview = () => {
+          const ctx = window.currentPaymentContext;
+          if (!ctx || !otherInput) return;
+          const value = Number(otherInput.value || 0);
+          const extra = Number.isFinite(value) && value >= 0 ? value : 0;
+          document.getElementById('modal-breakdown-extra-row').style.display = extra > 0 ? 'flex' : 'none';
+          document.getElementById('modal-breakdown-extra').textContent = Common.formatIndianCurrency(extra);
+          document.getElementById('modal-breakdown-total').textContent = Common.formatIndianCurrency(ctx.totalDue + extra);
+        };
+        otherInput?.addEventListener('input', updateOtherPreview);
         payForm.addEventListener('submit', async (e) => {
           e.preventDefault();
           const ctx = window.currentPaymentContext;
@@ -800,7 +813,12 @@
           const methodRadio = document.querySelector('input[name="pay-method-radio"]:checked');
           const method = methodRadio ? methodRadio.value : 'UPI';
           const remarks = document.getElementById('pay-modal-remarks').value.trim();
-          const extraLoanAmt = Math.max(0, parseFloat(document.getElementById('extra-loan-payment')?.value || '0') || 0);
+          const rawExtra = document.getElementById('extra-loan-payment')?.value || '';
+          const extraLoanAmt = rawExtra === '' ? 0 : Number(rawExtra);
+          if (!Number.isFinite(extraLoanAmt) || extraLoanAmt < 0 || !/^\d+(\.\d{1,2})?$/.test(rawExtra)) {
+            Common.showToast('Other must be a valid non-negative amount with at most 2 decimals.', 'danger');
+            return;
+          }
           ctx.extraLoanAmt = extraLoanAmt;
           const payableTotal = ctx.totalDue + extraLoanAmt;
           if (extraLoanAmt > 0) {

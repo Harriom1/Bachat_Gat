@@ -274,9 +274,13 @@ public class LoanService {
         BigDecimal extraAmount = FinancialCalculator.round(request.getAmount());
         BigDecimal previousTotalOutstanding = loan.getTotalOutstanding();
 
-        if (extraAmount.compareTo(loan.getTotalOutstanding()) > 0) {
+        // An extra prepayment is principal-only. It must never consume the
+        // remaining interest balance or drive outstanding principal negative.
+        BigDecimal outstandingPrincipal = loan.getOutstandingPrincipal() != null
+                ? loan.getOutstandingPrincipal() : BigDecimal.ZERO;
+        if (extraAmount.compareTo(outstandingPrincipal) > 0) {
             throw new InvalidFinancialOperationException("Extra payment of ₹" + extraAmount + 
-                    " exceeds remaining outstanding balance of ₹" + loan.getTotalOutstanding());
+                    " exceeds outstanding principal of ₹" + outstandingPrincipal);
         }
 
         // Extra payment directly reduces outstanding principal

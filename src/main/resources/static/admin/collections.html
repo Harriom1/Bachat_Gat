@@ -663,7 +663,15 @@
         const loanInterest = Number(document.getElementById('pay-loan-interest').value || 0);
         const otherAmount = Number(document.getElementById('pay-other').value || 0);
         const status = document.getElementById('pay-status').value;
-        const allocatedSum = monthlyBachatAmount + loanPrincipal + loanInterest + otherAmount;
+        const lateFee = Number(document.getElementById('pay-late-fee').value || 0);
+        const waivedLateFee = document.getElementById('pay-waive-late').checked ? lateFee : 0;
+        const netLateFee = Math.max(0, lateFee - waivedLateFee);
+        const allocatedSum = monthlyBachatAmount + loanPrincipal + loanInterest + otherAmount + netLateFee;
+
+        if (status === 'SUCCESS' && netLateFee > 0 && amount < netLateFee) {
+          Common.showToast(`Payment amount cannot be less than the penalty of ₹${netLateFee}. Pay at least the full penalty amount or waive it before saving.`, 'danger');
+          return;
+        }
 
         if (status === 'SUCCESS' && Math.abs(amount - allocatedSum) > 0.01) {
           Common.showToast(`Total allocated (₹${allocatedSum}) must equal total amount received (₹${amount})!`, 'danger');
@@ -684,8 +692,8 @@
           loanInterestAmount: loanInterest,
           otherAmount: otherAmount,
           loanId: document.getElementById('pay-loan-select').value || null,
-          lateFeeAmount: Number(document.getElementById('pay-late-fee').value || 0),
-          waiveLateFee: document.getElementById('pay-waive-late').checked,
+          lateFeeAmount: lateFee,
+          waivedLateFee: waivedLateFee,
           idempotencyKey: document.getElementById('pay-idempotency').value.trim(),
           paymentStatus: status,
           paymentMethod: document.getElementById('pay-method').value,
@@ -824,7 +832,12 @@
       const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
       tbody.innerHTML = records.map(c => {
-        const pen = c.paidLateFee != null && c.paidLateFee > 0 ? c.paidLateFee : (c.lateFeeAmount || 0);
+        // A waived fee must not be shown as payable. For a charged fee, show
+        // the amount actually paid; otherwise show the unwaived fee amount.
+        const paidPenalty = Number(c.paidLateFee || 0);
+        const configuredPenalty = Number(c.lateFeeAmount || 0);
+        const waivedPenalty = Number(c.waivedLateFee || 0);
+        const pen = paidPenalty > 0 ? paidPenalty : Math.max(0, configuredPenalty - waivedPenalty);
         return `
         <tr>
           <td><strong style="color: var(--text-main);">${monthNames[c.month]} ${c.year}</strong></td>

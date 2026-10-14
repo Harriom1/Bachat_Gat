@@ -290,6 +290,15 @@ public class CollectionService {
      * 3. Distribution rule: Sum of components MUST strictly equal total amount received.
      */
     public CollectionRecord recordPayment(String groupId, CollectionPaymentRequest request, String recordedBy) {
+        validateMoney("amount", request.getAmount(), true);
+        validateMoney("monthlyBachatAmount", request.getMonthlyBachatAmount(), false);
+        validateMoney("loanPrincipalAmount", request.getLoanPrincipalAmount(), false);
+        validateMoney("loanInterestAmount", request.getLoanInterestAmount(), false);
+        validateMoney("extraLoanPaymentAmount", request.getExtraLoanPaymentAmount(), false);
+        validateMoney("otherAmount", request.getOtherAmount(), false);
+        validateMoney("lateFeeAmount", request.getLateFeeAmount(), false);
+        validateMoney("waivedLateFee", request.getWaivedLateFee(), false);
+
         Member member = dataService.findMemberByMemberId(request.getMemberId())
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with Member ID: " + request.getMemberId()));
 
@@ -361,6 +370,20 @@ public class CollectionService {
                 ? masterData.getLatePaymentFee() : BigDecimal.ZERO;
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
         BigDecimal waivedFee = request.getWaivedLateFee() != null ? request.getWaivedLateFee() : BigDecimal.ZERO;
+        if (waivedFee.compareTo(lateFee) > 0) {
+            throw new InvalidFinancialOperationException("Waived late fee cannot exceed the late fee amount.");
+        }
+        if (payDate.isAfter(calculatedDueDate) && configuredLateFee.signum() > 0
+                && lateFee.signum() > 0 && lateFee.compareTo(configuredLateFee) < 0) {
+            throw new InvalidFinancialOperationException(
+                    "Penalty cannot be less than the configured penalty of ₹" + configuredLateFee + "."
+            );
+        }
+        if (waivedFee.signum() > 0 && waivedFee.compareTo(lateFee) < 0) {
+            throw new InvalidFinancialOperationException(
+                    "The full penalty must be waived; partial penalty waivers are not allowed."
+            );
+        }
         BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
 
         // A missing share component means zero when the payment is loan/other-only.
@@ -378,6 +401,15 @@ public class CollectionService {
         if (lateFee.signum() == 0 && waivedFee.signum() == 0 && sharePart.signum() > 0
                 && payDate.isAfter(calculatedDueDate)) {
             lateFee = configuredLateFee.max(BigDecimal.ZERO);
+        }
+        // Recalculate after applying the authoritative configured late fee.
+        netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
+
+        if (netLateFee.signum() > 0 && totalReceived.compareTo(netLateFee) < 0) {
+            throw new InvalidFinancialOperationException(
+                    "Payment amount cannot be less than the penalty of ₹" + netLateFee + ". " +
+                    "Pay at least the full penalty amount or waive it before saving the payment."
+            );
         }
 
         // Validate the payment's accounting equation before period-specific
@@ -488,6 +520,7 @@ public class CollectionService {
                         request.getPaymentMethod(), recordedBy
                 );
                 lateFeeTxn.setCategory("LATE_FEE");
+                lateFeeTxn.setIdempotencyKey(request.getIdempotencyKey());
                 dataService.saveTransaction(lateFeeTxn);
 
                 // Collect penalty amount into Group Income
@@ -527,7 +560,7 @@ public class CollectionService {
                     if (totalLoanPayment.signum() > 0) {
                         LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
                                 totalLoanPayment,
-                                request.getPaymentDate(),
+                                payDate,
                                 request.getPaymentMethod(),
                                 request.getReferenceNumber()
                         );
@@ -537,7 +570,7 @@ public class CollectionService {
                     if (extraLoanPart.signum() > 0) {
                         LoanExtraPaymentRequest extraReq = new LoanExtraPaymentRequest();
                         extraReq.setAmount(extraLoanPart);
-                        extraReq.setPaymentDate(request.getPaymentDate());
+                        extraReq.setPaymentDate(payDate);
                         extraReq.setPaymentMethod(request.getPaymentMethod());
                         extraReq.setReferenceNumber(request.getReferenceNumber());
                         extraReq.setNotes("Member extra principal payment");
@@ -556,20 +589,22 @@ public class CollectionService {
             GroupIncome inc = new GroupIncome(
                     groupId, otherCat,
                     "Collection payment other allocation from " + member.getFullName() + (request.getNotes() != null ? " - " + request.getNotes() : ""),
-                    otherPart, request.getPaymentDate(), request.getPaymentMethod(), request.getReferenceNumber(),
+                    otherPart, payDate, request.getPaymentMethod(), request.getReferenceNumber(),
                     "GROUP_LEVEL_ONLY", recordedBy
             );
+            inc.setCategory(otherCat);
             dataService.saveIncome(inc);
 
             Transaction otherTxn = new Transaction(
                     "TXN-" + System.currentTimeMillis() + "-OTH",
                     groupId, member.getMemberId(), member.getFullName(), null,
                     TransactionType.OTHER_INCOME, otherPart, BigDecimal.ZERO, BigDecimal.ZERO,
-                    request.getPaymentDate(), request.getReferenceNumber(),
+                    payDate, request.getReferenceNumber(),
                     "Other Payment Component (" + otherCat + ") from " + member.getFullName(),
                     request.getPaymentMethod(), recordedBy
             );
             otherTxn.setCategory("OTHER");
+            otherTxn.setIdempotencyKey(request.getIdempotencyKey());
             dataService.saveTransaction(otherTxn);
         }
 
@@ -590,6 +625,21 @@ public class CollectionService {
                         ", Late Fee: ₹" + netLateFee + ", Other: ₹" + otherPart + "]", "127.0.0.1");
 
         return record;
+    }
+
+    private void validateMoney(String field, BigDecimal amount, boolean required) {
+        if (amount == null) {
+            if (required) {
+                throw new InvalidFinancialOperationException(field + " is required.");
+            }
+            return;
+        }
+        if (amount.signum() < 0) {
+            throw new InvalidFinancialOperationException(field + " cannot be negative.");
+        }
+        if (amount.scale() > 2) {
+            throw new InvalidFinancialOperationException(field + " cannot have more than 2 decimal places.");
+        }
     }
 
 }

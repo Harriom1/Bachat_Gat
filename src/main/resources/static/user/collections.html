@@ -365,6 +365,8 @@
     let myCollections = [];
     let activePaymentContext = null;
     let selectedPaymentMode = 'UPI';
+    const monthFullNames = ['', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAuth('MEMBER');

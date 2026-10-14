@@ -187,8 +187,10 @@ public class ReportService {
         List<Loan> loans = dataService.getLoansByGroupId(groupId);
         List<GroupExpense> expenses = dataService.getExpensesByGroupId(groupId);
 
-        BigDecimal totalSavings = members.stream().map(Member::getTotalSavingsBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalShareContributions = members.stream().map(Member::getCurrentShareBalance).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalSavings = members.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE)
+                .map(Member::getTotalSavingsBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalShareContributions = members.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE)
+                .map(Member::getCurrentShareBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalLoansDisbursed = loans.stream().map(Loan::getPrincipalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalPrincipalRecovered = loans.stream().map(Loan::getPrincipalPaid).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalInterestCollected = loans.stream().map(Loan::getInterestPaid).reduce(BigDecimal.ZERO, BigDecimal::add);

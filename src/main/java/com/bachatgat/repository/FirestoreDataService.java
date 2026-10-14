@@ -44,6 +44,7 @@ public class FirestoreDataService {
     private final Map<String, MeetingRecord> meetings = new ConcurrentHashMap<>();
     private final Map<String, GroupIncome> incomes = new ConcurrentHashMap<>();
     private final Map<String, MemberAdjustment> adjustments = new ConcurrentHashMap<>();
+    private final Map<String, MemberRefund> memberRefunds = new ConcurrentHashMap<>();
     private final Map<String, GroupMasterData> masterDataMap = new ConcurrentHashMap<>();
     private final Map<String, PaymentOrder> paymentOrders = new ConcurrentHashMap<>();
 
@@ -304,6 +305,39 @@ public class FirestoreDataService {
         return members.values().stream()
                 .filter(m -> m.getMemberId().equalsIgnoreCase(memberId))
                 .findFirst();
+    }
+
+    // ==========================================
+    // MEMBER EXIT REFUND OPERATIONS
+    // ==========================================
+    public List<MemberRefund> getMemberRefundsByGroupId(String groupId) {
+        return memberRefunds.values().stream()
+                .filter(r -> groupId == null || groupId.equals(r.getGroupId()))
+                .sorted(Comparator.comparing(MemberRefund::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+    }
+
+    public List<MemberRefund> getMemberRefundsByMemberId(String memberId) {
+        return memberRefunds.values().stream()
+                .filter(r -> memberId != null && memberId.equalsIgnoreCase(r.getMemberId()))
+                .sorted(Comparator.comparing(MemberRefund::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+    }
+
+    public Optional<MemberRefund> findMemberRefundByMemberId(String memberId) {
+        return memberRefunds.values().stream()
+                .filter(r -> memberId != null && memberId.equalsIgnoreCase(r.getMemberId())
+                        && !"FAILED".equalsIgnoreCase(r.getStatus()))
+                .findFirst();
+    }
+
+    public MemberRefund saveMemberRefund(MemberRefund refund) {
+        if (refund.getId() == null) refund.setId("refund-" + UUID.randomUUID().toString().substring(0, 8));
+        if (refund.getRefundId() == null) refund.setRefundId("REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+        refund.setUpdatedAt(LocalDateTime.now());
+        memberRefunds.put(refund.getId(), refund);
+        persistToFirestoreAsync("memberRefunds", refund.getId(), refund);
+        return refund;
     }
 
     public Member saveMember(Member member) {
@@ -833,6 +867,7 @@ public class FirestoreDataService {
         meetings.clear();
         incomes.clear();
         adjustments.clear();
+        memberRefunds.clear();
         masterDataMap.clear();
 
         // 1. Create Default Group

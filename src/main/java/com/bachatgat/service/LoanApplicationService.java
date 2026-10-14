@@ -69,7 +69,7 @@ public class LoanApplicationService {
             throw new InvalidFinancialOperationException("Requested loan amount must be greater than zero.");
         }
 
-        BigDecimal availableFund = groupFundService.getAvailableFund(group.getId());
+        BigDecimal availableFund = groupFundService.getLendingCapacity(group.getId());
         if (request.getRequestedAmount().compareTo(availableFund) > 0) {
             throw new InsufficientGroupFundsException(availableFund, request.getRequestedAmount());
         }
@@ -430,7 +430,7 @@ public class LoanApplicationService {
     }
 
     private void validateAvailableFund(String groupId, BigDecimal requestedAmount) {
-        BigDecimal availableFund = groupFundService.getAvailableFund(groupId);
+        BigDecimal availableFund = groupFundService.getLendingCapacity(groupId);
         if (requestedAmount.compareTo(availableFund) > 0) {
             throw new InsufficientGroupFundsException(availableFund, requestedAmount);
         }
@@ -488,7 +488,7 @@ public class LoanApplicationService {
         BigDecimal maxOutstanding = group.getMaxOutstandingLoanAmount() != null ? group.getMaxOutstandingLoanAmount() : maxPerMember.multiply(BigDecimal.valueOf(maxActive));
 
         boolean hasOverdue = activeLoans.stream().anyMatch(l -> l.getOverdueInstallments() > 0);
-        BigDecimal availableFund = groupFundService.getAvailableFund(group.getId());
+        BigDecimal availableFund = groupFundService.getLendingCapacity(group.getId());
         boolean eligible = true;
         String reason = "Eligible to apply for a loan.";
 

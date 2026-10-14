@@ -368,6 +368,23 @@ class ApiClient {
     });
   }
 
+  getMemberRefunds(groupId) {
+    const targetGroupId = this.resolveAdminGroupId(groupId);
+    return this.request(`/admin/groups/${encodeURIComponent(targetGroupId)}/refunds`);
+  }
+
+  updateRefundStatus(refundId, status, failureReason = null) {
+    return this.request(`/admin/refunds/${encodeURIComponent(refundId)}/status`, {
+      method: 'PATCH', body: { status, failureReason }
+    });
+  }
+
+  getMyExitRefunds() { return this.request('/me/exit-refunds'); }
+
+  requestMemberExit(reason = 'Member self-exit') {
+    return this.request('/me/exit', { method: 'POST', body: { reason } });
+  }
+
   getCollections(groupId) {
     const targetGroupId = this.resolveAdminGroupId(groupId);
     return this.request(`/admin/groups/${encodeURIComponent(targetGroupId)}/collections`);

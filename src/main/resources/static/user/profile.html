@@ -116,6 +116,15 @@
             </table>
           </div>
 
+          <div class="content-card" style="padding: 1.5rem; border-left: 4px solid var(--danger);">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: .75rem; color: var(--danger);">
+              <i class="bi bi-box-arrow-right"></i> Exit / Refund
+            </h3>
+            <p class="text-muted" style="font-size: .9rem;">Request exit from the group. The server calculates the refundable member-owned balance and reserves it immediately.</p>
+            <div id="exit-refund-status" class="text-muted" style="margin-bottom: .75rem;">Loading refund status...</div>
+            <button id="request-member-exit" class="btn btn-outline-danger" type="button">Request Member Exit</button>
+          </div>
+
           <!-- Nominee & Address -->
           <div class="content-card" style="padding: 1.5rem;">
             <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
@@ -327,6 +336,26 @@
         document.getElementById('prof-branch').textContent = m.branch || '-';
 
         document.getElementById('current-user-name').textContent = m.fullName;
+
+        const refundStatus = document.getElementById('exit-refund-status');
+        const exitButton = document.getElementById('request-member-exit');
+        const refunds = await api.getMyExitRefunds();
+        const latestRefund = refunds && refunds[0];
+        if (latestRefund) {
+          refundStatus.textContent = `Refund ${Common.formatIndianCurrency(latestRefund.amount)} · ${latestRefund.status} · expected by ${Common.formatDate(latestRefund.expectedCreditDate)}`;
+          exitButton.disabled = true;
+          exitButton.textContent = 'Exit request submitted';
+        }
+        exitButton.addEventListener('click', async () => {
+          if (!confirm('Confirm member exit? Your refundable balance will be reserved immediately and credited within approximately 3–5 working days after processing.')) return;
+          try {
+            const refund = await api.requestMemberExit();
+            refundStatus.textContent = `Refund ${Common.formatIndianCurrency(refund.amount)} · ${refund.status} · expected by ${Common.formatDate(refund.expectedCreditDate)}`;
+            exitButton.disabled = true;
+            exitButton.textContent = 'Exit request submitted';
+            Common.showToast('Exit confirmed and refund reserved.', 'success');
+          } catch (error) { Common.showToast(error.message, 'danger'); }
+        });
 
         // Group & Bachat
         document.getElementById('prof-group-name').textContent = m.groupName || 'Bachat Gat';

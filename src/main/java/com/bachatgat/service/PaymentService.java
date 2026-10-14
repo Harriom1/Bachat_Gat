@@ -326,6 +326,8 @@ public class PaymentService {
         BigDecimal loanPrinc = request.getLoanPrincipalAmount() != null ? request.getLoanPrincipalAmount() : BigDecimal.ZERO;
         BigDecimal loanInt = request.getLoanInterestAmount() != null ? request.getLoanInterestAmount() : BigDecimal.ZERO;
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
+        BigDecimal waivedLateFee = request.isWaiveLateFee() ? lateFee : BigDecimal.ZERO;
+        BigDecimal netLateFee = lateFee.subtract(waivedLateFee);
         BigDecimal otherPart = request.getOtherAmount() != null ? request.getOtherAmount() : BigDecimal.ZERO;
 
         if (sharePart == null) {
@@ -335,11 +337,11 @@ public class PaymentService {
                     loanPrinc = totalAmount;
                 }
             } else {
-                sharePart = totalAmount.subtract(loanPrinc).subtract(loanInt).subtract(lateFee).subtract(otherPart).max(BigDecimal.ZERO);
+                sharePart = totalAmount.subtract(loanPrinc).subtract(loanInt).subtract(netLateFee).subtract(otherPart).max(BigDecimal.ZERO);
             }
         }
 
-        BigDecimal allocatedSum = sharePart.add(loanPrinc).add(loanInt).add(lateFee).add(otherPart);
+        BigDecimal allocatedSum = sharePart.add(loanPrinc).add(loanInt).add(netLateFee).add(otherPart);
         if (allocatedSum.compareTo(totalAmount) != 0) {
             throw new InvalidFinancialOperationException("Total allocated amount (₹" + allocatedSum + ") must equal amount received (₹" + totalAmount + ").");
         }
@@ -385,6 +387,7 @@ public class PaymentService {
         colReq.setLoanPrincipalAmount(loanPrinc);
         colReq.setLoanInterestAmount(loanInt);
         colReq.setLateFeeAmount(lateFee);
+        colReq.setWaivedLateFee(waivedLateFee);
         colReq.setOtherAmount(otherPart);
         colReq.setPaymentMethod(request.getPaymentMethod());
         colReq.setReferenceNumber(ref);

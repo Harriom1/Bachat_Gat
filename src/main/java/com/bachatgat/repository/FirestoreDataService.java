@@ -488,12 +488,18 @@ public class FirestoreDataService {
                 return loanSchedules.get(l.getLoanId());
             }
 
-            // Auto-generate reducing balance amortization schedule on the fly
+            // Auto-generate the schedule on the fly using the loan's selected
+            // interest type. Older seeded/persisted loans may not have a
+            // stored schedule, so ignoring FLAT here would make the detail
+            // page disagree with the loan's totalInterest value.
             BigDecimal principal = l.getPrincipalAmount() != null ? l.getPrincipalAmount() : BigDecimal.ZERO;
             BigDecimal rate = l.getInterestRate() != null ? l.getInterestRate() : BigDecimal.valueOf(12.0);
             int duration = l.getDurationMonths() > 0 ? l.getDurationMonths() : 12;
             LocalDate startDate = l.getDisbursementDate() != null ? l.getDisbursementDate() : LocalDate.now();
-            List<LoanRepaymentSchedule> generated = com.bachatgat.util.FinancialCalculator.generateBachatGatReducingSchedule(principal, rate, duration, startDate);
+            boolean flatInterest = "FLAT".equalsIgnoreCase(l.getInterestType());
+            List<LoanRepaymentSchedule> generated = flatInterest
+                    ? generateFlatSchedule(principal, rate, duration, startDate, l.getTotalInterest(), l.getMonthlyInstallment())
+                    : com.bachatgat.util.FinancialCalculator.generateBachatGatReducingSchedule(principal, rate, duration, startDate);
 
             // Reconcile status and reducing balances strictly based on actual payments
             BigDecimal runningPrincipal = principal.setScale(0, java.math.RoundingMode.HALF_UP);
@@ -507,16 +513,24 @@ public class FirestoreDataService {
             for (int i = 0; i < generated.size(); i++) {
                 LoanRepaymentSchedule item = generated.get(i);
                 item.setOpeningPrincipal(runningPrincipal);
-                BigDecimal interest = runningPrincipal.multiply(monthlyRateFactor).setScale(0, java.math.RoundingMode.HALF_UP);
-                item.setInterestAmount(interest);
-
-                BigDecimal targetPrincipal = (i == generated.size() - 1)
-                        ? runningPrincipal
-                        : defaultMonthlyPrincipal.min(runningPrincipal);
-                item.setPrincipalAmount(targetPrincipal);
-                BigDecimal emi = targetPrincipal.add(interest);
-                item.setEmiAmount(emi);
-                item.setTotalDue(emi);
+                BigDecimal interest;
+                BigDecimal targetPrincipal;
+                BigDecimal emi;
+                if (flatInterest) {
+                    interest = item.getInterestAmount() != null ? item.getInterestAmount() : BigDecimal.ZERO;
+                    targetPrincipal = item.getPrincipalAmount() != null ? item.getPrincipalAmount() : BigDecimal.ZERO;
+                    emi = item.getEmiAmount() != null ? item.getEmiAmount() : targetPrincipal.add(interest);
+                } else {
+                    interest = runningPrincipal.multiply(monthlyRateFactor).setScale(0, java.math.RoundingMode.HALF_UP);
+                    targetPrincipal = (i == generated.size() - 1)
+                            ? runningPrincipal
+                            : defaultMonthlyPrincipal.min(runningPrincipal);
+                    emi = targetPrincipal.add(interest);
+                    item.setInterestAmount(interest);
+                    item.setPrincipalAmount(targetPrincipal);
+                    item.setEmiAmount(emi);
+                    item.setTotalDue(emi);
+                }
 
                 if (remainingPaid.compareTo(BigDecimal.ZERO) > 0) {
                     if (remainingPaid.compareTo(emi) >= 0) {
@@ -557,6 +571,50 @@ public class FirestoreDataService {
             return generated;
         }
         return new ArrayList<>();
+    }
+
+    private List<LoanRepaymentSchedule> generateFlatSchedule(
+            BigDecimal principal,
+            BigDecimal rate,
+            int duration,
+            LocalDate startDate,
+            BigDecimal storedTotalInterest,
+            BigDecimal storedMonthlyInstallment) {
+        List<LoanRepaymentSchedule> schedule = new ArrayList<>();
+        BigDecimal totalInterest = storedTotalInterest != null && storedTotalInterest.compareTo(BigDecimal.ZERO) > 0
+                ? storedTotalInterest
+                : FinancialCalculator.calculateFlatInterest(principal, rate, duration);
+        BigDecimal monthlyInterest = totalInterest.divide(BigDecimal.valueOf(duration), 2, FinancialCalculator.ROUNDING);
+        BigDecimal monthlyPrincipal = principal.divide(BigDecimal.valueOf(duration), 2, FinancialCalculator.ROUNDING);
+        BigDecimal monthlyInstallment = storedMonthlyInstallment != null && storedMonthlyInstallment.compareTo(BigDecimal.ZERO) > 0
+                ? storedMonthlyInstallment
+                : FinancialCalculator.calculateFlatMonthlyPayment(principal, totalInterest, duration);
+        BigDecimal openingPrincipal = principal;
+
+        for (int i = 1; i <= duration; i++) {
+            BigDecimal principalComponent = i == duration ? openingPrincipal : monthlyPrincipal;
+            BigDecimal interestComponent = i == duration
+                    ? totalInterest.subtract(monthlyInterest.multiply(BigDecimal.valueOf(duration - 1)))
+                    : monthlyInterest;
+            BigDecimal emi = i == duration ? principalComponent.add(interestComponent) : monthlyInstallment;
+
+            LoanRepaymentSchedule item = new LoanRepaymentSchedule();
+            item.setInstallmentNo(i);
+            item.setDueDate(startDate.plusMonths(i));
+            item.setOpeningPrincipal(openingPrincipal);
+            item.setPrincipalAmount(principalComponent);
+            item.setInterestAmount(interestComponent);
+            item.setEmiAmount(emi);
+            item.setPenaltyAmount(BigDecimal.ZERO);
+            item.setTotalDue(emi);
+            item.setPaidAmount(BigDecimal.ZERO);
+            item.setOutstandingAmount(emi);
+            item.setClosingPrincipal(openingPrincipal.subtract(principalComponent).max(BigDecimal.ZERO));
+            item.setStatus(i == 1 ? RepaymentStatus.DUE : RepaymentStatus.UPCOMING);
+            schedule.add(item);
+            openingPrincipal = item.getClosingPrincipal();
+        }
+        return schedule;
     }
 
     public void saveLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {

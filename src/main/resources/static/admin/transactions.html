@@ -324,7 +324,7 @@
           matchesType = matchesTransactionCategory(t.type, typeFilter);
         }
 
-        const searchStr = `${t.id || ''} ${t.memberId || ''} ${t.loanId || ''} ${t.reference || ''} ${t.description || ''} ${t.createdBy || ''}`.toLowerCase();
+        const searchStr = `${t.id || ''} ${t.memberId || ''} ${t.memberName || ''} ${t.loanId || ''} ${t.reference || ''} ${t.description || ''} ${t.createdBy || ''}`.toLowerCase();
         const matchesQuery = !query || searchStr.includes(query);
 
         let matchesMonth = true;
@@ -639,7 +639,7 @@
             <td><strong style="color: var(--primary); font-family: monospace;">${escapeHtml(t.id || '')}</strong></td>
             <td>${Common.formatDateTime(t.date || t.createdAt)}</td>
             <td>${typeBadge}</td>
-            <td>${t.memberId ? `<span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.memberId)}</span>` : '<span class="text-muted">Group Fund</span>'}</td>
+            <td>${t.memberId ? `<span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.memberName || t.memberId)}</span>` : '<span class="text-muted">Group Fund</span>'}</td>
             <td>${t.loanId ? `<span style="font-family: monospace;">${escapeHtml(t.loanId)}</span>` : '-'}</td>
             <td style="text-align: right;">${principalFormatted}</td>
             <td style="text-align: right;">${interestFormatted}</td>
@@ -681,9 +681,9 @@
         Common.showToast('No transactions to export', 'warning');
         return;
       }
-      let csv = 'Transaction ID,Date,Type,Member ID,Loan ID,Principal,Interest,Total Amount,Description,Recorded By\n';
+      let csv = 'Transaction ID,Date,Type,Member Name,Loan ID,Principal,Interest,Total Amount,Description,Recorded By\n';
       exportList.forEach(t => {
-        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${t.memberId || ''}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}","${t.createdBy || ''}"\n`;
+        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${(t.memberName || t.memberId || '').replace(/"/g, '""')}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}","${t.createdBy || ''}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

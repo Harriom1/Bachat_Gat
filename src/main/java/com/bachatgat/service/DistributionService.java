@@ -171,9 +171,6 @@ public class DistributionService {
             BigDecimal newShare = prevShare.add(amount);
             member.setCurrentShareBalance(newShare);
 
-            BigDecimal prevSavings = member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO;
-            member.setTotalSavingsBalance(prevSavings.add(amount));
-
             BigDecimal previousIncome = member.getTotalOtherIncomeDistributed() != null
                     ? member.getTotalOtherIncomeDistributed() : BigDecimal.ZERO;
             member.setTotalOtherIncomeDistributed(previousIncome.add(amount));
@@ -217,13 +214,6 @@ public class DistributionService {
                 incomeId, null, "Distributed ₹" + income.getAmount() + " to " + allocations.size() +
                         " members using rule: " + rule, "127.0.0.1");
 
-        // Synchronize Group total savings
-        dataService.findGroupById(groupId).ifPresent(grp -> {
-            BigDecimal grpSavings = grp.getTotalSavings() != null ? grp.getTotalSavings() : BigDecimal.ZERO;
-            grp.setTotalSavings(grpSavings.add(income.getAmount()));
-            dataService.saveGroup(grp);
-        });
-
         return income;
     }
 
@@ -264,9 +254,6 @@ public class DistributionService {
             BigDecimal prevShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
             BigDecimal newShare = prevShare.subtract(amount); // Deduct share
             member.setCurrentShareBalance(newShare);
-
-            BigDecimal prevSavings = member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO;
-            member.setTotalSavingsBalance(prevSavings.subtract(amount).max(BigDecimal.ZERO));
 
             BigDecimal previousExpense = member.getTotalOtherExpenseDistributed() != null
                     ? member.getTotalOtherExpenseDistributed() : BigDecimal.ZERO;
@@ -310,13 +297,6 @@ public class DistributionService {
         auditService.log(groupId, adminUsername, adminUsername, "EXPENSE_DISTRIBUTED", "EXPENSE",
                 expenseId, null, "Distributed expense ₹" + expense.getAmount() + " to " + deductions.size() +
                         " members using rule: " + rule, "127.0.0.1");
-
-        // Synchronize Group total savings
-        dataService.findGroupById(groupId).ifPresent(grp -> {
-            BigDecimal grpSavings = grp.getTotalSavings() != null ? grp.getTotalSavings() : BigDecimal.ZERO;
-            grp.setTotalSavings(grpSavings.subtract(expense.getAmount()).max(BigDecimal.ZERO));
-            dataService.saveGroup(grp);
-        });
 
         return expense;
     }

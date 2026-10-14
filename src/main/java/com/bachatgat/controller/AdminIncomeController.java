@@ -104,7 +104,7 @@ public class AdminIncomeController {
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
                 saved.getIncomeDate(),
-                saved.getReference(),
+                saved.getId(),
                 "Other Income: " + saved.getSource() + " - " + saved.getDescription(),
                 saved.getPaymentMethod(),
                 username

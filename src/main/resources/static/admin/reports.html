@@ -369,6 +369,28 @@
               </tr>
             </tbody>
           </table>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Members — Savings &amp; Loan Position</h3>
+            <div class="table-responsive">
+              <table class="data-table mobile-card-table">
+                <thead><tr><th>#</th><th>Member</th><th>Member ID</th><th>Monthly Bachat</th><th>Total Savings</th><th>Loan Outstanding</th></tr></thead>
+                <tbody id="monthly-member-ledger"><tr><td colspan="6" class="text-center text-muted">Load a report to view members.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Loans — Current Position</h3>
+            <div class="table-responsive">
+              <table class="data-table mobile-card-table">
+                <thead><tr><th>Loan ID</th><th>Borrower</th><th>Principal</th><th>EMI</th><th>Interest Rate</th><th>Outstanding</th><th>Status</th></tr></thead>
+                <tbody id="monthly-loan-ledger"><tr><td colspan="7" class="text-center text-muted">Load a report to view loans.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <section id="monthly-member-reports" class="member-reports" aria-label="Member-wise financial reports" style="margin-top: 1.5rem;"></section>
         </div>
 
         <!-- Yearly Statement -->
@@ -833,24 +855,67 @@
         const tbody = document.getElementById('monthly-collections-tbody');
         if (!data.collections || data.collections.length === 0) {
           tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No collections recorded for this period.</td></tr>`;
-          return;
+        } else {
+          tbody.innerHTML = data.collections.map(c => `
+            <tr>
+              <td><strong>${escapeHtml(c.memberId)}</strong></td>
+              <td>${escapeHtml(c.memberName || c.memberId)}</td>
+              <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+              <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
+              <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
+              <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
+              <td>${Common.formatDate(c.paymentDate)}</td>
+              <td><small>${escapeHtml(c.recordedBy || 'SYSTEM')}</small></td>
+            </tr>
+          `).join('');
         }
-
-        tbody.innerHTML = data.collections.map(c => `
-          <tr>
-            <td><strong>${escapeHtml(c.memberId)}</strong></td>
-            <td>${escapeHtml(c.memberName || c.memberId)}</td>
-            <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
-            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
-            <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
-            <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
-            <td>${Common.formatDate(c.paymentDate)}</td>
-            <td><small>${escapeHtml(c.recordedBy || 'SYSTEM')}</small></td>
-          </tr>
-        `).join('');
+        renderPresidentMemberReport(data);
       } catch (err) {
         Common.showToast('Failed to load monthly audit: ' + err.message, 'danger');
       }
+    }
+
+    function renderPresidentMemberReport(data) {
+      const members = data.memberLoanLedger || [];
+      document.getElementById('monthly-member-ledger').innerHTML = members.map((m, i) => `
+        <tr><td>${i + 1}</td><td>${escapeHtml(m.memberName || '-')}</td><td>${escapeHtml(m.memberId || '-')}</td>
+        <td>${Common.formatIndianCurrency(m.monthlyBachat || 0)}</td><td>${Common.formatIndianCurrency(m.totalSavings || 0)}</td>
+        <td>${Common.formatIndianCurrency(m.loanOutstanding || 0)}</td></tr>
+      `).join('') || '<tr><td colspan="6">No active members.</td></tr>';
+
+      document.getElementById('monthly-loan-ledger').innerHTML = (data.loans || []).map(l => `
+        <tr><td>${escapeHtml(l.loanId || l.id || '-')}</td><td>${escapeHtml(l.memberName || l.memberId || '-')}</td>
+        <td>${Common.formatIndianCurrency(l.principalAmount || 0)}</td><td>${Common.formatIndianCurrency(l.monthlyInstallment || 0)}</td>
+        <td>${escapeHtml(l.interestRate || 0)}%</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
+      `).join('') || '<tr><td colspan="7">No loans recorded.</td></tr>';
+
+      const reports = data.memberReports || [];
+      document.getElementById('monthly-member-reports').innerHTML = reports.map(r => {
+        const member = r.member || {};
+        const loans = (r.loanReports || []).map(x => {
+          const loan = x.loan || {};
+          const schedule = x.schedule || [];
+          return `<div class="member-report-loan"><h4>${escapeHtml(loan.loanId || loan.id || 'Loan')} — ${escapeHtml(loan.status || '')}</h4>
+            <div class="member-report-stats"><span>Principal: <strong>${Common.formatIndianCurrency(loan.principalAmount || 0)}</strong></span>
+            <span>EMI: <strong>${Common.formatIndianCurrency(loan.monthlyInstallment || 0)}</strong></span>
+            <span>Interest Paid: <strong>${Common.formatIndianCurrency(loan.interestPaid || 0)}</strong></span>
+            <span>Outstanding: <strong>${Common.formatIndianCurrency(loan.totalOutstanding || 0)}</strong></span></div>
+            <div class="table-responsive"><table class="data-table member-loan-schedule"><thead><tr><th>#</th><th>Due Date</th><th>Opening Principal</th><th>Principal</th><th>Interest</th><th>EMI</th><th>Paid</th><th>Closing Principal</th><th>Status</th></tr></thead>
+            <tbody>${schedule.map(s => `<tr><td>${s.installmentNo || ''}</td><td>${s.dueDate ? Common.formatDate(s.dueDate) : '-'}</td>
+              <td>${Common.formatIndianCurrency(s.openingPrincipal || 0)}</td><td>${Common.formatIndianCurrency(s.principalAmount || 0)}</td>
+              <td>${Common.formatIndianCurrency(s.interestAmount || 0)}</td><td>${Common.formatIndianCurrency(s.totalDue || s.emiAmount || 0)}</td>
+              <td>${Common.formatIndianCurrency(s.paidAmount || 0)}</td><td>${Common.formatIndianCurrency(s.closingPrincipal || 0)}</td><td>${escapeHtml(s.status || '')}</td></tr>`).join('') || '<tr><td colspan="9">No schedule records.</td></tr>'}</tbody></table></div></div>`;
+        }).join('') || '<p class="text-muted">No loan records.</p>';
+
+        return `<article class="content-card member-report-card"><div class="member-report-header"><div><h3>${escapeHtml(member.fullName || member.memberId || '-')}</h3><span>${escapeHtml(member.memberId || '')} · ${escapeHtml(member.status || '')}</span></div>
+          <div class="member-report-stats"><span>Monthly Bachat: <strong>${Common.formatIndianCurrency(r.monthlyBachat || 0)}</strong></span>
+          <span>Total Savings: <strong>${Common.formatIndianCurrency(r.totalSavings || 0)}</strong></span><span>Loan Outstanding: <strong>${Common.formatIndianCurrency(r.loanOutstanding || 0)}</strong></span></div></div>
+          <div class="table-responsive"><table class="data-table member-activity-table"><thead><tr><th>Collection Period</th><th>Expected</th><th>Paid</th><th>Pending</th><th>Status</th><th>Payment Date</th></tr></thead>
+          <tbody>${(r.collections || []).map(c => `<tr><td>${Common.getMonthName(c.month)} ${c.year}</td><td>${Common.formatIndianCurrency(c.expectedAmount || 0)}</td>
+            <td>${Common.formatIndianCurrency(c.paidAmount || 0)}</td><td>${Common.formatIndianCurrency(c.pendingAmount || 0)}</td><td>${escapeHtml(c.status || '')}</td><td>${c.paymentDate ? Common.formatDate(c.paymentDate) : '-'}</td></tr>`).join('') || '<tr><td colspan="6">No collection history.</td></tr>'}</tbody></table></div>
+          ${loans}<details class="member-transactions"><summary>Transactions (${(r.transactions || []).length})</summary><div class="table-responsive"><table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th><th>Reference</th></tr></thead><tbody>
+          ${(r.transactions || []).map(t => `<tr><td>${t.date ? Common.formatDate(t.date) : '-'}</td><td>${escapeHtml(t.type || '-')}</td><td>${Common.formatIndianCurrency(t.amount || 0)}</td><td>${escapeHtml(t.paymentStatus || '-')}</td><td>${escapeHtml(t.reference || '-')}</td></tr>`).join('') || '<tr><td colspan="5">No transactions.</td></tr>'}</tbody></table></div></details></article>`;
+      }).join('') || '<div class="content-card"><p class="text-muted">No members found for this group.</p></div>';
     }
 
     async function populateMemberDropdown() {

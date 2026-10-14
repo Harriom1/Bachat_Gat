@@ -483,9 +483,10 @@
         }
         recalcAllocations();
       });
-      ['pay-share', 'pay-loan-principal', 'pay-loan-interest', 'pay-other'].forEach(id => {
+      ['pay-share', 'pay-loan-principal', 'pay-loan-interest', 'pay-other', 'pay-late-fee'].forEach(id => {
         document.getElementById(id).addEventListener('input', recalcAllocations);
       });
+      document.getElementById('pay-waive-late').addEventListener('change', recalcAllocations);
 
       // Member changed -> update active loan dropdown and prefill monthly bachat
       document.getElementById('pay-memberId').addEventListener('change', (e) => {
@@ -759,8 +760,11 @@
       const prin = parseFloat(document.getElementById('pay-loan-principal').value || 0);
       const int = parseFloat(document.getElementById('pay-loan-interest').value || 0);
       const other = parseFloat(document.getElementById('pay-other').value || 0);
+      const lateFee = parseFloat(document.getElementById('pay-late-fee').value || 0);
+      const waivedLateFee = document.getElementById('pay-waive-late').checked ? lateFee : 0;
+      const netLateFee = Math.max(0, lateFee - waivedLateFee);
 
-      const allocated = share + prin + int + other;
+      const allocated = share + prin + int + other + netLateFee;
       const diff = received - allocated;
 
       document.getElementById('lbl-rec-amt').textContent = Common.formatIndianCurrency(received);
@@ -852,7 +856,7 @@
           <td>${Common.getStatusBadge(c.status)}</td>
           <td>
             ${c.status !== 'PAID' ? `
-              <button class="btn-action-icon" title="Pay Share" onclick="quickPay('${c.memberId}', ${c.month}, ${c.year}, ${c.pendingAmount})">
+              <button class="btn-action-icon" title="Pay Share" onclick="quickPay('${c.memberId}', ${c.month}, ${c.year}, ${c.pendingAmount}, ${c.lateFeeAmount || 0})">
                 <i class="bi bi-credit-card-fill" style="color: var(--success);"></i>
               </button>
             ` : '<i class="bi bi-check2-all text-success" title="Settled"></i>'}
@@ -881,16 +885,20 @@
       renderCollections(filtered);
     }
 
-    function quickPay(memberId, month, year, pendingAmount) {
+    function quickPay(memberId, month, year, pendingAmount, penaltyAmount = 0) {
       document.getElementById('pay-memberId').value = memberId;
       document.getElementById('pay-month').value = month;
       document.getElementById('pay-year').value = year;
-      document.getElementById('pay-amount').value = pendingAmount > 0 ? pendingAmount : 5000;
+      const remainingShare = pendingAmount > 0 ? pendingAmount : getRemainingShareForForm(memberId);
+      const penalty = Math.max(0, Number(penaltyAmount || 0));
+      document.getElementById('pay-amount').value = remainingShare + penalty;
       document.getElementById('pay-type-select').value = 'SAVINGS';
-      document.getElementById('pay-share').value = pendingAmount > 0 ? pendingAmount : getRemainingShareForForm(memberId);
+      document.getElementById('pay-share').value = remainingShare;
       document.getElementById('pay-loan-principal').value = 0;
       document.getElementById('pay-loan-interest').value = 0;
       document.getElementById('pay-other').value = 0;
+      document.getElementById('pay-late-fee').value = penalty;
+      document.getElementById('pay-waive-late').checked = false;
       generateIdempotencyKey();
       recalcAllocations();
       Common.openModal('payment-modal');
@@ -939,7 +947,7 @@
             <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 1rem;">${Common.formatINR(tot)}</td>
             <td>${Common.getStatusBadge(p.status || 'PENDING')}</td>
             <td>
-              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${month}, ${year}, ${tot})">
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${month}, ${year}, ${rem}, ${pen})">
                 <i class="bi bi-credit-card"></i> Pay Now
               </button>
             </td>

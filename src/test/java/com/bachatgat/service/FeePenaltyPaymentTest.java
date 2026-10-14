@@ -44,8 +44,8 @@ class FeePenaltyPaymentTest {
         String idempotencyKey = unique("FEE-IDEMP");
 
         CollectionPaymentRequest request = baseRequest("MPBG-M001", 12, 2099, reference, idempotencyKey);
-        request.setAmount(new BigDecimal("125.00"));
-        request.setShareAmount(BigDecimal.ZERO);
+        request.setAmount(new BigDecimal("5125.00"));
+        request.setShareAmount(new BigDecimal("5000.00"));
         request.setLateFeeAmount(new BigDecimal("125.00"));
         request.setWaivedLateFee(BigDecimal.ZERO);
 
@@ -83,6 +83,22 @@ class FeePenaltyPaymentTest {
                 () -> collectionService.recordPayment("bg-001", request, "admin"));
 
         assertTrue(error.getMessage().contains("cannot be less than the penalty of ₹125.00"));
+    }
+
+    @Test
+    @DisplayName("A payment cannot settle only part of the monthly share when a penalty is due")
+    void monthlyShareAndFullPenaltyAreRequiredTogether() {
+        CollectionPaymentRequest request = baseRequest("MPBG-M006", 11, 2099,
+                unique("PARTIAL-SHARE-PENALTY"), unique("PARTIAL-SHARE-PENALTY-IDEMP"));
+        request.setAmount(new BigDecimal("5050.00"));
+        request.setShareAmount(new BigDecimal("4950.00"));
+        request.setLateFeeAmount(new BigDecimal("100.00"));
+        request.setWaivedLateFee(BigDecimal.ZERO);
+
+        InvalidFinancialOperationException error = assertThrows(InvalidFinancialOperationException.class,
+                () -> collectionService.recordPayment("bg-001", request, "admin"));
+
+        assertTrue(error.getMessage().contains("plus the full penalty"));
     }
 
     @Test

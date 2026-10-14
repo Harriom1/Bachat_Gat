@@ -430,6 +430,15 @@ public class CollectionService {
         BigDecimal alreadyPaidShare = record.getPaidAmount() != null
                 ? record.getPaidAmount() : BigDecimal.ZERO;
         BigDecimal remainingShare = expectedShare.subtract(alreadyPaidShare).max(BigDecimal.ZERO);
+        if (netLateFee.signum() > 0 && remainingShare.signum() > 0) {
+            BigDecimal minimumPayment = remainingShare.add(netLateFee);
+            if (sharePart.compareTo(remainingShare) < 0 || totalReceived.compareTo(minimumPayment) < 0) {
+                throw new InvalidFinancialOperationException(
+                        "Monthly bachat of ₹" + remainingShare + " plus the full penalty of ₹" + netLateFee
+                                + " is required. Minimum payment is ₹" + minimumPayment + "."
+                );
+            }
+        }
         if (sharePart.compareTo(remainingShare) > 0) {
             throw new InvalidFinancialOperationException(
                     "Monthly bachat payment cannot exceed the remaining configured amount of ₹" + remainingShare +

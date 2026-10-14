@@ -191,6 +191,164 @@ button {
   }
 }
 
+/* Last mobile rule: tables must fit the viewport; never create a horizontal
+   scrollbar for reports, members, collections, or ledger tables. */
+@media (max-width: 768px) {
+  html body .table-responsive,
+  html body .table-responsive-wrapper {
+    overflow-x: hidden !important;
+    max-width: 100% !important;
+  }
+
+  html body table.data-table,
+  html body table.mobile-card-table,
+  html body .table-responsive > table,
+  html body .table-responsive-wrapper > table {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  html body table.data-table th,
+  html body table.data-table td,
+  html body table.mobile-card-table th,
+  html body table.mobile-card-table td {
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: .28rem .2rem !important;
+    font-size: .56rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  html body table.data-table th,
+  html body table.mobile-card-table th {
+    font-size: .48rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body .member-report-card .data-table th,
+  html body .member-report-card .data-table td,
+  html body .loan-schedule-table th,
+  html body .loan-schedule-table td {
+    padding: .2rem .14rem !important;
+    font-size: .5rem !important;
+  }
+
+  html body table .btn-action-icon {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: .65rem !important;
+  }
+}
+
+/* Compact mobile tables: keep every table as a real table, but fit it inside
+   the viewport.  This intentionally overrides the older wide-table rules
+   above, which were designed for contained horizontal scrolling. */
+@media (max-width: 768px) {
+  .table-responsive,
+  .table-responsive-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+  }
+
+  .table-responsive > table,
+  .table-responsive-wrapper > table,
+  .printable-sheet > table,
+  .content-card > table,
+  .card-box > table,
+  table.data-table,
+  table.mobile-card-table {
+    display: table !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  table.data-table thead,
+  table.data-table tbody,
+  table.data-table tr,
+  table.data-table th,
+  table.data-table td,
+  table.mobile-card-table thead,
+  table.mobile-card-table tbody,
+  table.mobile-card-table tr,
+  table.mobile-card-table th,
+  table.mobile-card-table td {
+    display: table-cell !important;
+  }
+
+  table.data-table thead,
+  table.mobile-card-table thead { display: table-header-group !important; }
+  table.data-table tbody,
+  table.mobile-card-table tbody { display: table-row-group !important; }
+  table.data-table tr,
+  table.mobile-card-table tr { display: table-row !important; }
+
+  table.data-table th,
+  table.data-table td,
+  table.mobile-card-table th,
+  table.mobile-card-table td {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 0.28rem 0.22rem !important;
+    font-size: 0.58rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    vertical-align: middle !important;
+  }
+
+  table.data-table th,
+  table.mobile-card-table th {
+    font-size: 0.5rem !important;
+    letter-spacing: 0 !important;
+    text-transform: uppercase;
+  }
+
+  table.data-table td::before,
+  table.mobile-card-table td::before { content: none !important; }
+
+  .table-actions,
+  .table-actions[style] {
+    justify-content: center !important;
+    gap: 0.15rem !important;
+    flex-wrap: wrap !important;
+  }
+
+  .table-actions .btn-action-icon,
+  table .btn-action-icon {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.65rem !important;
+  }
+
+  .badge-status {
+    gap: 0.15rem !important;
+    padding: 0.18rem 0.28rem !important;
+    font-size: 0.5rem !important;
+  }
+
+  /* Give the most important text columns a little more room. */
+  #members-table-tbody,
+  #member-refunds-tbody { font-size: 0.58rem !important; }
+  .member-report-card .data-table,
+  .loan-schedule-table { min-width: 0 !important; width: 100% !important; }
+  .member-report-card .data-table th,
+  .member-report-card .data-table td,
+  .loan-schedule-table th,
+  .loan-schedule-table td { font-size: 0.52rem !important; padding: 0.22rem 0.16rem !important; }
+}
+
 /* Keep wide financial tables usable on phones. The previous fixed-layout
    override compressed every column into a few pixels (often one letter per
    line). Scrolling is contained by the table wrapper, not the page. */
@@ -778,5 +936,69 @@ button {
     min-width: max-content !important; white-space: nowrap !important;
     overflow-wrap: normal !important; word-break: normal !important;
     font-size: .78rem !important; padding: .55rem .65rem !important;
+  }
+}
+
+/* Final mobile-table policy: fit all table columns in the viewport and wrap
+   cell content instead of allowing horizontal scrolling. */
+@media (max-width: 768px) {
+  html body .table-responsive,
+  html body .table-responsive-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  html body table.data-table,
+  html body table.mobile-card-table,
+  html body .table-responsive > table,
+  html body .table-responsive-wrapper > table {
+    display: table !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed !important;
+  }
+
+  html body table.data-table thead,
+  html body table.mobile-card-table thead { display: table-header-group !important; }
+  html body table.data-table tbody,
+  html body table.mobile-card-table tbody { display: table-row-group !important; }
+  html body table.data-table tr,
+  html body table.mobile-card-table tr { display: table-row !important; }
+  html body table.data-table th,
+  html body table.data-table td,
+  html body table.mobile-card-table th,
+  html body table.mobile-card-table td {
+    display: table-cell !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: .28rem .2rem !important;
+    font-size: .56rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  html body table.data-table th,
+  html body table.mobile-card-table th {
+    font-size: .48rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body table.data-table td::before,
+  html body table.mobile-card-table td::before { content: none !important; }
+  html body .member-report-card .data-table th,
+  html body .member-report-card .data-table td,
+  html body .loan-schedule-table th,
+  html body .loan-schedule-table td {
+    padding: .2rem .14rem !important;
+    font-size: .5rem !important;
+  }
+  html body table .btn-action-icon {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: .65rem !important;
   }
 }

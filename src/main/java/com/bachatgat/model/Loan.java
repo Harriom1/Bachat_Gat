@@ -19,7 +19,7 @@ public class Loan {
     private BigDecimal principalAmount = BigDecimal.ZERO;
     private BigDecimal interestRate = BigDecimal.valueOf(12.0); // Annual %
     private int durationMonths = 12;
-    private String interestType = "FLAT"; // FLAT or REDUCING
+    private String interestType = "REDUCING"; // FLAT or REDUCING
     
     private BigDecimal totalInterest = BigDecimal.ZERO;
     private BigDecimal totalPayable = BigDecimal.ZERO;

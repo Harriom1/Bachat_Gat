@@ -28,7 +28,7 @@ public class LoanApplication {
     private BigDecimal approvedInterestRate;
     private int approvedDurationMonths;
     private String repaymentType = "MONTHLY"; // MONTHLY
-    private String interestType = "FLAT";     // FLAT or REDUCING
+    private String interestType = "REDUCING"; // FLAT or REDUCING
     private String rejectionReason;
     private String adminNotes;
     private String reviewedBy;

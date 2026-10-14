@@ -19,7 +19,7 @@ public class LoanApprovalRequest {
     @Min(value = 1, message = "Duration must be at least 1 month")
     private Integer durationMonths = 12;
 
-    private String interestType = "FLAT"; // FLAT or REDUCING
+    private String interestType = "REDUCING"; // FLAT or REDUCING
     private Boolean isMonthlyRate;         // true for e.g. 2% per month, false/null for annual
     private Boolean disburseImmediately = true; // if false, stays in APPROVED status until separate disbursement
     private String chequeNumber;

@@ -138,4 +138,34 @@ class GroupFundServiceTest {
 
         assertEquals(new BigDecimal("192000"), service.getFundBreakdown(groupId).savings());
     }
+
+    @Test
+    void keepsVerifiedLedgerSavingsWhenMemberBalanceLagsBehind() {
+        FirestoreDataService dataService = new FirestoreDataService(null, null, null);
+        String groupId = "group-current-payment";
+
+        Member member = new Member();
+        member.setId("current-member");
+        member.setMemberId("M-CURRENT");
+        member.setGroupId(groupId);
+        member.setStatus(MemberStatus.ACTIVE);
+        member.setTotalSavingsBalance(new BigDecimal("5600"));
+        dataService.saveMember(member);
+
+        Transaction firstPayment = new Transaction();
+        firstPayment.setGroupId(groupId);
+        firstPayment.setType(TransactionType.SHARE_CONTRIBUTION);
+        firstPayment.setAmount(new BigDecimal("3300"));
+        dataService.saveTransaction(firstPayment);
+
+        Transaction secondPayment = new Transaction();
+        secondPayment.setGroupId(groupId);
+        secondPayment.setType(TransactionType.SHARE_CONTRIBUTION);
+        secondPayment.setAmount(new BigDecimal("3300"));
+        dataService.saveTransaction(secondPayment);
+
+        GroupFundService service = new GroupFundService(dataService);
+
+        assertEquals(new BigDecimal("6600"), service.getFundBreakdown(groupId).savings());
+    }
 }

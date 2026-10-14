@@ -152,17 +152,16 @@ public class GroupFundService {
                     otherIncome = otherIncome.add(amount);
                 }
             }
-            // Member balances are the cumulative savings source of truth. A group
-            // can contain historical collection records plus newer ledger entries;
-            // using only the ledger here would replace (and hide) all historical
-            // savings as soon as the first new payment is recorded.
+            // Keep historical member balances as a compatibility fallback, but do
+            // not allow a stale member balance to hide newer verified collections.
+            // This is important after a payment: the central ledger is updated
+            // with the full amount while an older member balance may lag behind.
             LegacyFundValues legacy = getLegacyFundValues(groupId);
-            boolean savingsFromLegacy = legacy.savings().signum() > 0;
-            if (savingsFromLegacy) {
+            if (legacy.savings().compareTo(savings) > 0) {
                 savings = legacy.savings();
             } else {
-                // Keep support for imported groups whose member balances have not
-                // yet been populated, while reserving refunds from ledger savings.
+                // Ledger savings include refund entries only when they are part
+                // of the ledger total, so reserve those refunds in that path.
                 savings = savings.subtract(refunds).max(BigDecimal.ZERO);
             }
             if (interest.signum() == 0) interest = legacy.interest();

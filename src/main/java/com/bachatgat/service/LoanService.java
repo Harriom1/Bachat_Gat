@@ -137,6 +137,18 @@ public class LoanService {
                 .findFirst()
                 .orElse(null);
 
+        if (currentInst != null) {
+            BigDecimal installmentOutstanding = currentInst.getOutstandingAmount() != null
+                    ? currentInst.getOutstandingAmount()
+                    : currentInst.getTotalDue().subtract(currentInst.getPaidAmount()).max(BigDecimal.ZERO);
+            if (paymentAmount.compareTo(installmentOutstanding) != 0) {
+                throw new InvalidFinancialOperationException(
+                        "Partial loan installment payments are not allowed. The full current installment of ₹"
+                                + installmentOutstanding + " must be paid."
+                );
+            }
+        }
+
         BigDecimal scheduledInterestDue;
         if (currentInst != null && currentInst.getInterestAmount() != null && currentInst.getInterestAmount().compareTo(BigDecimal.ZERO) > 0) {
             // A partially paid installment may already have paid some of its interest.

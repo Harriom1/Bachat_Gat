@@ -155,7 +155,6 @@
                   <option value="EXTRA_LOAN_PAYMENT">Extra Prepayment</option>
                   <option value="EXPENSE">Expense</option>
                   <option value="OTHER_INCOME">Income & Penalties</option>
-                  <option value="MEETING">Meeting</option>
                   <option value="REPORTS">Reports</option>
                 </select>
               </div>
@@ -318,7 +317,7 @@
 
       currentFilteredTransactions = allTransactions.filter(t => {
         let matchesType = true;
-        if (typeFilter === 'MEETING' || typeFilter === 'REPORTS') {
+        if (typeFilter === 'REPORTS') {
           matchesType = false;
         } else if (typeFilter) {
           matchesType = matchesTransactionCategory(t.type, typeFilter);
@@ -551,24 +550,6 @@
               <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Recorded Entries</span>
               <div style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">${list.length} records</div>
             </div>
-          </div>
-        `;
-      } else if (selectedType === 'MEETING') {
-        html = `
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                <span style="font-size: 1.25rem; color: #6366f1;"><i class="bi bi-calendar-event"></i></span>
-                <h3 style="font-size: 1.1rem; font-weight: 700; margin: 0; color: #6366f1;">Monthly Meeting Details (मासिक बैठक)</h3>
-                <span class="badge" style="background: #e0e7ff; color: #3730a3; font-size: 0.75rem;">SHG Governance</span>
-              </div>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; max-width: 650px;">
-                Official group meetings held on the scheduled meeting day. Tracks quorum, agenda discussion, resolution minutes, and member attendance.
-              </p>
-            </div>
-            <a href="/admin/meetings.html" class="btn-primary-custom" style="font-size: 0.825rem; padding: 0.4rem 0.85rem; background: #6366f1; border-color: #6366f1;">
-              <i class="bi bi-calendar2-check"></i> View Meetings Register
-            </a>
           </div>
         `;
       } else if (selectedType === 'REPORTS') {

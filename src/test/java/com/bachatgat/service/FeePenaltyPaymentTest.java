@@ -44,21 +44,26 @@ class FeePenaltyPaymentTest {
         String idempotencyKey = unique("FEE-IDEMP");
 
         CollectionPaymentRequest request = baseRequest("MPBG-M001", 12, 2099, reference, idempotencyKey);
-        request.setAmount(new BigDecimal("5125.00"));
+        request.setPaymentDate(LocalDate.of(2099, 12, 11));
+        request.setAmount(new BigDecimal("5100.00"));
         request.setShareAmount(new BigDecimal("5000.00"));
-        request.setLateFeeAmount(new BigDecimal("125.00"));
+        request.setLateFeeAmount(new BigDecimal("100.00"));
         request.setWaivedLateFee(BigDecimal.ZERO);
 
         CollectionRecord result = collectionService.recordPayment("bg-001", request, "admin");
 
         CollectionRecord saved = dataService.findCollectionByBusinessKey("bg-001_MPBG-M001_12_2099").orElseThrow();
-        assertEquals(new BigDecimal("125.00"), saved.getLateFeeAmount());
-        assertEquals(new BigDecimal("125.00"), saved.getPaidLateFee());
+        assertEquals(new BigDecimal("100.00"), saved.getLateFeeAmount());
+        assertEquals(new BigDecimal("100.00"), saved.getPaidLateFee());
         assertEquals(result.getId(), saved.getId());
 
-        Transaction transaction = dataService.findTransactionByReference(reference).orElseThrow();
+        Transaction transaction = dataService.getTransactionsByGroupId("bg-001").stream()
+                .filter(item -> reference.equals(item.getReference())
+                        && item.getType() == TransactionType.PENALTY_INCOME)
+                .findFirst()
+                .orElseThrow();
         assertEquals(TransactionType.PENALTY_INCOME, transaction.getType());
-        assertEquals(new BigDecimal("125.00"), transaction.getAmount());
+        assertEquals(new BigDecimal("100.00"), transaction.getAmount());
         assertEquals(idempotencyKey, transaction.getIdempotencyKey());
 
         GroupIncome income = dataService.getIncomesByGroupId("bg-001").stream()
@@ -66,7 +71,7 @@ class FeePenaltyPaymentTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals("PENALTY", income.getCategory());
-        assertEquals(new BigDecimal("125.00"), income.getAmount());
+        assertEquals(new BigDecimal("100.00"), income.getAmount());
     }
 
     @Test
@@ -76,13 +81,14 @@ class FeePenaltyPaymentTest {
                 unique("UNDER-PENALTY"), unique("UNDER-PENALTY-IDEMP"));
         request.setAmount(new BigDecimal("20.00"));
         request.setShareAmount(BigDecimal.ZERO);
-        request.setLateFeeAmount(new BigDecimal("125.00"));
+        request.setPaymentDate(LocalDate.of(2099, 12, 11));
+        request.setLateFeeAmount(new BigDecimal("100.00"));
         request.setWaivedLateFee(BigDecimal.ZERO);
 
         InvalidFinancialOperationException error = assertThrows(InvalidFinancialOperationException.class,
                 () -> collectionService.recordPayment("bg-001", request, "admin"));
 
-        assertTrue(error.getMessage().contains("cannot be less than the penalty of ₹125.00"));
+        assertTrue(error.getMessage().contains("cannot be less than the penalty of ₹100.00"));
     }
 
     @Test
@@ -92,13 +98,14 @@ class FeePenaltyPaymentTest {
                 unique("PARTIAL-SHARE-PENALTY"), unique("PARTIAL-SHARE-PENALTY-IDEMP"));
         request.setAmount(new BigDecimal("5050.00"));
         request.setShareAmount(new BigDecimal("4950.00"));
+        request.setPaymentDate(LocalDate.of(2099, 11, 11));
         request.setLateFeeAmount(new BigDecimal("100.00"));
         request.setWaivedLateFee(BigDecimal.ZERO);
 
         InvalidFinancialOperationException error = assertThrows(InvalidFinancialOperationException.class,
                 () -> collectionService.recordPayment("bg-001", request, "admin"));
 
-        assertTrue(error.getMessage().contains("plus the full penalty"));
+        assertTrue(error.getMessage().contains("Partial savings payments are not allowed"));
     }
 
     @Test
@@ -106,8 +113,9 @@ class FeePenaltyPaymentTest {
     void waivedLateFeeIsPersistedWithoutChargingIt() {
         String reference = unique("WAIVED");
         CollectionPaymentRequest request = baseRequest("MPBG-M002", 11, 2099, reference, unique("WAIVED-IDEMP"));
-        request.setAmount(new BigDecimal("1000.00"));
-        request.setShareAmount(new BigDecimal("1000.00"));
+        request.setPaymentDate(LocalDate.of(2099, 11, 11));
+        request.setAmount(new BigDecimal("5000.00"));
+        request.setShareAmount(new BigDecimal("5000.00"));
         request.setLateFeeAmount(new BigDecimal("100.00"));
         request.setWaivedLateFee(new BigDecimal("100.00"));
 

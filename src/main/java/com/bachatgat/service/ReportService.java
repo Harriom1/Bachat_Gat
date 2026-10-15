@@ -109,10 +109,22 @@ public class ReportService {
         report.put("memberLoanLedger", groupMembers.stream()
                 .map(m -> {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();
+                    List<CollectionRecord> memberCollections = dataService.getCollectionsByMemberId(m.getMemberId());
+                    CollectionRecord selectedCollection = memberCollections.stream()
+                            .filter(c -> c.getMonth() == month && c.getYear() == year)
+                            .findFirst()
+                            .orElse(null);
+                    BigDecimal monthToDateSavings = memberCollections.stream()
+                            .filter(c -> c.getYear() < year
+                                    || (c.getYear() == year && c.getMonth() <= month))
+                            .map(c -> nz(c.getPaidAmount()))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
                     row.put("memberId", m.getMemberId());
                     row.put("memberName", m.getFullName());
-                    row.put("monthlyBachat", m.getMonthlyBachatAmount());
-                    row.put("totalSavings", m.getTotalSavingsBalance());
+                    row.put("monthlyBachat", selectedCollection != null
+                            ? nz(selectedCollection.getExpectedAmount())
+                            : nz(m.getMonthlyBachatAmount()));
+                    row.put("totalSavings", monthToDateSavings);
                     row.put("loanOutstanding", m.getCurrentLoanOutstanding());
                     row.put("loanId", m.getActiveLoanId());
                     return row;

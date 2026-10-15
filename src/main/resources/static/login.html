@@ -278,14 +278,11 @@
     let isDirectMode = false;
 
     document.addEventListener('DOMContentLoaded', async () => {
-      // Check if already authenticated, route directly
-      if (Auth.isAuthenticated()) {
-        const user = Auth.getUser();
-        if (user) {
-          routeByRole(user);
-          return;
-        }
-      }
+      // Always render the login screen first. This prevents stale browser
+      // credentials from sending a user directly to a protected dashboard
+      // before a fresh login has been completed.
+      api.setToken(null);
+      Auth.setUser(null);
 
       // Initialize language selector
       const currentLang = localStorage.getItem('app_lang') || 'en';

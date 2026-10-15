@@ -95,9 +95,10 @@ public class GroupFundService {
 
         BigDecimal savings = dataService.getMembersByGroupId(groupId).stream()
                 .map(m -> nz(m.getTotalSavingsBalance())).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal principalRecovered = dataService.getLoansByGroupId(groupId).stream()
+        List<Loan> loans = getUniqueLoans(groupId);
+        BigDecimal principalRecovered = loans.stream()
                 .map(l -> nz(l.getPrincipalPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal interest = dataService.getLoansByGroupId(groupId).stream()
+        BigDecimal interest = loans.stream()
                 .map(l -> nz(l.getInterestPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal income = dataService.getIncomesByGroupId(groupId).stream()
                 .filter(i -> !i.isDistributed())
@@ -105,7 +106,7 @@ public class GroupFundService {
         BigDecimal expenses = dataService.getExpensesByGroupId(groupId).stream()
                 .filter(e -> !e.isDistributed())
                 .map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal disbursed = dataService.getLoansByGroupId(groupId).stream()
+        BigDecimal disbursed = loans.stream()
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
                 .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -152,6 +153,10 @@ public class GroupFundService {
                     otherIncome = otherIncome.add(amount);
                 }
             }
+            // Some older loans were created before the central ledger entry was
+            // introduced. Reconcile those loan records without double-counting
+            // loans that already have a matching disbursement transaction.
+            disbursed = reconcileDisbursedLoans(groupId, transactions, disbursed);
             // Keep historical member balances as a compatibility fallback, but do
             // not allow a stale member balance to hide newer verified collections.
             // This is important after a payment: the central ledger is updated
@@ -202,6 +207,40 @@ public class GroupFundService {
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
                 .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new LegacyFundValues(savings, interest, otherIncome, expenses, disbursed, principalRepaid);
+    }
+
+    private BigDecimal reconcileDisbursedLoans(String groupId, List<Transaction> transactions,
+                                               BigDecimal ledgerDisbursed) {
+        Set<String> ledgerLoanIds = transactions.stream()
+                .filter(t -> t.getType() == TransactionType.LOAN_DISBURSEMENT)
+                .map(Transaction::getLoanId)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(java.util.stream.Collectors.toSet());
+
+        BigDecimal missingLegacyDisbursements = getUniqueLoans(groupId).stream()
+                .filter(this::isDisbursedLoan)
+                .filter(loan -> loan.getLoanId() == null || !ledgerLoanIds.contains(loan.getLoanId()))
+                .map(loan -> nz(loan.getPrincipalAmount()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        return ledgerDisbursed.add(missingLegacyDisbursements);
+    }
+
+    private List<Loan> getUniqueLoans(String groupId) {
+        return dataService.getLoansByGroupId(groupId).stream()
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toMap(
+                        loan -> loan.getId() != null ? loan.getId() : loan.getLoanId(),
+                        loan -> loan,
+                        (first, duplicate) -> first))
+                .values().stream().toList();
+    }
+
+    private boolean isDisbursedLoan(Loan loan) {
+        if (loan == null || loan.getStatus() == null) return false;
+        return loan.getStatus() != LoanStatus.PENDING
+                && loan.getStatus() != LoanStatus.APPROVED
+                && loan.getStatus() != LoanStatus.CANCELLED;
     }
 
     private record LegacyFundValues(BigDecimal savings, BigDecimal interest, BigDecimal otherIncome,

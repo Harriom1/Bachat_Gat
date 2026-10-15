@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +50,19 @@ public class CollectionService {
         return dataService.findGroupById(groupId)
                 .map(Group::getMonthlyBachatAmount)
                 .orElse(BigDecimal.ZERO);
+    }
+
+    /**
+     * The configured late fee is a per-day penalty. The due date itself has
+     * no penalty; the first penalty is charged on the following calendar day.
+     */
+    private BigDecimal calculateAccruedPenalty(BigDecimal dailyPenalty, LocalDate dueDate, LocalDate asOfDate) {
+        if (dailyPenalty == null || dailyPenalty.signum() <= 0 || dueDate == null || asOfDate == null
+                || !asOfDate.isAfter(dueDate)) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        long daysLate = java.time.temporal.ChronoUnit.DAYS.between(dueDate, asOfDate);
+        return dailyPenalty.multiply(BigDecimal.valueOf(daysLate)).setScale(2, RoundingMode.HALF_UP);
     }
 
     public List<CollectionRecord> getGroupCollections(String groupId) {
@@ -158,8 +172,13 @@ public class CollectionService {
             cr.setStatus(CollectionStatus.OVERDUE);
             int daysLate = (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);
             cr.setDaysLate(daysLate);
-            if (cr.getLateFeeAmount() == null || cr.getLateFeeAmount().compareTo(BigDecimal.ZERO) == 0) {
-                cr.setLateFeeAmount(lateFeeConfig);
+            BigDecimal accruedPenalty = calculateAccruedPenalty(lateFeeConfig, dueDate, today);
+            // Keep the amount already paid historically, but expose the
+            // current accrued amount for every still-open collection.
+            BigDecimal paidShare = cr.getPaidAmount() != null ? cr.getPaidAmount() : BigDecimal.ZERO;
+            BigDecimal expectedShare = cr.getExpectedAmount() != null ? cr.getExpectedAmount() : BigDecimal.ZERO;
+            if (paidShare.compareTo(expectedShare) < 0 || cr.getPaidLateFee().signum() == 0) {
+                cr.setLateFeeAmount(accruedPenalty);
             }
         } else {
             cr.setStatus(CollectionStatus.PENDING);
@@ -187,9 +206,6 @@ public class CollectionService {
         int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
         LocalDate dueDate = LocalDate.of(year, month, Math.min(dueDay, maxDaysInMonth));
         LocalDate today = LocalDate.now();
-        int daysOverdue = today.isAfter(dueDate) ? (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today) : 0;
-        BigDecimal calculatedLateFee = daysOverdue > 0 ? lateFeeConfig : BigDecimal.ZERO;
-
         List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
         for (Member m : activeMembers) {
             String bKey = groupId + "_" + m.getMemberId() + "_" + month + "_" + year;
@@ -203,11 +219,15 @@ public class CollectionService {
                     : resolveMonthlyBachat(groupId, LocalDate.of(year, month, 1), masterData);
             BigDecimal paid = (cr != null && cr.getPaidAmount() != null) ? cr.getPaidAmount() : BigDecimal.ZERO;
             BigDecimal remainingDue = bachatAmt.subtract(paid).max(BigDecimal.ZERO);
-            BigDecimal penalty = (cr != null && cr.getLateFeeAmount() != null && cr.getLateFeeAmount().compareTo(BigDecimal.ZERO) > 0)
-                    ? cr.getLateFeeAmount() : calculatedLateFee;
+            LocalDate effectiveDueDate = cr != null && cr.getDueDate() != null ? cr.getDueDate() : dueDate;
+            int daysOverdue = today.isAfter(effectiveDueDate)
+                    ? (int) java.time.temporal.ChronoUnit.DAYS.between(effectiveDueDate, today) : 0;
+            BigDecimal accruedPenalty = calculateAccruedPenalty(lateFeeConfig, effectiveDueDate, today);
+            BigDecimal alreadyPaidPenalty = cr != null ? cr.getPaidLateFee() : BigDecimal.ZERO;
+            BigDecimal penalty = accruedPenalty.subtract(alreadyPaidPenalty).max(BigDecimal.ZERO);
             BigDecimal totalPayable = remainingDue.add(penalty);
 
-            String status = (cr != null) ? cr.getStatus().name() : (daysOverdue > 0 ? "OVERDUE" : "PENDING");
+            String status = remainingDue.signum() > 0 && daysOverdue > 0 ? "OVERDUE" : "PENDING";
             if (cr != null && cr.getStatus() == CollectionStatus.PAID) {
                 continue; // Only pending / partial / overdue
             }
@@ -333,6 +353,8 @@ public class CollectionService {
                 });
         alignOpenRecordToGroupRule(record, groupId, LocalDate.now());
 
+        LocalDate payDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
+
         // 2. PAYMENT / BANKING SUCCESS VERIFICATION (Section 4)
         if ("FAILED".equalsIgnoreCase(request.getPaymentStatus()) || "CANCELLED".equalsIgnoreCase(request.getPaymentStatus())) {
             record.setStatus(CollectionStatus.FAILED);
@@ -365,36 +387,58 @@ public class CollectionService {
         // Component 3: Other
         BigDecimal otherPart = request.getOtherAmount() != null ? request.getOtherAmount() : BigDecimal.ZERO;
         // Late fee
-        LocalDate payDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
         BigDecimal configuredLateFee = masterData != null && masterData.getLatePaymentFee() != null
-                ? masterData.getLatePaymentFee() : BigDecimal.ZERO;
+                ? masterData.getLatePaymentFee()
+                : dataService.findGroupById(groupId).map(Group::getLateFeeAmount).orElse(BigDecimal.ZERO);
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
         BigDecimal waivedFee = request.getWaivedLateFee() != null ? request.getWaivedLateFee() : BigDecimal.ZERO;
         if (waivedFee.compareTo(lateFee) > 0) {
             throw new InvalidFinancialOperationException("Waived late fee cannot exceed the late fee amount.");
-        }
-        if (payDate.isAfter(calculatedDueDate) && configuredLateFee.signum() > 0
-                && lateFee.signum() > 0 && lateFee.compareTo(configuredLateFee) < 0) {
-            throw new InvalidFinancialOperationException(
-                    "Penalty cannot be less than the configured penalty of ₹" + configuredLateFee + "."
-            );
         }
         if (waivedFee.signum() > 0 && waivedFee.compareTo(lateFee) < 0) {
             throw new InvalidFinancialOperationException(
                     "The full penalty must be waived; partial penalty waivers are not allowed."
             );
         }
-        BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
+        LocalDate dueDate = record.getDueDate() != null ? record.getDueDate() : calculatedDueDate;
+        BigDecimal expectedShare = record.getExpectedAmount() != null
+                ? record.getExpectedAmount() : configuredMonthlyBachat;
+        BigDecimal alreadyPaidShare = record.getPaidAmount() != null
+                ? record.getPaidAmount() : BigDecimal.ZERO;
+        BigDecimal remainingShare = expectedShare.subtract(alreadyPaidShare).max(BigDecimal.ZERO);
+        BigDecimal accruedPenalty = calculateAccruedPenalty(configuredLateFee, dueDate, payDate);
 
         // A missing share component means zero when the payment is loan/other-only.
         // Keep the legacy single-amount savings behaviour only when no other
-        // allocation was supplied. This prevents a combined payment from
-        // silently reusing the full monthly share after it is already paid.
+        // allocation was supplied.
         if (sharePart == null) {
             boolean hasOtherAllocation = loanPrincPart.signum() > 0 || loanIntPart.signum() > 0
-                    || otherPart.signum() > 0 || netLateFee.signum() > 0;
+                    || otherPart.signum() > 0 || lateFee.signum() > 0 || waivedFee.signum() > 0;
             sharePart = hasOtherAllocation ? BigDecimal.ZERO : totalReceived;
         }
+
+        // The server owns the penalty calculation. A browser cannot submit an
+        // older/smaller penalty to bypass the daily increase.
+        if (sharePart.signum() > 0 && remainingShare.signum() > 0 && accruedPenalty.signum() > 0) {
+            if (waivedFee.signum() > 0) {
+                if (waivedFee.compareTo(accruedPenalty) != 0) {
+                    throw new InvalidFinancialOperationException(
+                            "Only the full accrued penalty of ₹" + accruedPenalty + " can be waived."
+                    );
+                }
+                lateFee = accruedPenalty;
+            } else {
+                if (lateFee.compareTo(accruedPenalty) != 0) {
+                    throw new InvalidFinancialOperationException(
+                            "The current penalty is ₹" + accruedPenalty + " for "
+                                    + java.time.temporal.ChronoUnit.DAYS.between(dueDate, payDate)
+                                    + " overdue day(s). The full amount is required."
+                    );
+                }
+                lateFee = accruedPenalty;
+            }
+        }
+        BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
 
         // Late fees are authoritative backend values. A browser may display a
         // preview, but it cannot opt out of a configured fee or invent one.
@@ -424,22 +468,22 @@ public class CollectionService {
             );
         }
 
-        BigDecimal expectedShare = record.getExpectedAmount() != null
-                ? record.getExpectedAmount()
-                : configuredMonthlyBachat;
-        BigDecimal alreadyPaidShare = record.getPaidAmount() != null
-                ? record.getPaidAmount() : BigDecimal.ZERO;
-        BigDecimal remainingShare = expectedShare.subtract(alreadyPaidShare).max(BigDecimal.ZERO);
+        if (sharePart.signum() > 0 && remainingShare.signum() > 0 && sharePart.compareTo(remainingShare) != 0) {
+            throw new InvalidFinancialOperationException(
+                    "Partial savings payments are not allowed. Pay the full remaining monthly bachat of ₹"
+                            + remainingShare + "."
+            );
+        }
         if (netLateFee.signum() > 0 && remainingShare.signum() > 0) {
             BigDecimal minimumPayment = remainingShare.add(netLateFee);
-            if (sharePart.compareTo(remainingShare) < 0 || totalReceived.compareTo(minimumPayment) < 0) {
+            if (totalReceived.compareTo(minimumPayment) < 0) {
                 throw new InvalidFinancialOperationException(
                         "Monthly bachat of ₹" + remainingShare + " plus the full penalty of ₹" + netLateFee
                                 + " is required. Minimum payment is ₹" + minimumPayment + "."
                 );
             }
         }
-        if (sharePart.compareTo(remainingShare) > 0) {
+        if (sharePart.signum() > 0 && sharePart.compareTo(remainingShare) > 0) {
             throw new InvalidFinancialOperationException(
                     "Monthly bachat payment cannot exceed the remaining configured amount of ₹" + remainingShare +
                     ". Extra payment must be allocated to a loan, late fee, or other category."
@@ -469,8 +513,6 @@ public class CollectionService {
             record.setRecordedBy(recordedBy);
 
             // Determine status
-            int graceDays = masterData != null ? masterData.getGracePeriodDays() : 5;
-            LocalDate dueDate = record.getDueDate() != null ? record.getDueDate() : calculatedDueDate;
             record.setDueDate(dueDate);
             if (payDate.isAfter(dueDate)) {
                 record.setDaysLate((int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, payDate));

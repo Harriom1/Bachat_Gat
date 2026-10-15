@@ -153,34 +153,11 @@ public class DashboardService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             List<Loan> groupLoans = dataService.getLoansByGroupId(group.getId());
-            BigDecimal disbursed = groupLoans.stream()
-                    .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
-                    .map(l -> l.getPrincipalAmount() != null ? l.getPrincipalAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal principalRecovered = groupLoans.stream()
-                    .map(l -> l.getPrincipalPaid() != null ? l.getPrincipalPaid() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal interestCollected = groupLoans.stream()
-                    .map(l -> l.getInterestPaid() != null ? l.getInterestPaid() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            List<GroupIncome> incomes = dataService.getIncomesByGroupId(group.getId());
-            BigDecimal totalOtherIncome = incomes.stream()
-                    .filter(inc -> !"LOAN_INTEREST".equalsIgnoreCase(inc.getCategory()))
-                    .map(inc -> inc.getAmount() != null ? inc.getAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            List<GroupExpense> expenses = dataService.getExpensesByGroupId(group.getId());
-            BigDecimal totalExpenses = expenses.stream()
-                    .map(e -> e.getAmount() != null ? e.getAmount() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            BigDecimal availableCash = groupFundService.getAvailableFund(group.getId());
+            GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(group.getId());
+            BigDecimal availableCash = fund.availableFund();
 
             dto.setGroupRemainingFunds(availableCash);
-            dto.setGroupLoansDisbursed(disbursed);
+            dto.setGroupLoansDisbursed(fund.loansDisbursed());
         }
 
         dto.setMyTotalSavings(member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO);

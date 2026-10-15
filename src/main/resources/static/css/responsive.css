@@ -10,6 +10,46 @@ body {
   overflow-x: hidden;
 }
 
+/* Keep wide financial tables readable on phones. The page stays within the
+   viewport; only the selected table can be swiped horizontally. */
+@media (max-width: 768px) {
+  html body .table-responsive:has(> table.responsive-scroll-table),
+  html body .table-responsive-wrapper:has(> table.responsive-scroll-table),
+  html body .report-ledger-card .table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html body .table-responsive > table.responsive-scroll-table,
+  html body .table-responsive-wrapper > table.responsive-scroll-table,
+  html body .report-ledger-card .data-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 680px !important;
+    max-width: none !important;
+    table-layout: auto !important;
+  }
+
+  html body table.responsive-scroll-table th,
+  html body table.responsive-scroll-table td,
+  html body .report-ledger-card .data-table th,
+  html body .report-ledger-card .data-table td {
+    min-width: max-content !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-size: .78rem !important;
+    line-height: 1.25 !important;
+    padding: .55rem .65rem !important;
+  }
+
+  html body table.loan-transparency-table { min-width: 720px !important; }
+  html body table.collections-table { min-width: 980px !important; }
+  html body table.collection-history-table { min-width: 760px !important; }
+  html body table.admin-loans-table { min-width: 980px !important; }
+}
+
 img,
 svg,
 canvas,
@@ -168,6 +208,46 @@ button {
   }
 }
 
+/* Final override for the selected wide financial tables. Keep them readable
+   on phones and confine horizontal scrolling to the table wrapper. */
+@media (max-width: 768px) {
+  html body .table-responsive:has(> table.responsive-scroll-table),
+  html body .table-responsive-wrapper:has(> table.responsive-scroll-table),
+  html body .report-ledger-card .table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html body .table-responsive > table.responsive-scroll-table,
+  html body .table-responsive-wrapper > table.responsive-scroll-table,
+  html body .report-ledger-card .data-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 680px !important;
+    max-width: none !important;
+    table-layout: auto !important;
+  }
+
+  html body table.responsive-scroll-table th,
+  html body table.responsive-scroll-table td,
+  html body .report-ledger-card .data-table th,
+  html body .report-ledger-card .data-table td {
+    min-width: max-content !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-size: .78rem !important;
+    line-height: 1.25 !important;
+    padding: .55rem .65rem !important;
+  }
+
+  html body table.loan-transparency-table { min-width: 720px !important; }
+  html body table.collections-table { min-width: 980px !important; }
+  html body table.collection-history-table { min-width: 760px !important; }
+  html body table.admin-loans-table { min-width: 980px !important; }
+}
+
 /* Final mobile-table policy: this must come after the legacy card-table rules
    below so the table is never forced into a fixed 100% layout. */
 @media (max-width: 768px) {
@@ -200,8 +280,8 @@ button {
     max-width: 100% !important;
   }
 
-  html body table.data-table,
-  html body table.mobile-card-table,
+  html body table.data-table:not(.responsive-scroll-table),
+  html body table.mobile-card-table:not(.responsive-scroll-table),
   html body .table-responsive > table,
   html body .table-responsive-wrapper > table {
     width: 100% !important;
@@ -217,7 +297,7 @@ button {
     min-width: 0 !important;
     max-width: none !important;
     padding: .28rem .2rem !important;
-    font-size: .56rem !important;
+    font-size: .72rem !important;
     line-height: 1.2 !important;
     white-space: normal !important;
     overflow-wrap: anywhere !important;
@@ -226,7 +306,7 @@ button {
 
   html body table.data-table th,
   html body table.mobile-card-table th {
-    font-size: .48rem !important;
+    font-size: .62rem !important;
     letter-spacing: 0 !important;
   }
 
@@ -243,6 +323,46 @@ button {
     height: 24px !important;
     font-size: .65rem !important;
   }
+}
+
+/* Selected financial tables: readable on phones, with scrolling confined to
+   the table wrapper instead of shrinking every cell into unreadable text. */
+@media (max-width: 768px) {
+  html body .table-responsive:has(> table.responsive-scroll-table),
+  html body .table-responsive-wrapper:has(> table.responsive-scroll-table),
+  html body .report-ledger-card .table-responsive {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  html body .table-responsive > table.responsive-scroll-table,
+  html body .table-responsive-wrapper > table.responsive-scroll-table,
+  html body .report-ledger-card .data-table {
+    display: table !important;
+    width: max-content !important;
+    min-width: 680px !important;
+    max-width: none !important;
+    table-layout: auto !important;
+  }
+
+  html body table.responsive-scroll-table th,
+  html body table.responsive-scroll-table td,
+  html body .report-ledger-card .data-table th,
+  html body .report-ledger-card .data-table td {
+    min-width: max-content !important;
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    font-size: .78rem !important;
+    line-height: 1.25 !important;
+    padding: .55rem .65rem !important;
+  }
+
+  html body table.loan-transparency-table { min-width: 720px !important; }
+  html body table.collections-table { min-width: 980px !important; }
+  html body table.collection-history-table { min-width: 760px !important; }
+  html body table.admin-loans-table { min-width: 980px !important; }
 }
 
 /* Compact mobile tables: keep every table as a real table, but fit it inside
@@ -960,35 +1080,35 @@ button {
     table-layout: fixed !important;
   }
 
-  html body table.data-table thead,
-  html body table.mobile-card-table thead { display: table-header-group !important; }
-  html body table.data-table tbody,
-  html body table.mobile-card-table tbody { display: table-row-group !important; }
-  html body table.data-table tr,
-  html body table.mobile-card-table tr { display: table-row !important; }
-  html body table.data-table th,
-  html body table.data-table td,
-  html body table.mobile-card-table th,
-  html body table.mobile-card-table td {
+  html body table.data-table:not(.responsive-scroll-table) thead,
+  html body table.mobile-card-table:not(.responsive-scroll-table) thead { display: table-header-group !important; }
+  html body table.data-table:not(.responsive-scroll-table) tbody,
+  html body table.mobile-card-table:not(.responsive-scroll-table) tbody { display: table-row-group !important; }
+  html body table.data-table:not(.responsive-scroll-table) tr,
+  html body table.mobile-card-table:not(.responsive-scroll-table) tr { display: table-row !important; }
+  html body table.data-table:not(.responsive-scroll-table) th,
+  html body table.data-table:not(.responsive-scroll-table) td,
+  html body table.mobile-card-table:not(.responsive-scroll-table) th,
+  html body table.mobile-card-table:not(.responsive-scroll-table) td {
     display: table-cell !important;
     min-width: 0 !important;
     max-width: none !important;
     padding: .28rem .2rem !important;
-    font-size: .56rem !important;
+    font-size: .72rem !important;
     line-height: 1.2 !important;
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-word !important;
   }
 
-  html body table.data-table th,
-  html body table.mobile-card-table th {
-    font-size: .48rem !important;
+  html body table.data-table:not(.responsive-scroll-table) th,
+  html body table.mobile-card-table:not(.responsive-scroll-table) th {
+    font-size: .62rem !important;
     letter-spacing: 0 !important;
   }
 
-  html body table.data-table td::before,
-  html body table.mobile-card-table td::before { content: none !important; }
+  html body table.data-table:not(.responsive-scroll-table) td::before,
+  html body table.mobile-card-table:not(.responsive-scroll-table) td::before { content: none !important; }
   html body .member-report-card .data-table th,
   html body .member-report-card .data-table td,
   html body .loan-schedule-table th,

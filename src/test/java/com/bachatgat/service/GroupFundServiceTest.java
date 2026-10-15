@@ -2,6 +2,8 @@ package com.bachatgat.service;
 
 import com.bachatgat.model.Member;
 import com.bachatgat.model.MemberStatus;
+import com.bachatgat.model.Loan;
+import com.bachatgat.model.LoanStatus;
 import com.bachatgat.model.Transaction;
 import com.bachatgat.model.TransactionType;
 import com.bachatgat.repository.FirestoreDataService;
@@ -167,5 +169,37 @@ class GroupFundServiceTest {
         GroupFundService service = new GroupFundService(dataService);
 
         assertEquals(new BigDecimal("6600"), service.getFundBreakdown(groupId).savings());
+    }
+
+    @Test
+    void reconcilesDisbursedLoanRecordsMissingTheirLedgerEntry() {
+        FirestoreDataService dataService = new FirestoreDataService(null, null, null);
+        String groupId = "group-missing-disbursement-ledger";
+
+        Transaction savings = new Transaction();
+        savings.setGroupId(groupId);
+        savings.setType(TransactionType.SHARE_CONTRIBUTION);
+        savings.setAmount(new BigDecimal("100000"));
+        dataService.saveTransaction(savings);
+
+        Transaction ledgerLoan = new Transaction();
+        ledgerLoan.setGroupId(groupId);
+        ledgerLoan.setLoanId("LN-LEDGER");
+        ledgerLoan.setType(TransactionType.LOAN_DISBURSEMENT);
+        ledgerLoan.setAmount(new BigDecimal("60000"));
+        dataService.saveTransaction(ledgerLoan);
+
+        Loan legacyLoan = new Loan();
+        legacyLoan.setLoanId("LN-LEGACY");
+        legacyLoan.setGroupId(groupId);
+        legacyLoan.setStatus(LoanStatus.ACTIVE);
+        legacyLoan.setPrincipalAmount(new BigDecimal("9000"));
+        dataService.saveLoan(legacyLoan);
+
+        GroupFundService service = new GroupFundService(dataService);
+        GroupFundService.FundBreakdown breakdown = service.getFundBreakdown(groupId);
+
+        assertEquals(new BigDecimal("69000"), breakdown.loansDisbursed());
+        assertEquals(new BigDecimal("31000"), breakdown.availableFund());
     }
 }

@@ -36,7 +36,6 @@
         <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
         <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
         <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
-        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
 
         <li class="menu-category">CONFIGURATION & AUDIT</li>
         <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
@@ -131,7 +130,6 @@
               <select id="collection-status-filter" class="form-select">
                 <option value="ALL">All Statuses</option>
                 <option value="PAID">Paid Only</option>
-                <option value="PARTIAL">Partial</option>
                 <option value="PENDING">Pending Dues</option>
               </select>
             </div>
@@ -145,7 +143,6 @@
               <thead>
                 <tr>
                   <th data-i18n="tablePeriod">Period</th>
-                  <th data-i18n="memberId">Member ID</th>
                   <th data-i18n="fullName">Member Name</th>
                   <th data-i18n="monthlyExpected">Expected Share</th>
                   <th data-i18n="tablePaidAmount">Paid Amount</th>
@@ -158,7 +155,7 @@
                 </tr>
               </thead>
               <tbody id="collections-table-tbody">
-                <tr><td colspan="11" style="text-align: center;">Loading collection history...</td></tr>
+                <tr><td colspan="10" style="text-align: center;">Loading collection history...</td></tr>
               </tbody>
             </table>
           </div>
@@ -185,7 +182,6 @@
               <thead>
                 <tr>
                   <th>Member Name</th>
-                  <th>Member ID</th>
                   <th style="text-align: right;">Monthly Bachat</th>
                   <th style="text-align: right;">Amount Paid</th>
                   <th style="text-align: right;">Remaining Due</th>
@@ -198,7 +194,7 @@
                 </tr>
               </thead>
               <tbody id="pending-savings-tbody">
-                <tr><td colspan="11" style="text-align: center;">Loading pending members...</td></tr>
+                <tr><td colspan="10" style="text-align: center;">Loading pending members...</td></tr>
               </tbody>
             </table>
           </div>
@@ -346,11 +342,11 @@
               <div class="form-grid mb-2">
                 <div class="form-group">
                   <label style="font-size: 0.75rem; color: var(--text-muted);">Loan Principal (₹)</label>
-                  <input type="number" id="pay-loan-principal" class="form-control form-control-sm" value="0" min="0" step="0.5">
+                  <input type="number" id="pay-loan-principal" class="form-control form-control-sm" value="0" min="0" step="0.5" readonly>
                 </div>
                 <div class="form-group">
                   <label style="font-size: 0.75rem; color: var(--text-muted);">Loan Interest (₹)</label>
-                  <input type="number" id="pay-loan-interest" class="form-control form-control-sm" value="0" min="0" step="0.5">
+                  <input type="number" id="pay-loan-interest" class="form-control form-control-sm" value="0" min="0" step="0.5" readonly>
                 </div>
               </div>
             </div>
@@ -373,7 +369,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div style="flex: 1; margin-right: 1rem;">
                 <label class="form-label" style="font-size: 0.85rem; margin-bottom: 0.25rem;">Late Fee (₹)</label>
-                <input type="number" id="pay-late-fee" class="form-control form-control-sm" value="0" min="0" step="10">
+                <input type="number" id="pay-late-fee" class="form-control form-control-sm" value="0" min="0" step="10" readonly>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem;">
                 <input type="checkbox" id="pay-waive-late" style="width: 18px; height: 18px; cursor: pointer;">
@@ -619,6 +615,9 @@
               const principalDue = Math.max(0, Number(current.principalAmount || current.principalComponent || 0) - paidPrincipal);
               document.getElementById('pay-loan-principal').value = principalDue;
               document.getElementById('pay-loan-interest').value = unpaidInterest;
+              if (document.getElementById('pay-type-select').value === 'LOAN') {
+                document.getElementById('pay-amount').value = Math.max(0, Number(current.outstandingAmount || current.totalDue || 0));
+              }
             } else {
               document.getElementById('pay-loan-principal').value = 0;
               document.getElementById('pay-loan-interest').value = 0;
@@ -633,9 +632,18 @@
       });
 
       // Filter events
-      document.getElementById('collection-search-input').addEventListener('input', applyFilters);
-      document.getElementById('collection-month-select').addEventListener('change', applyFilters);
-      document.getElementById('collection-status-filter').addEventListener('change', applyFilters);
+      document.getElementById('collection-search-input').addEventListener('input', () => {
+        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        else applyFilters();
+      });
+      document.getElementById('collection-month-select').addEventListener('change', () => {
+        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        else applyFilters();
+      });
+      document.getElementById('collection-status-filter').addEventListener('change', () => {
+        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        else applyFilters();
+      });
 
       // Generate Monthly Due
       document.getElementById('btn-generate-monthly-due').addEventListener('click', async () => {
@@ -829,7 +837,7 @@
     function renderCollections(records) {
       const tbody = document.getElementById('collections-table-tbody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="11" class="empty-state">No collection records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No collection records found.</td></tr>';
         return;
       }
 
@@ -845,7 +853,6 @@
         return `
         <tr>
           <td><strong style="color: var(--text-main);">${monthNames[c.month]} ${c.year}</strong></td>
-          <td><code>${c.memberId}</code></td>
           <td><strong>${c.memberName}</strong></td>
           <td class="table-currency">${Common.formatINR(c.expectedAmount)}</td>
           <td class="table-currency text-success">${Common.formatINR(c.paidAmount)}</td>
@@ -915,17 +922,30 @@
     async function loadPendingCollections(groupId) {
       const targetGId = groupId || currentGroupId || Common.getSelectedGroupId();
       const tbody = document.getElementById('pending-savings-tbody');
-      tbody.innerHTML = '<tr><td colspan="11" style="text-align: center;">Loading pending members...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">Loading pending members...</td></tr>';
       try {
-        const month = parseInt(document.getElementById('collection-month-select').value) || (new Date().getMonth() + 1);
+        const selectedMonth = parseInt(document.getElementById('collection-month-select').value) || 0;
         const year = new Date().getFullYear();
-        const pendingList = await api.getPendingSavings(targetGId, month, year);
-        if (!pendingList || pendingList.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="11" class="empty-state text-success" style="padding: 2rem;"><i class="bi bi-check-circle-fill me-1" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> All active members have deposited their monthly savings share! Zero pending dues.</td></tr>';
+        const months = selectedMonth > 0 ? [selectedMonth] : Array.from({ length: 12 }, (_, i) => i + 1);
+        const pendingLists = await Promise.all(months.map(month => api.getPendingSavings(targetGId, month, year)));
+        const pendingList = pendingLists.flatMap((list, index) =>
+          (list || []).map(item => ({ ...item, month: months[index], year }))
+        );
+        const search = document.getElementById('collection-search-input').value.trim().toLowerCase();
+        const statusFilter = document.getElementById('collection-status-filter').value;
+        const filteredPending = pendingList.filter(p => {
+          const matchesSearch = !search ||
+            String(p.memberName || '').toLowerCase().includes(search) ||
+            String(p.memberId || '').toLowerCase().includes(search);
+          const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+          return matchesSearch && matchesStatus;
+        });
+        if (filteredPending.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" class="empty-state text-success" style="padding: 2rem;"><i class="bi bi-check-circle-fill me-1" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> All active members have deposited their monthly savings share! Zero pending dues.</td></tr>';
           return;
         }
 
-        tbody.innerHTML = pendingList.map(p => {
+        tbody.innerHTML = filteredPending.map(p => {
           const share = p.monthlyBachatAmount != null ? p.monthlyBachatAmount : (p.monthlyBachatAmount != null ? p.monthlyBachatAmount : 0);
           const paid = p.amountPaid != null ? p.amountPaid : (p.paidAmount != null ? p.paidAmount : 0);
           const rem = p.remainingDue != null ? p.remainingDue : (p.remainingAmount != null ? p.remainingAmount : 0);
@@ -937,7 +957,6 @@
           return `
           <tr>
             <td><strong>${escapeHtml(p.memberName)}</strong></td>
-            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(p.memberId)}</code></td>
             <td style="text-align: right; font-weight: 600;">${Common.formatINR(share)}</td>
             <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatINR(paid)}</td>
             <td style="text-align: right; font-weight: 600; color: ${rem > 0 ? '#b91c1c' : '#15803d'};">${Common.formatINR(rem)}</td>
@@ -947,7 +966,7 @@
             <td style="text-align: right; font-weight: 800; color: var(--primary); font-size: 1rem;">${Common.formatINR(tot)}</td>
             <td>${Common.getStatusBadge(p.status || 'PENDING')}</td>
             <td>
-              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${month}, ${year}, ${rem}, ${pen})">
+              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${p.month}, ${p.year}, ${rem}, ${pen})">
                 <i class="bi bi-credit-card"></i> Pay Now
               </button>
             </td>
@@ -955,7 +974,7 @@
         `;
         }).join('');
       } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--danger);">Failed to load pending collections: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">Failed to load pending collections: ${err.message}</td></tr>`;
       }
     }
 

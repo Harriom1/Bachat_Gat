@@ -33,6 +33,15 @@
   white-space: nowrap;
 }
 
+.data-table th.serial-number-column,
+.data-table td.serial-number-column {
+  width: 3.5rem;
+  min-width: 3.5rem;
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+  text-align: center;
+}
+
 .data-table td {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--border-color);

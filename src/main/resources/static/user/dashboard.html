@@ -514,12 +514,10 @@
           </div>
 
           <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table responsive-scroll-table loan-transparency-table">
               <thead>
                 <tr>
-                  <th data-i18n="tableMemberId">Member ID</th>
                   <th data-i18n="tableBorrowerName">Borrower Name</th>
-                  <th data-i18n="tablePurpose">Purpose</th>
                   <th style="text-align: right;" data-i18n="tablePrincipal">Sanctioned Principal (₹)</th>
                   <th style="text-align: right;" data-i18n="tableMonthlyEmi">Monthly Payment / EMI (₹)</th>
                   <th style="text-align: right;" data-i18n="tableOutstanding">Outstanding Due (₹)</th>
@@ -529,7 +527,7 @@
               </thead>
               <tbody id="user-dash-group-loans-tbody">
                 <tr>
-                  <td colspan="8" class="text-center py-3 text-muted">Loading group loan transparency records...</td>
+                  <td colspan="6" class="text-center py-3 text-muted">Loading group loan transparency records...</td>
                 </tr>
               </tbody>
             </table>
@@ -572,7 +570,7 @@
       const tbody = document.getElementById('user-dash-group-loans-tbody');
       if (!tbody) return;
       if (!loans || loans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-3 text-muted">No active loans in your group. All collective savings are intact.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-3 text-muted">No active loans in your group. All collective savings are intact.</td></tr>`;
         return;
       }
 
@@ -585,9 +583,7 @@
 
         return `
           <tr>
-            <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(l.memberId || '-')}</code></td>
             <td><strong>${escapeHtml(l.memberName || '-')}</strong></td>
-            <td><span style="font-size: 0.85rem;">${escapeHtml(l.purpose || 'General / Business Need')}</span></td>
             <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
             <td style="text-align: right; font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
             <td style="text-align: right; font-weight: 700; color: ${outstanding > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(outstanding)}</td>

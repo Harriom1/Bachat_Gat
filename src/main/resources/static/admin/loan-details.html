@@ -36,7 +36,6 @@
         <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
         <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
         <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
-        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
 
         <li class="menu-category">CONFIGURATION & AUDIT</li>
         <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
@@ -182,7 +181,7 @@
             <table class="data-table loan-schedule-table">
               <thead>
                 <tr>
-                  <th>#</th>
+                  <th class="serial-number-column">Sr.No.</th>
                   <th>Due Date</th>
                   <th style="text-align: right;">Opening Principal (₹)</th>
                   <th style="text-align: right;">Principal Component (₹)</th>
@@ -214,10 +213,10 @@
       </div>
       <form id="form-repay">
         <div class="form-group mb-3">
-          <label class="form-label required">Repayment Amount (₹)</label>
+          <label class="form-label required">Full Current Installment (₹)</label>
           <div class="input-currency-group">
             <span class="currency-prefix">₹</span>
-            <input type="number" id="inp-repay-amount" class="form-control" min="100" step="50" required>
+            <input type="number" id="inp-repay-amount" class="form-control" min="100" step="50" required readonly>
           </div>
           <div class="form-help">Scheduled Monthly EMI: <strong id="repay-emi-help">₹0</strong></div>
         </div>
@@ -331,8 +330,17 @@
 
       await loadLoanDetails();
 
-      document.getElementById('btn-open-repay').addEventListener('click', () => {
-        document.getElementById('inp-repay-amount').value = currentLoan?.monthlyInstallment || 0;
+      document.getElementById('btn-open-repay').addEventListener('click', async () => {
+        const schedule = await api.getLoanSchedule(currentLoanId);
+        const currentInstallment = (schedule || []).find(s => {
+          const outstanding = Number(s.outstandingAmount ?? (Number(s.totalDue || s.emiAmount || 0) - Number(s.paidAmount || 0)));
+          return outstanding > 0 && !['PAID', 'COMPLETED'].includes(String(s.status || '').toUpperCase());
+        });
+        const amount = currentInstallment
+          ? Number(currentInstallment.outstandingAmount ?? (Number(currentInstallment.totalDue || currentInstallment.emiAmount || 0) - Number(currentInstallment.paidAmount || 0)))
+          : 0;
+        document.getElementById('inp-repay-amount').value = amount;
+        document.getElementById('repay-emi-help').textContent = Common.formatIndianCurrency(amount);
         document.getElementById('modal-repay').classList.add('show');
       });
 

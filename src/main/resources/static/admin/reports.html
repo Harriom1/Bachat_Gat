@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="/css/admin.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
+    /* Reports intentionally expose only the two group-level tables. */
+    .report-personal-detail { display: none !important; }
+    #tab-btn-summary, #tab-btn-yearly, #tab-btn-outstanding, #tab-btn-statement { display: none !important; }
     .report-tabs {
       display: flex;
       gap: 0.5rem;
@@ -88,7 +91,6 @@
         <li><a href="/admin/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">Transactions</span></a></li>
         <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
         <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
-        <li><a href="/admin/meetings.html" class="menu-item"><i class="bi bi-calendar-event menu-icon"></i><span>Meetings</span></a></li>
 
         <li class="menu-category">CONFIGURATION & AUDIT</li>
         <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
@@ -172,7 +174,7 @@
         </div>
 
         <!-- Tab 1: Group Financial Summary -->
-        <div id="tab-summary" class="printable-sheet">
+        <div id="tab-summary" class="printable-sheet report-personal-detail">
           <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
             <div style="display: inline-block; width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: white; line-height: 48px; font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;">₹</div>
             <h2 id="sum-group-name" style="font-size: 1.5rem; font-weight: 700;">Mahila Pragati Bachat Gat</h2>
@@ -350,10 +352,9 @@
             </div>
           </div>
 
-          <table class="data-table">
+          <table class="data-table report-personal-detail">
             <thead>
               <tr>
-                <th>Member ID</th>
                 <th>Member Name</th>
                 <th style="text-align: right;">Expected Share</th>
                 <th style="text-align: right;">Paid Amount</th>
@@ -365,7 +366,7 @@
             </thead>
             <tbody id="monthly-collections-tbody">
               <tr>
-                <td colspan="8" class="text-center py-4 text-muted">Select period and click Load Report</td>
+                <td colspan="7" class="text-center py-4 text-muted">Select period and click Load Report</td>
               </tr>
             </tbody>
           </table>
@@ -374,8 +375,8 @@
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Members — Savings &amp; Loan Position</h3>
             <div class="table-responsive">
               <table class="data-table mobile-card-table">
-                <thead><tr><th>#</th><th>Member</th><th>Member ID</th><th>Monthly Bachat</th><th>Total Savings</th><th>Loan Outstanding</th></tr></thead>
-                <tbody id="monthly-member-ledger"><tr><td colspan="6" class="text-center text-muted">Load a report to view members.</td></tr></tbody>
+                <thead><tr><th class="serial-number-column">Sr.No.</th><th>Member</th><th>Monthly Bachat</th><th>Total Savings</th><th>Loan Outstanding</th></tr></thead>
+                <tbody id="monthly-member-ledger"><tr><td colspan="5" class="text-center text-muted">Load a report to view members.</td></tr></tbody>
               </table>
             </div>
           </div>
@@ -390,11 +391,10 @@
             </div>
           </div>
 
-          <section id="monthly-member-reports" class="member-reports" aria-label="Member-wise financial reports" style="margin-top: 1.5rem;"></section>
         </div>
 
         <!-- Yearly Statement -->
-        <div id="tab-yearly" class="printable-sheet" style="display: none;">
+        <div id="tab-yearly" class="printable-sheet report-personal-detail" style="display: none;">
           <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
             <label style="font-weight: 600;">Select Financial Year:</label>
             <select id="yearly-report-year" class="form-select" style="max-width: 140px;">
@@ -489,7 +489,7 @@
         </div>
 
         <!-- Outstanding Loans & Recovery -->
-        <div id="tab-outstanding" class="printable-sheet" style="display: none;">
+        <div id="tab-outstanding" class="printable-sheet report-personal-detail" style="display: none;">
           <div style="text-align: center; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; margin-bottom: 2rem;">
             <h2 style="font-size: 1.4rem; font-weight: 700;">Outstanding Loans & Recovery Audit</h2>
             <p style="color: var(--text-muted);">Active borrower obligations and principal/interest debt aging</p>
@@ -557,7 +557,7 @@
         </div>
 
         <!-- Member Statement -->
-        <div id="tab-statement" class="printable-sheet" style="display: none;">
+        <div id="tab-statement" class="printable-sheet report-personal-detail" style="display: none;">
           <div class="no-print" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; align-items: center;">
             <label style="font-weight: 600;">Choose Member:</label>
             <select id="statement-member-select" class="form-select" style="max-width: 320px;">
@@ -757,10 +757,11 @@
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
   <script>
-    let activeTabKey = 'summary';
+    let activeTabKey = 'monthly';
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
+      switchReportTab('monthly');
       document.getElementById('sum-gen-date').textContent = new Date().toLocaleDateString(Common.getLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
       await loadFinancialSummary();
       await populateMemberDropdown();
@@ -853,35 +854,44 @@
         ).join('');
 
         const tbody = document.getElementById('monthly-collections-tbody');
-        if (!data.collections || data.collections.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No collections recorded for this period.</td></tr>`;
-        } else {
-          tbody.innerHTML = data.collections.map(c => `
-            <tr>
-              <td><strong>${escapeHtml(c.memberId)}</strong></td>
-              <td>${escapeHtml(c.memberName || c.memberId)}</td>
-              <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
-              <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
-              <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
-              <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
-              <td>${Common.formatDate(c.paymentDate)}</td>
-              <td><small>${escapeHtml(c.recordedBy || 'SYSTEM')}</small></td>
-            </tr>
-          `).join('');
+        if (tbody) {
+          if (!data.collections || data.collections.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No collections recorded for this period.</td></tr>`;
+          } else {
+            tbody.innerHTML = data.collections.map(c => `
+              <tr>
+                <td>${escapeHtml(c.memberName || c.memberId)}</td>
+                <td style="text-align: right;">${Common.formatIndianCurrency(c.expectedAmount)}</td>
+                <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(c.paidAmount)}</td>
+                <td style="text-align: right; color: ${parseFloat(c.pendingAmount) > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(c.pendingAmount)}</td>
+                <td><span class="status-badge badge-${c.status.toLowerCase()}">${escapeHtml(c.status)}</span></td>
+                <td>${Common.formatDate(c.paymentDate)}</td>
+                <td><small>${escapeHtml(c.recordedBy || 'SYSTEM')}</small></td>
+              </tr>
+            `).join('');
+          }
         }
-        renderPresidentMemberReport(data);
+        renderMonthlyLedgerTables(data);
+        removePersonalReportSections();
       } catch (err) {
         Common.showToast('Failed to load monthly audit: ' + err.message, 'danger');
       }
     }
 
-    function renderPresidentMemberReport(data) {
+    function removePersonalReportSections() {
+      document.querySelectorAll('.report-personal-detail').forEach(element => element.remove());
+      ['tab-btn-summary', 'tab-btn-yearly', 'tab-btn-outstanding', 'tab-btn-statement']
+        .forEach(id => document.getElementById(id)?.remove());
+      document.querySelector('.report-tabs')?.remove();
+    }
+
+    function renderMonthlyLedgerTables(data) {
       const members = data.memberLoanLedger || [];
       document.getElementById('monthly-member-ledger').innerHTML = members.map((m, i) => `
-        <tr><td>${i + 1}</td><td>${escapeHtml(m.memberName || '-')}</td><td>${escapeHtml(m.memberId || '-')}</td>
+        <tr><td class="serial-number-column">${i + 1}</td><td>${escapeHtml(m.memberName || '-')}</td>
         <td>${Common.formatIndianCurrency(m.monthlyBachat || 0)}</td><td>${Common.formatIndianCurrency(m.totalSavings || 0)}</td>
         <td>${Common.formatIndianCurrency(m.loanOutstanding || 0)}</td></tr>
-      `).join('') || '<tr><td colspan="6">No active members.</td></tr>';
+      `).join('') || '<tr><td colspan="5">No active members.</td></tr>';
 
       document.getElementById('monthly-loan-ledger').innerHTML = (data.loans || []).map(l => `
         <tr><td>${escapeHtml(l.loanId || l.id || '-')}</td><td>${escapeHtml(l.memberName || l.memberId || '-')}</td>
@@ -889,33 +899,6 @@
         <td>${escapeHtml(l.interestRate || 0)}%</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
       `).join('') || '<tr><td colspan="7">No loans recorded.</td></tr>';
 
-      const reports = data.memberReports || [];
-      document.getElementById('monthly-member-reports').innerHTML = reports.map(r => {
-        const member = r.member || {};
-        const loans = (r.loanReports || []).map(x => {
-          const loan = x.loan || {};
-          const schedule = x.schedule || [];
-          return `<div class="member-report-loan"><h4>${escapeHtml(loan.loanId || loan.id || 'Loan')} — ${escapeHtml(loan.status || '')}</h4>
-            <div class="member-report-stats"><span>Principal: <strong>${Common.formatIndianCurrency(loan.principalAmount || 0)}</strong></span>
-            <span>EMI: <strong>${Common.formatIndianCurrency(loan.monthlyInstallment || 0)}</strong></span>
-            <span>Interest Paid: <strong>${Common.formatIndianCurrency(loan.interestPaid || 0)}</strong></span>
-            <span>Outstanding: <strong>${Common.formatIndianCurrency(loan.totalOutstanding || 0)}</strong></span></div>
-            <div class="table-responsive"><table class="data-table member-loan-schedule"><thead><tr><th>#</th><th>Due Date</th><th>Opening Principal</th><th>Principal</th><th>Interest</th><th>EMI</th><th>Paid</th><th>Closing Principal</th><th>Status</th></tr></thead>
-            <tbody>${schedule.map(s => `<tr><td>${s.installmentNo || ''}</td><td>${s.dueDate ? Common.formatDate(s.dueDate) : '-'}</td>
-              <td>${Common.formatIndianCurrency(s.openingPrincipal || 0)}</td><td>${Common.formatIndianCurrency(s.principalAmount || 0)}</td>
-              <td>${Common.formatIndianCurrency(s.interestAmount || 0)}</td><td>${Common.formatIndianCurrency(s.totalDue || s.emiAmount || 0)}</td>
-              <td>${Common.formatIndianCurrency(s.paidAmount || 0)}</td><td>${Common.formatIndianCurrency(s.closingPrincipal || 0)}</td><td>${escapeHtml(s.status || '')}</td></tr>`).join('') || '<tr><td colspan="9">No schedule records.</td></tr>'}</tbody></table></div></div>`;
-        }).join('') || '<p class="text-muted">No loan records.</p>';
-
-        return `<article class="content-card member-report-card"><div class="member-report-header"><div><h3>${escapeHtml(member.fullName || member.memberId || '-')}</h3><span>${escapeHtml(member.memberId || '')} · ${escapeHtml(member.status || '')}</span></div>
-          <div class="member-report-stats"><span>Monthly Bachat: <strong>${Common.formatIndianCurrency(r.monthlyBachat || 0)}</strong></span>
-          <span>Total Savings: <strong>${Common.formatIndianCurrency(r.totalSavings || 0)}</strong></span><span>Loan Outstanding: <strong>${Common.formatIndianCurrency(r.loanOutstanding || 0)}</strong></span></div></div>
-          <div class="table-responsive"><table class="data-table member-activity-table"><thead><tr><th>Collection Period</th><th>Expected</th><th>Paid</th><th>Pending</th><th>Status</th><th>Payment Date</th></tr></thead>
-          <tbody>${(r.collections || []).map(c => `<tr><td>${Common.getMonthName(c.month)} ${c.year}</td><td>${Common.formatIndianCurrency(c.expectedAmount || 0)}</td>
-            <td>${Common.formatIndianCurrency(c.paidAmount || 0)}</td><td>${Common.formatIndianCurrency(c.pendingAmount || 0)}</td><td>${escapeHtml(c.status || '')}</td><td>${c.paymentDate ? Common.formatDate(c.paymentDate) : '-'}</td></tr>`).join('') || '<tr><td colspan="6">No collection history.</td></tr>'}</tbody></table></div>
-          ${loans}<details class="member-transactions"><summary>Transactions (${(r.transactions || []).length})</summary><div class="table-responsive"><table class="data-table"><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th><th>Reference</th></tr></thead><tbody>
-          ${(r.transactions || []).map(t => `<tr><td>${t.date ? Common.formatDate(t.date) : '-'}</td><td>${escapeHtml(t.type || '-')}</td><td>${Common.formatIndianCurrency(t.amount || 0)}</td><td>${escapeHtml(t.paymentStatus || '-')}</td><td>${escapeHtml(t.reference || '-')}</td></tr>`).join('') || '<tr><td colspan="5">No transactions.</td></tr>'}</tbody></table></div></details></article>`;
-      }).join('') || '<div class="content-card"><p class="text-muted">No members found for this group.</p></div>';
     }
 
     async function populateMemberDropdown() {
@@ -1154,6 +1137,24 @@
       link.click();
       document.body.removeChild(link);
       Common.showToast('Report CSV exported successfully!', 'success');
+    }
+
+    // Export only the two approved group-level tables.
+    function exportCurrentReportCSV() {
+      const tables = document.querySelectorAll('#monthly-member-ledger, #monthly-loan-ledger');
+      const rows = [];
+      tables.forEach(body => {
+        const table = body.closest('table');
+        table?.querySelectorAll('tr').forEach(row => {
+          rows.push(Array.from(row.querySelectorAll('th,td')).map(cell =>
+            `"${cell.innerText.replace(/"/g, '""').replace(/\n/g, ' ').trim()}"`).join(','));
+        });
+      });
+      if (!rows.length) return;
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
+      link.download = `BachatGat_Group_Tables_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
     }
 
     function escapeHtml(str) {

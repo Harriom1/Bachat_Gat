@@ -135,6 +135,24 @@
       .demo-btn-grid {
         grid-template-columns: 1fr;
       }
+      .login-group-search-row {
+        gap: 0.35rem !important;
+      }
+      .login-group-search-row #login-group-search {
+        min-width: 0;
+        font-size: 0.78rem;
+        padding: 0.55rem 0.6rem;
+      }
+      .login-group-search-row #btn-search-group {
+        flex: 0 0 auto;
+        width: auto !important;
+        min-height: 40px;
+        padding: 0.45rem 0.65rem !important;
+        font-size: 0.78rem;
+      }
+      .login-group-search-row #btn-search-group span {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -176,7 +194,7 @@
         <label class="form-label" for="login-group-search">
           <i class="bi bi-search text-primary"></i> <span data-i18n="searchBachatGat">Search Your Bachat Gat</span> *
         </label>
-        <div style="display:flex; gap:0.5rem;">
+        <div class="login-group-search-row" style="display:flex; gap:0.5rem;">
           <input id="login-group-search" class="form-control" type="search"
                  placeholder="Enter group name or Group ID" autocomplete="off" required>
           <button type="button" id="btn-search-group" class="btn-primary-custom" style="white-space:nowrap; padding:0.65rem 0.9rem;">

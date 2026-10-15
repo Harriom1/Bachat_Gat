@@ -514,7 +514,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="data-table responsive-scroll-table loan-transparency-table">
+            <table class="data-table mobile-card-table responsive-scroll-table loan-transparency-table">
               <thead>
                 <tr>
                   <th data-i18n="tableBorrowerName">Borrower Name</th>
@@ -583,12 +583,12 @@
 
         return `
           <tr>
-            <td><strong>${escapeHtml(l.memberName || '-')}</strong></td>
-            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
-            <td style="text-align: right; font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
-            <td style="text-align: right; font-weight: 700; color: ${outstanding > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(outstanding)}</td>
-            <td><strong>${dueDate}</strong></td>
-            <td>${statusBadge}</td>
+            <td data-label="Borrower Name"><strong>${escapeHtml(l.memberName || '-')}</strong></td>
+            <td data-label="Sanctioned Principal" style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
+            <td data-label="Monthly Payment / EMI" style="text-align: right; font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
+            <td data-label="Outstanding Due" style="text-align: right; font-weight: 700; color: ${outstanding > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(outstanding)}</td>
+            <td data-label="Next Due Date"><strong>${dueDate}</strong></td>
+            <td data-label="Status">${statusBadge}</td>
           </tr>
         `;
       }).join('');

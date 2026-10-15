@@ -323,6 +323,7 @@ button {
     height: 24px !important;
     font-size: .65rem !important;
   }
+
 }
 
 /* Selected financial tables: readable on phones, with scrolling confined to
@@ -847,6 +848,47 @@ button {
   }
 }
 
+/* Compact financial summaries remain tables at every viewport size. */
+.monthly-report-metrics { display: none !important; }
+.compact-detail-table-wrap,
+.report-summary-table-wrap,
+.report-ledger-card { overflow: hidden; }
+.compact-detail-table,
+.compact-report-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+.compact-detail-table th,
+.compact-detail-table td,
+.compact-report-table th,
+.compact-report-table td {
+  padding: .45rem .55rem;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.compact-detail-table th { width: 48%; text-align: left; color: var(--text-muted); }
+.compact-detail-table td,
+.compact-report-table td:last-child { text-align: right; font-weight: 700; }
+.compact-detail-table small { font-weight: 400; }
+
+@media (max-width: 480px) {
+  .compact-detail-table th,
+  .compact-detail-table td,
+  .compact-report-table th,
+  .compact-report-table td {
+    padding: .28rem .3rem !important;
+    font-size: .68rem !important;
+    line-height: 1.2 !important;
+  }
+  .compact-detail-table th { width: 52%; }
+  .compact-detail-table-wrap,
+  .report-summary-table-wrap,
+  .report-ledger-card { margin-left: 0 !important; margin-right: 0 !important; }
+}
+
 /* Ultra-Compact Small Devices (<= 360px & 320px iPhone SE) */
 @media (max-width: 360px) {
   .page-title {
@@ -1120,5 +1162,132 @@ button {
     width: 24px !important;
     height: 24px !important;
     font-size: .65rem !important;
+  }
+
+  /* Keep the laptop-style table structure on phones. Cells wrap inside the
+     viewport instead of becoming cards or creating horizontal page scroll. */
+  html body table.mobile-card-table.responsive-scroll-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  html body table.mobile-card-table.responsive-scroll-table thead { display: table-header-group !important; }
+  html body table.mobile-card-table.responsive-scroll-table tbody { display: table-row-group !important; }
+  html body table.mobile-card-table.responsive-scroll-table tr { display: table-row !important; }
+  html body table.mobile-card-table.responsive-scroll-table th,
+  html body table.mobile-card-table.responsive-scroll-table td {
+    display: table-cell !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: .3rem .2rem !important;
+    font-size: .58rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    vertical-align: middle !important;
+  }
+
+  html body table.mobile-card-table.responsive-scroll-table th {
+    font-size: .5rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body table.mobile-card-table.responsive-scroll-table td::before { content: none !important; }
+}
+
+/* Final compact mobile presentation: keep every affected financial view as a
+   real table, with wrapped text and no page/table horizontal scrolling. */
+@media (max-width: 480px) {
+  html body .table-responsive,
+  html body .table-responsive-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  html body .table-responsive-wrapper > table.data-table,
+  html body .table-responsive > table.data-table {
+    display: table !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  html body .table-responsive-wrapper > table.data-table th,
+  html body .table-responsive-wrapper > table.data-table td,
+  html body .table-responsive > table.data-table th,
+  html body .table-responsive > table.data-table td {
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: .24rem .16rem !important;
+    font-size: .56rem !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  html body .table-responsive-wrapper > table.data-table th,
+  html body .table-responsive > table.data-table th {
+    font-size: .48rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  html body .table-responsive-wrapper > table.data-table td::before,
+  html body .table-responsive > table.data-table td::before { content: none !important; }
+
+  html body .modal-content-custom {
+    width: calc(100vw - 1rem) !important;
+    max-width: calc(100vw - 1rem) !important;
+    max-height: calc(100vh - .75rem) !important;
+    margin: .35rem auto !important;
+  }
+
+  html body .modal-content-custom .modal-header-custom,
+  html body .modal-content-custom .modal-footer-custom {
+    padding: .55rem .7rem !important;
+  }
+
+  html body .modal-content-custom .modal-title-custom {
+    font-size: .95rem !important;
+    line-height: 1.2 !important;
+  }
+
+  html body .modal-content-custom .modal-body-custom {
+    padding: .55rem .7rem !important;
+    max-height: calc(100vh - 7rem) !important;
+    overflow-y: auto !important;
+  }
+
+  html body .modal-content-custom .form-group {
+    margin-bottom: .4rem !important;
+  }
+
+  html body .modal-content-custom .form-label,
+  html body .modal-content-custom label {
+    font-size: .68rem !important;
+    margin-bottom: .15rem !important;
+  }
+
+  html body .modal-content-custom .form-control,
+  html body .modal-content-custom .form-select {
+    min-height: 34px !important;
+    height: auto !important;
+    padding: .35rem .5rem !important;
+    font-size: .72rem !important;
+  }
+
+  html body .modal-content-custom .btn-primary-custom,
+  html body .modal-content-custom .btn-outline-custom {
+    min-height: 36px !important;
+    padding: .4rem .55rem !important;
+    font-size: .72rem !important;
   }
 }

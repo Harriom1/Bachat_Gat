@@ -103,41 +103,16 @@
         </div>
 
         <!-- Metric Summary -->
-        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
-          <div class="metric-card success">
-            <div class="metric-header">
-              <span class="metric-label">Total Inflow</span>
-              <div class="metric-icon-wrap icon-green"><i class="bi bi-arrow-down-left-circle-fill"></i></div>
-            </div>
-            <div id="metric-total-inflow" class="metric-value">₹0</div>
-            <div class="metric-sub">Savings, repayments & income</div>
-          </div>
-          <div class="metric-card danger">
-            <div class="metric-header">
-              <span class="metric-label">Total Outflow</span>
-              <div class="metric-icon-wrap icon-red"><i class="bi bi-arrow-up-right-circle-fill"></i></div>
-            </div>
-            <div id="metric-total-outflow" class="metric-value">₹0</div>
-            <div class="metric-sub">Disbursements & expenses</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Net Balance Impact</span>
-              <div class="metric-icon-wrap icon-blue"><i class="bi bi-bank2"></i></div>
-            </div>
-            <div id="metric-net-flow" class="metric-value">₹0</div>
-            <div class="metric-sub">Group fund net movement</div>
-          </div>
-          <div class="metric-card secondary">
-            <div class="metric-header">
-              <span class="metric-label">Recorded Transactions</span>
-              <div class="metric-icon-wrap icon-teal"><i class="bi bi-hash"></i></div>
-            </div>
-            <div id="metric-txn-count" class="metric-value">0</div>
-            <div class="metric-sub">Permanent immutable records</div>
-          </div>
+        <div class="content-card compact-detail-table-wrap" style="margin-bottom: 1.5rem;">
+          <table class="data-table compact-detail-table">
+            <tbody>
+              <tr><th>Total Inflow</th><td id="metric-total-inflow">₹0</td></tr>
+              <tr><th>Total Outflow</th><td id="metric-total-outflow">₹0</td></tr>
+              <tr><th>Net Balance Impact</th><td id="metric-net-flow">₹0</td></tr>
+              <tr><th>Recorded Transactions</th><td id="metric-txn-count">0</td></tr>
+            </tbody>
+          </table>
         </div>
-
         <!-- Filter Bar -->
         <div class="content-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
           <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; justify-content: space-between;">
@@ -203,7 +178,7 @@
         <!-- Transactions Table -->
         <div class="content-card">
           <div class="table-responsive transaction-table-wrap">
-            <table class="data-table">
+            <table class="data-table mobile-card-table responsive-scroll-table">
               <thead>
                 <tr>
                   <th>Transaction ID</th>

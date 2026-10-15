@@ -98,73 +98,30 @@
         </div>
 
         <!-- Loan Balances (Requirement 27: Total Loan Outstanding) -->
-        <div class="metrics-grid mb-4">
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label">Sanctioned Principal</span>
-              <div class="metric-icon-wrap icon-blue"><i class="bi bi-cash"></i></div>
-            </div>
-            <div id="dtl-sanctioned-principal" class="metric-value">₹0</div>
-            <div class="metric-sub" id="dtl-interest-rate-label">12% p.a. Reducing Balance</div>
-          </div>
-
-          <div class="metric-card success">
-            <div class="metric-header">
-              <span class="metric-label">Principal Repaid</span>
-              <div class="metric-icon-wrap icon-green"><i class="bi bi-check2-circle"></i></div>
-            </div>
-            <div id="dtl-principal-paid" class="metric-value">₹0</div>
-            <div class="metric-sub" id="dtl-principal-paid-sub">Direct principal reduction</div>
-          </div>
-
-          <div class="metric-card warning">
-            <div class="metric-header">
-              <span class="metric-label">Remaining Principal</span>
-              <div class="metric-icon-wrap icon-yellow"><i class="bi bi-hourglass-split"></i></div>
-            </div>
-            <div id="dtl-remaining-principal" class="metric-value">₹0</div>
-            <div class="metric-sub">Base for future monthly interest</div>
-          </div>
-
-          <div class="metric-card danger">
-            <div class="metric-header">
-              <span class="metric-label">Total Outstanding Dues</span>
-              <div class="metric-icon-wrap icon-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
-            </div>
-            <div id="dtl-total-outstanding" class="metric-value">₹0</div>
-            <div class="metric-sub" id="dtl-outstanding-sub">Remaining Principal + Accrued Interest</div>
-          </div>
+        <div class="content-card compact-detail-table-wrap mb-4">
+          <table class="data-table compact-detail-table">
+            <tbody>
+              <tr><th>Sanctioned Principal</th><td id="dtl-sanctioned-principal">₹0<br><small id="dtl-interest-rate-label" class="text-muted">12% p.a. Reducing Balance</small></td></tr>
+              <tr><th>Principal Repaid</th><td id="dtl-principal-paid">₹0<br><small id="dtl-principal-paid-sub" class="text-muted">Direct principal reduction</small></td></tr>
+              <tr><th>Remaining Principal</th><td id="dtl-remaining-principal">₹0<br><small class="text-muted">Base for future monthly interest</small></td></tr>
+              <tr><th>Total Outstanding Dues</th><td id="dtl-total-outstanding">₹0<br><small id="dtl-outstanding-sub" class="text-muted">Remaining Principal + Accrued Interest</small></td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Loan Terms Card -->
-        <div class="content-card mb-4">
+        <div class="content-card compact-detail-table-wrap mb-4">
           <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Loan Terms & Amortization Parameters</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem;">
-            <div>
-              <span class="text-muted d-block">Monthly EMI</span>
-              <strong id="dtl-monthly-emi" style="font-size: 1.1rem; color: var(--primary);">₹0</strong>
-            </div>
-            <div>
-              <span class="text-muted d-block">Tenure / Duration</span>
-              <strong id="dtl-tenure">-</strong>
-            </div>
-            <div>
-              <span class="text-muted d-block">Total Interest Accrued</span>
-              <strong id="dtl-interest-accrued">₹0</strong>
-            </div>
-            <div>
-              <span class="text-muted d-block">Interest Paid to Date</span>
-              <strong id="dtl-interest-paid" style="color: var(--success);">₹0</strong>
-            </div>
-            <div>
-              <span class="text-muted d-block">Remaining Interest Due</span>
-              <strong id="dtl-remaining-interest" style="color: var(--danger);">₹0</strong>
-            </div>
-            <div>
-              <span class="text-muted d-block">Next Installment Due</span>
-              <strong id="dtl-next-due-date">-</strong>
-            </div>
-          </div>
+          <table class="data-table compact-detail-table">
+            <tbody>
+              <tr><th>Monthly EMI</th><td id="dtl-monthly-emi">₹0</td></tr>
+              <tr><th>Tenure / Duration</th><td id="dtl-tenure">-</td></tr>
+              <tr><th>Total Interest Accrued</th><td id="dtl-interest-accrued">₹0</td></tr>
+              <tr><th>Interest Paid to Date</th><td id="dtl-interest-paid">₹0</td></tr>
+              <tr><th>Remaining Interest Due</th><td id="dtl-remaining-interest">₹0</td></tr>
+              <tr><th>Next Installment Due</th><td id="dtl-next-due-date">-</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Amortization Schedule Table (Requirement 28) -->
@@ -414,7 +371,7 @@
 
         tbody.innerHTML = schedule.map(s => `
           <tr>
-            <td><strong>#${s.installmentNo}</strong></td>
+            <td><strong>${s.installmentNo}</strong></td>
             <td>${Common.formatDate(s.dueDate)}</td>
             <td style="text-align: right;">${Common.formatIndianCurrency(s.openingPrincipal)}</td>
             <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.principalComponent)}</td>

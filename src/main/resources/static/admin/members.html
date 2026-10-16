@@ -83,13 +83,13 @@
             <h1 class="page-title" data-i18n="members">Bachat Gat Members Register</h1>
             <p class="page-subtitle">Manage member KYC, verified identity, monthly Bachat share accumulation, and financial standings</p>
           </div>
-          <button id="btn-open-register-modal" class="btn-primary-custom">
-            <i class="bi bi-person-plus-fill"></i> Register New Member
+          <button id="btn-open-register-modal" class="btn-primary-custom corner-action" title="Register New Member" aria-label="Register New Member">
+            <i class="bi bi-person-plus-fill"></i><span class="action-label">Register New Member</span>
           </button>
         </div>
 
         <!-- Metric Summary Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        <div class="compact-summary-table" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
           <div class="content-card" style="padding: 1.15rem;">
             <span class="text-muted" style="font-size: 0.8rem; font-weight: 600;" data-i18n="statEnrolledMembers">TOTAL REGISTERED MEMBERS</span>
             <h3 id="stat-total-members" style="font-size: 1.5rem; font-weight: 700; color: var(--primary); margin: 0.35rem 0 0 0;">0</h3>
@@ -129,13 +129,13 @@
         <!-- Members Table -->
         <div class="card-box">
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table members-register-table">
               <thead>
                 <tr>
                   <th>Sr. No.</th>
                   <th data-i18n="tableMemberName">Member Name</th>
                   <th data-i18n="mobileNumber">Contact</th>
-                  <th data-i18n="tableMonthlyShare" title="Regular monthly savings/monthly bachat contributed by each member">Monthly Bachat (₹) <i class="bi bi-info-circle" style="font-size:0.75rem;"></i></th>
+                  <th data-i18n="tableMonthlyShare" title="Regular monthly savings/monthly bachat contributed by each member">Monthly Bachat (₹)</th>
                   <th data-i18n="tableTotalSavings">Total Savings</th>
                   <th data-i18n="loanStanding">Loan Standing</th>
                   <th data-i18n="tableStatus">Status</th>
@@ -837,18 +837,16 @@
               ${m.designation && m.designation !== 'MEMBER' ? Common.getRoleBadge({ designation: m.designation }, currentLang) : ''}
             </div>
             ${m.fullNameMr && currentLang !== 'mr' ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(m.fullNameMr)}</div>` : ''}
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${m.guardianName ? 'Guardian: ' + escapeHtml(m.guardianName) : ''}</div>
           </td>
           <td>
-            <div style="font-size: 0.85rem;"><i class="bi bi-telephone-fill" style="color: #64748b;"></i> ${escapeHtml(m.mobileNumber)}</div>
-            <small class="text-muted">${escapeHtml(m.village || '')}</small>
+            <div style="font-size: 0.85rem;">${escapeHtml(m.mobileNumber)}</div>
           </td>
           <td class="table-currency" style="font-weight: 600;">${Common.formatIndianCurrency(m.monthlyBachatAmount)}</td>
           <td class="table-currency" style="font-weight: 700; color: var(--success);">${Common.formatIndianCurrency(m.totalSavingsBalance)}</td>
           <td>
             ${hasLoan 
-              ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight: 600;"><i class="bi bi-exclamation-circle"></i> Loan: ${Common.formatIndianCurrency(m.currentLoanOutstanding)}</span>`
-              : `<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight: 600;"><i class="bi bi-shield-check"></i> Regular Bachat</span>`}
+              ? `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight: 600;">Loan: ${Common.formatIndianCurrency(m.currentLoanOutstanding)}</span>`
+              : `<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight: 600;">Regular Bachat</span>`}
           </td>
           <td>${Common.getStatusBadge(m.status)}</td>
           <td style="text-align: right;">

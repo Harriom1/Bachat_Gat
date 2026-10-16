@@ -138,18 +138,18 @@
             <h1 class="page-title" data-i18n="reports">Financial & Audit Reports</h1>
             <p class="page-subtitle">Exportable financial summaries, monthly collection audits, and member passbook statements</p>
           </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <button onclick="window.print()" class="btn-primary-custom">
-              <i class="bi bi-printer-fill"></i> Print / PDF
+          <div class="report-action-tools" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button onclick="window.print()" class="btn-primary-custom report-corner-action" title="Print or export PDF" aria-label="Print or export PDF">
+              <i class="bi bi-printer-fill"></i><span class="action-label">Print / PDF</span>
             </button>
-            <button onclick="exportCurrentReportCSV()" class="btn-outline-custom">
-              <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i> Export CSV
+            <button onclick="exportCurrentReportCSV()" class="btn-outline-custom report-corner-action" title="Export CSV" aria-label="Export CSV">
+              <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i><span class="action-label">Export CSV</span>
             </button>
-            <button onclick="openWhatsAppModal()" class="btn-outline-custom">
-              <i class="bi bi-whatsapp" style="color: #25D366;"></i> WhatsApp
+            <button onclick="openWhatsAppModal()" class="btn-outline-custom report-corner-action" title="Share by WhatsApp" aria-label="Share by WhatsApp">
+              <i class="bi bi-whatsapp" style="color: #25D366;"></i><span class="action-label">WhatsApp</span>
             </button>
-            <button onclick="openEmailModal()" class="btn-outline-custom">
-              <i class="bi bi-envelope-fill" style="color: #0284c7;"></i> Email
+            <button onclick="openEmailModal()" class="btn-outline-custom report-corner-action" title="Send by email" aria-label="Send by email">
+              <i class="bi bi-envelope-fill" style="color: #0284c7;"></i><span class="action-label">Email</span>
             </button>
           </div>
         </div>

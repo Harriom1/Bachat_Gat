@@ -83,12 +83,12 @@
             <h1 class="page-title" data-i18n="collections">Monthly Savings Collections</h1>
             <p class="page-subtitle">Track regular recurring member shares, pending dues, and payment entries</p>
           </div>
-          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-            <button id="btn-generate-monthly-due" class="btn-outline-custom">
-              <i class="bi bi-calendar2-plus"></i> <span data-i18n="generateMonthly">Generate Monthly Due</span>
+          <div class="corner-page-actions">
+            <button id="btn-generate-monthly-due" class="btn-outline-custom" title="Generate Monthly Due" aria-label="Generate Monthly Due">
+              <i class="bi bi-calendar2-plus"></i><span class="action-label" data-i18n="generateMonthly">Generate Monthly Due</span>
             </button>
-            <button id="btn-open-payment-modal" class="btn-primary-custom">
-              <i class="bi bi-plus-circle"></i> <span data-i18n="recordPayment">Record Payment</span>
+            <button id="btn-open-payment-modal" class="btn-primary-custom" title="Record Payment" aria-label="Record Payment">
+              <i class="bi bi-plus-circle"></i><span class="action-label" data-i18n="recordPayment">Record Payment</span>
             </button>
           </div>
         </div>
@@ -142,7 +142,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th data-i18n="tablePeriod">Period</th>
                   <th data-i18n="fullName">Member Name</th>
                   <th data-i18n="monthlyExpected">Expected Share</th>
                   <th data-i18n="tablePaidAmount">Paid Amount</th>
@@ -155,7 +154,7 @@
                 </tr>
               </thead>
               <tbody id="collections-table-tbody">
-                <tr><td colspan="10" style="text-align: center;">Loading collection history...</td></tr>
+                <tr><td colspan="9" style="text-align: center;">Loading collection history...</td></tr>
               </tbody>
             </table>
           </div>
@@ -837,7 +836,7 @@
     function renderCollections(records) {
       const tbody = document.getElementById('collections-table-tbody');
       if (!records || records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No collection records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No collection records found.</td></tr>';
         return;
       }
 
@@ -852,7 +851,6 @@
         const pen = paidPenalty > 0 ? paidPenalty : Math.max(0, configuredPenalty - waivedPenalty);
         return `
         <tr>
-          <td><strong style="color: var(--text-main);">${monthNames[c.month]} ${c.year}</strong></td>
           <td><strong>${c.memberName}</strong></td>
           <td class="table-currency">${Common.formatINR(c.expectedAmount)}</td>
           <td class="table-currency text-success">${Common.formatINR(c.paidAmount)}</td>
@@ -863,10 +861,10 @@
           <td>${Common.getStatusBadge(c.status)}</td>
           <td>
             ${c.status !== 'PAID' ? `
-              <button class="btn-action-icon" title="Pay Share" onclick="quickPay('${c.memberId}', ${c.month}, ${c.year}, ${c.pendingAmount}, ${c.lateFeeAmount || 0})">
-                <i class="bi bi-credit-card-fill" style="color: var(--success);"></i>
+              <button class="btn-action-icon collection-pay-action" title="Pay Share" onclick="quickPay('${c.memberId}', ${c.month}, ${c.year}, ${c.pendingAmount}, ${c.lateFeeAmount || 0})">
+                Pay
               </button>
-            ` : '<i class="bi bi-check2-all text-success" title="Settled"></i>'}
+            ` : '<span class="text-success" title="Settled">Paid</span>'}
           </td>
         </tr>
       `;
@@ -883,8 +881,10 @@
           (c.memberName && c.memberName.toLowerCase().includes(search)) ||
           (c.memberId && c.memberId.toLowerCase().includes(search));
 
-        const matchesMonth = monthFilter === 0 || c.month === monthFilter;
-        const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+        const recordMonth = Number(c.month || (c.paymentDate ? new Date(c.paymentDate).getMonth() + 1 : 0));
+        const recordStatus = String(c.status || '').toUpperCase();
+        const matchesMonth = monthFilter === 0 || recordMonth === monthFilter;
+        const matchesStatus = statusFilter === 'ALL' || (statusFilter === 'PENDING' ? ['PENDING', 'OVERDUE'].includes(recordStatus) : recordStatus === statusFilter);
 
         return matchesSearch && matchesMonth && matchesStatus;
       });
@@ -937,7 +937,7 @@
           const matchesSearch = !search ||
             String(p.memberName || '').toLowerCase().includes(search) ||
             String(p.memberId || '').toLowerCase().includes(search);
-          const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+          const matchesStatus = statusFilter === 'ALL' || String(p.status || '').toUpperCase() === statusFilter;
           return matchesSearch && matchesStatus;
         });
         if (filteredPending.length === 0) {
@@ -967,7 +967,7 @@
             <td>${Common.getStatusBadge(p.status || 'PENDING')}</td>
             <td>
               <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem;" onclick="quickPay('${escapeHtml(p.memberId)}', ${p.month}, ${p.year}, ${rem}, ${pen})">
-                <i class="bi bi-credit-card"></i> Pay Now
+                <i class="bi bi-credit-card"></i><span class="action-label">Pay Now</span>
               </button>
             </td>
           </tr>

@@ -134,6 +134,11 @@
               </tbody>
             </table>
           </div>
+          <div class="table-pagination" id="audit-pagination" aria-label="Audit log pages">
+            <button type="button" class="btn-outline-custom" id="audit-prev" disabled>Previous</button>
+            <span id="audit-page-label" class="text-muted">Page 1 of 1</span>
+            <button type="button" class="btn-outline-custom" id="audit-next" disabled>Next</button>
+          </div>
         </div>
       </div>
     </main>
@@ -145,6 +150,9 @@
   <script src="/js/i18n.js"></script>
   <script>
     let allLogs = [];
+    let filteredLogs = [];
+    let auditPage = 1;
+    const AUDIT_LOGS_PER_PAGE = 10;
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
@@ -152,13 +160,15 @@
 
       document.getElementById('search-logs').addEventListener('input', applyLogFilter);
       document.getElementById('filter-action').addEventListener('change', applyLogFilter);
+      document.getElementById('audit-prev').addEventListener('click', () => { if (auditPage > 1) { auditPage--; renderAuditPage(); } });
+      document.getElementById('audit-next').addEventListener('click', () => { if (auditPage < Math.ceil(filteredLogs.length / AUDIT_LOGS_PER_PAGE)) { auditPage++; renderAuditPage(); } });
     });
 
     async function loadAuditLogs() {
       const groupId = document.getElementById('active-group-select').value || 'bg-001';
       try {
         allLogs = await api.getAuditLogs(groupId);
-        renderAuditLogs(allLogs);
+        applyLogFilter();
       } catch (err) {
         Common.showToast('Failed to load audit logs: ' + err.message, 'danger');
       }
@@ -177,13 +187,24 @@
         return matchesAction && matchesQuery;
       });
 
-      renderAuditLogs(filtered);
+      filteredLogs = filtered;
+      auditPage = 1;
+      document.getElementById('log-count').textContent = filteredLogs.length;
+      renderAuditPage();
+    }
+
+    function renderAuditPage() {
+      const totalPages = Math.max(1, Math.ceil(filteredLogs.length / AUDIT_LOGS_PER_PAGE));
+      auditPage = Math.min(auditPage, totalPages);
+      const start = (auditPage - 1) * AUDIT_LOGS_PER_PAGE;
+      renderAuditLogs(filteredLogs.slice(start, start + AUDIT_LOGS_PER_PAGE));
+      document.getElementById('audit-page-label').textContent = `Page ${auditPage} of ${totalPages}`;
+      document.getElementById('audit-prev').disabled = auditPage <= 1;
+      document.getElementById('audit-next').disabled = auditPage >= totalPages;
     }
 
     function renderAuditLogs(logs) {
       const tbody = document.getElementById('audit-tbody');
-      document.getElementById('log-count').textContent = logs.length;
-
       if (!logs || logs.length === 0) {
         tbody.innerHTML = `
           <tr>

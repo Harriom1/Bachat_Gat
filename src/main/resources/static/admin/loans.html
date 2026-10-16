@@ -160,7 +160,6 @@
                   <th>Monthly Installment</th>
                   <th>Next Due</th>
                   <th data-i18n="status">Status</th>
-                  <th data-i18n="action">Actions</th>
                 </tr>
               </thead>
               <tbody id="loans-table-tbody">
@@ -732,7 +731,6 @@
           <td><a href="/admin/loan-details.html?loanId=${l.id}" title="View Loan Details" style="font-weight: 700; color: var(--primary); text-decoration: underline;"><code style="color: inherit;">${l.loanId}</code></a></td>
           <td>
             <strong>${l.memberName}</strong>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${l.memberId}</div>
           </td>
           <td class="table-currency">${Common.formatINR(l.principalAmount)}</td>
           <td>${l.interestRate}%</td>
@@ -745,24 +743,6 @@
           <td class="table-currency" style="color: var(--primary); font-weight: 600;">${Common.formatINR(l.monthlyInstallment)}</td>
           <td>${Common.formatDate(l.nextDueDate)}</td>
           <td>${Common.getStatusBadge(l.status)}</td>
-          <td>
-            <div class="table-actions">
-              <a href="/admin/loan-details.html?loanId=${l.id}" class="btn-action-icon" title="View Full Loan Account">
-                <i class="bi bi-eye-fill"></i>
-              </a>
-              <button class="btn-action-icon" title="View Schedule" onclick="viewSchedule('${l.id}')">
-                <i class="bi bi-calendar3"></i>
-              </button>
-              ${l.status !== 'COMPLETED' ? `
-                <button class="btn-action-icon" title="Record Installment" onclick="openRepayModal('${l.id}')">
-                  <i class="bi bi-cash-coin" style="color: var(--success);"></i>
-                </button>
-                <button class="btn-action-icon" title="Extra Prepayment" onclick="openExtraModal('${l.id}')">
-                  <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i>
-                </button>
-              ` : ''}
-            </div>
-          </td>
         </tr>
       `).join('');
     }

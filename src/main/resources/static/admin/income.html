@@ -83,13 +83,13 @@
             <h1 class="page-title" data-i18n="incomePageTitle">Other Group Income & Inflows</h1>
             <p class="page-subtitle" data-i18n="incomePageSubtitle">Record donations, grants, bank interest, penalty charges, and member distribution</p>
           </div>
-          <button id="btn-add-income" class="btn-primary-custom">
-            <i class="bi bi-plus-circle-fill"></i> <span data-i18n="recordOtherIncome">Record Other Income</span>
+          <button id="btn-add-income" class="btn-primary-custom corner-action" title="Record Other Income" aria-label="Record Other Income">
+            <i class="bi bi-plus-circle-fill"></i><span class="action-label" data-i18n="recordOtherIncome">Record Other Income</span>
           </button>
         </div>
 
         <!-- Metrics -->
-        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+        <div class="metrics-grid compact-metric-table" style="margin-bottom: 1.5rem;">
           <div class="metric-card success">
             <div class="metric-header">
               <span class="metric-label" data-i18n="totalOtherIncomeCard">Total Other Income</span>
@@ -127,7 +127,7 @@
         <!-- Table -->
         <div class="content-card">
           <div class="table-responsive">
-            <table class="data-table">
+            <table class="data-table compact-income-table">
               <thead>
                 <tr>
                   <th data-i18n="incomeId">Income ID</th>
@@ -349,12 +349,12 @@
         const isDist = i.distributed;
         const translateEnum = (value, fallback) => window.i18n?.translateEnum(value, fallback) || fallback || value;
         const statusBadge = isDist
-          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;"><i class="bi bi-check-circle"></i> ${escapeHtml(Common.t('distributed', 'Distributed'))} (${escapeHtml(translateEnum(i.distributionRule || 'EQUAL', i.distributionRule || 'EQUAL'))})</span>`
+          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 600;">${escapeHtml(Common.t('distributed', 'Distributed'))} (${escapeHtml(translateEnum(i.distributionRule || 'EQUAL', i.distributionRule || 'EQUAL'))})</span>`
           : `<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #2563eb; font-weight: 600;">${escapeHtml(Common.t('groupReserve', 'Group Reserve'))}</span>`;
 
         const actionBtn = isDist
-          ? `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-lock-fill"></i> ${escapeHtml(Common.t('completed', 'Completed'))}</span>`
-          : `<span class="text-muted" style="font-size: 0.85rem;"><i class="bi bi-hourglass-split"></i> ${escapeHtml(Common.t('pendingLegacyRecord', 'Pending legacy record'))}</span>`;
+          ? `<span class="text-muted" style="font-size: 0.85rem;">${escapeHtml(Common.t('completed', 'Completed'))}</span>`
+          : `<span class="text-muted" style="font-size: 0.85rem;">${escapeHtml(Common.t('pendingLegacyRecord', 'Pending legacy record'))}</span>`;
 
         return `
           <tr>

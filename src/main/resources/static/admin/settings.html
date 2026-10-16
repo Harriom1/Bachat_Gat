@@ -88,44 +88,17 @@
               <i class="bi bi-sliders"></i> Collection & Loan Rules
             </h2>
             <form id="form-rules">
-              <div class="form-group mb-3">
-                <label class="form-label required">Monthly Savings Share (₹)</label>
-                <input type="number" id="rule-monthly-share" class="form-control" value="5000" min="100" required>
-                <small class="text-muted">Standard monthly contribution expected from each active member.</small>
-              </div>
-
-              <div class="form-row mb-3">
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Default Loan Interest (%)</label>
-                  <input type="number" id="rule-interest-rate" class="form-control" value="12" min="1" max="36" step="0.5" required>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Grace Period (Days)</label>
-                  <input type="number" id="rule-grace-days" class="form-control" value="5" min="0" max="30" required>
-                </div>
-              </div>
-
-              <div class="form-row mb-3">
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Late Payment Fee (₹)</label>
-                  <input type="number" id="rule-late-fee" class="form-control" value="100" min="0" required>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Max Loan Limit (₹)</label>
-                  <input type="number" id="rule-max-loan" class="form-control" value="100000" min="1000" step="5000" required>
-                </div>
-              </div>
-
-              <div class="form-row mb-3">
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Max Active Loans</label>
-                  <input type="number" id="rule-max-active-loans" class="form-control" value="1" min="1" max="3" required>
-                </div>
-                <div class="form-group" style="flex: 1;">
-                  <label class="form-label required">Min Membership (Months)</label>
-                  <input type="number" id="rule-min-months" class="form-control" value="3" min="0" max="12" required>
-                </div>
-              </div>
+              <table class="data-table compact-settings-table">
+                <tbody>
+                  <tr><th>Monthly Savings Share (₹)</th><td><input type="number" id="rule-monthly-share" class="form-control" value="5000" min="100" required><small class="text-muted">Standard monthly contribution expected from each active member.</small></td></tr>
+                  <tr><th>Default Loan Interest (%)</th><td><input type="number" id="rule-interest-rate" class="form-control" value="12" min="1" max="36" step="0.5" required></td></tr>
+                  <tr><th>Grace Period (Days)</th><td><input type="number" id="rule-grace-days" class="form-control" value="5" min="0" max="30" required></td></tr>
+                  <tr><th>Late Payment Fee (₹)</th><td><input type="number" id="rule-late-fee" class="form-control" value="100" min="0" required></td></tr>
+                  <tr><th>Max Loan Limit (₹)</th><td><input type="number" id="rule-max-loan" class="form-control" value="100000" min="1000" step="5000" required></td></tr>
+                  <tr><th>Max Active Loans</th><td><input type="number" id="rule-max-active-loans" class="form-control" value="1" min="1" max="3" required></td></tr>
+                  <tr><th>Min Membership (Months)</th><td><input type="number" id="rule-min-months" class="form-control" value="3" min="0" max="12" required></td></tr>
+                </tbody>
+              </table>
 
               <button type="submit" class="btn-primary-custom" style="width: 100%; margin-top: 1rem;">
                 <i class="bi bi-check2-circle"></i> Save Business Rules

@@ -10,6 +10,311 @@ body {
   overflow-x: hidden;
 }
 
+/* Final scoped overrides for the current mobile table pass. These appear
+   after legacy responsive rules so the requested layouts are deterministic. */
+@media (max-width: 600px) {
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3),
+  html body table.members-register-table th:nth-child(3) *,
+  html body table.members-register-table td:nth-child(3) * {
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 20px) !important;
+    grid-template-rows: repeat(2, 20px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: normal !important;
+  }
+  html body table.members-register-table td:last-child .btn-action-icon {
+    flex: none !important;
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    font-size: .55rem !important;
+  }
+  html body table.collection-history-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  html body table.collection-history-table th,
+  html body table.collection-history-table td { font-size: .55rem !important; padding: .28rem .2rem !important; }
+  html body table.collection-history-table .collection-row-action i {
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+
+  /* Members: two horizontal rows, two compact controls per row. */
+  html body table.members-register-table th:nth-child(1),
+  html body table.members-register-table td:nth-child(1) { width: 4% !important; }
+  html body table.members-register-table th:nth-child(2),
+  html body table.members-register-table td:nth-child(2) { width: 18% !important; }
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3) { width: 14% !important; }
+  html body table.members-register-table th:nth-child(4),
+  html body table.members-register-table td:nth-child(4) { width: 10% !important; }
+  html body table.members-register-table th:nth-child(5),
+  html body table.members-register-table td:nth-child(5) { width: 11% !important; }
+  html body table.members-register-table th:nth-child(6),
+  html body table.members-register-table td:nth-child(6) { width: 11% !important; }
+  html body table.members-register-table th:nth-child(7),
+  html body table.members-register-table td:nth-child(7) { width: 6% !important; }
+  html body table.members-register-table th:nth-child(8),
+  html body table.members-register-table td:nth-child(8) { width: 24% !important; }
+
+  /* Group Profile action icons were hidden by the generic table icon rule. */
+  html body table.group-members-table .group-members-actions i {
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+  html body table.group-members-table .group-members-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    gap: .12rem !important;
+  }
+  html body table.group-members-table .group-members-actions .btn-action-icon {
+    width: 18px !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 !important;
+    font-size: .52rem !important;
+  }
+  html body table.collection-history-table .collection-row-action i {
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+}
+
+/* Final scoped overrides for the current mobile table pass. These appear
+   after legacy responsive rules so the requested layouts are deterministic. */
+.compact-expense-table {
+  display: table !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+}
+.compact-expense-table .metric-card {
+  display: table-row !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.compact-expense-table .metric-header { display: contents !important; }
+.compact-expense-table .metric-label,
+.compact-expense-table .metric-value,
+.compact-expense-table .metric-sub {
+  display: table-cell !important;
+  padding: .42rem .55rem !important;
+  border: 1px solid var(--border-color) !important;
+  vertical-align: middle !important;
+}
+.compact-expense-table .metric-label { width: 38%; font-size: .72rem !important; font-weight: 700; }
+.compact-expense-table .metric-value { width: 25%; font-size: .85rem !important; text-align: right; white-space: nowrap; }
+.compact-expense-table .metric-sub { width: 37%; font-size: .62rem !important; color: var(--text-muted); }
+.compact-expense-table .metric-icon-wrap { display: none !important; }
+
+@media (max-width: 600px) {
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3),
+  html body table.members-register-table th:nth-child(3) *,
+  html body table.members-register-table td:nth-child(3) * {
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 20px) !important;
+    grid-template-rows: repeat(2, 20px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: normal !important;
+  }
+  html body table.members-register-table td:last-child .btn-action-icon {
+    flex: none !important;
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    font-size: .55rem !important;
+  }
+  html body table.collection-history-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  html body table.collection-history-table th,
+  html body table.collection-history-table td { font-size: .55rem !important; padding: .28rem .2rem !important; }
+  html body .compact-expense-table .metric-label { width: 38%; font-size: .58rem !important; }
+  html body .compact-expense-table .metric-value { width: 25%; font-size: .72rem !important; }
+  html body .compact-expense-table .metric-sub { width: 37%; font-size: .52rem !important; }
+}
+
+/* Final mobile override: keep requested summary cards as compact table rows. */
+html body .compact-metric-table {
+  display: table !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  gap: 0 !important;
+}
+html body .compact-metric-table .metric-card {
+  display: table-row !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+html body .compact-metric-table .metric-header { display: contents !important; }
+html body .compact-metric-table .metric-label,
+html body .compact-metric-table .metric-value,
+html body .compact-metric-table .metric-sub {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: .45rem .5rem !important;
+  line-height: 1.2 !important;
+}
+html body .compact-metric-table .metric-label { width: 38%; font-size: .66rem !important; font-weight: 700; }
+html body .compact-metric-table .metric-value { width: 25%; font-size: .8rem !important; text-align: right; white-space: nowrap; }
+html body .compact-metric-table .metric-sub { width: 37%; font-size: .58rem !important; color: var(--text-muted); }
+html body .compact-metric-table .metric-icon-wrap { display: none !important; }
+
+html body .compact-summary-table {
+  display: table !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  gap: 0 !important;
+}
+html body .compact-summary-table > .content-card {
+  display: table-row !important;
+  padding: .45rem .55rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+html body .compact-summary-table > .content-card > span,
+html body .compact-summary-table > .content-card > h3 { display: table-cell !important; vertical-align: middle; padding: .2rem .35rem !important; }
+html body .compact-summary-table > .content-card > span { width: 72%; font-size: .64rem !important; }
+html body .compact-summary-table > .content-card > h3 { width: 28%; text-align: right; font-size: .8rem !important; margin: 0 !important; }
+
+@media (max-width: 600px) {
+  html body .compact-metric-table .metric-label { font-size: .58rem !important; }
+  html body .compact-metric-table .metric-value { font-size: .7rem !important; }
+  html body .compact-metric-table .metric-sub { font-size: .52rem !important; }
+}
+
+/* Page-specific mobile polish requested for this pass. */
+@media (max-width: 600px) {
+  html body table.members-register-table th,
+  html body table.members-register-table td,
+  html body table.group-members-table th,
+  html body table.group-members-table td,
+  html body table.compact-income-table th,
+  html body table.compact-income-table td,
+  html body table.compact-expense-table th,
+  html body table.compact-expense-table td {
+    border: 1px solid var(--border-color) !important;
+    background: #fff !important;
+  }
+  html body table.members-register-table tbody tr:nth-child(even) td,
+  html body table.group-members-table tbody tr:nth-child(even) td,
+  html body table.compact-income-table tbody tr:nth-child(even) td,
+  html body table.compact-expense-table tbody tr:nth-child(even) td { background: #f8fafc !important; }
+
+  html body table.members-register-table td:nth-child(3),
+  html body table.members-register-table td:nth-child(3) * {
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 20px) !important;
+    grid-template-rows: repeat(2, 20px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  html body table.members-register-table td:last-child .btn-action-icon {
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    font-size: .55rem !important;
+  }
+
+  html body table.group-members-table,
+  html body table.compact-income-table,
+  html body table.compact-expense-table {
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+  html body table.group-members-table th,
+  html body table.group-members-table td,
+  html body table.compact-income-table th,
+  html body table.compact-income-table td,
+  html body table.compact-expense-table th,
+  html body table.compact-expense-table td { line-height: 1.15 !important; }
+
+  html body .compact-expense-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  html body .compact-expense-table .metric-card {
+    display: table-row !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  html body .compact-expense-table .metric-header { display: contents !important; }
+  html body .compact-expense-table .metric-label,
+  html body .compact-expense-table .metric-value,
+  html body .compact-expense-table .metric-sub {
+    display: table-cell !important;
+    padding: .3rem .4rem !important;
+    border: 1px solid var(--border-color) !important;
+    vertical-align: middle !important;
+  }
+  html body .compact-expense-table .metric-label { width: 38%; font-size: .58rem !important; font-weight: 700; }
+  html body .compact-expense-table .metric-value { width: 25%; font-size: .72rem !important; text-align: right; white-space: nowrap; }
+  html body .compact-expense-table .metric-sub { width: 37%; font-size: .52rem !important; color: var(--text-muted); }
+  html body .compact-expense-table .metric-icon-wrap { display: none !important; }
+
+  html body .report-action-tools .report-corner-action {
+    width: 2rem !important; min-width: 2rem !important; height: 2rem !important;
+    padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center;
+  }
+  html body .report-action-tools .action-label,
+  html body .spotlight-pay-action .action-label { display: none !important; }
+  html body .spotlight-pay-action { width: 2.1rem !important; min-width: 2.1rem !important; height: 2.1rem !important; padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center; }
+  html body table.collection-history-table .collection-row-action { width: 1.8rem !important; min-width: 1.8rem !important; height: 1.8rem !important; padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center; }
+  html body table.collection-history-table .collection-row-action i { display: inline-block !important; }
+}
+
 /* Keep wide financial tables readable on phones. The page stays within the
    viewport; only the selected table can be swiped horizontally. */
 @media (max-width: 768px) {
@@ -370,6 +675,19 @@ button {
    the viewport.  This intentionally overrides the older wide-table rules
    above, which were designed for contained horizontal scrolling. */
 @media (max-width: 768px) {
+  /* Tables stay compact and readable on phones; decorative icons/images do
+     not consume columns or create accidental overflow. */
+  table.data-table i,
+  table.data-table img { display: none !important; }
+
+  .table-actions .btn-action-icon {
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    padding: .25rem .35rem !important;
+    font-size: .62rem !important;
+  }
+
   .table-responsive,
   .table-responsive-wrapper {
     width: 100% !important;
@@ -848,6 +1166,171 @@ button {
   }
 }
 
+/* Compact summary rows used by the requested dashboard/passbook views. */
+.compact-metric-table {
+  display: table !important;
+  width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+  gap: 0 !important;
+}
+.compact-metric-table .metric-card {
+  display: table-row !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.compact-metric-table .metric-header { display: contents !important; }
+.compact-metric-table .metric-label,
+.compact-metric-table .metric-value,
+.compact-metric-table .metric-sub {
+  display: table-cell !important;
+  vertical-align: middle !important;
+  padding: 0.48rem 0.55rem !important;
+  line-height: 1.2 !important;
+}
+.compact-metric-table .metric-label { width: 38%; font-size: 0.72rem !important; font-weight: 700; }
+.compact-metric-table .metric-value { width: 25%; font-size: 0.85rem !important; text-align: right; white-space: nowrap; }
+.compact-metric-table .metric-sub { width: 37%; font-size: 0.62rem !important; color: var(--text-muted); }
+.compact-metric-table .metric-icon-wrap { display: none !important; }
+
+.corner-page-actions,
+.loan-detail-actions { display: flex; justify-content: flex-end; align-items: center; gap: 0.35rem; flex-wrap: nowrap; }
+.corner-action,
+.loan-detail-actions > button,
+.corner-page-actions > button,
+.corner-page-actions > a {
+  width: 2.1rem !important;
+  min-width: 2.1rem !important;
+  height: 2.1rem !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem !important;
+}
+.corner-action .action-label,
+.loan-detail-actions .action-label,
+.corner-page-actions .action-label { display: none !important; }
+.collection-row-action { width: 1.85rem !important; min-width: 1.85rem !important; height: 1.85rem !important; padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center; }
+.collection-row-action .action-label { display: none !important; }
+.group-members-actions { flex-wrap: nowrap !important; gap: 0.25rem !important; }
+.group-members-actions i { display: inline-block !important; }
+.group-members-actions .btn-action-icon { width: 1.65rem !important; min-width: 1.65rem !important; height: 1.65rem !important; padding: 0 !important; }
+
+@media (max-width: 600px) {
+  .group-members-table th,
+  .group-members-table td { padding: 0.28rem 0.2rem !important; font-size: 0.55rem !important; line-height: 1.15 !important; }
+  .group-members-table .group-members-actions { min-width: 3.5rem; }
+  .group-members-table strong { font-size: 0.58rem !important; }
+}
+
+@media (max-width: 600px) {
+  .compact-metric-table .metric-label { width: 39%; font-size: 0.62rem !important; }
+  .compact-metric-table .metric-value { width: 26%; font-size: 0.74rem !important; }
+  .compact-metric-table .metric-sub { width: 35%; font-size: 0.55rem !important; }
+  .corner-page-actions, .loan-detail-actions { gap: 0.2rem; }
+}
+
+/* Table cells contain data only; decorative symbols and images are kept out
+   of every table at all viewport sizes. */
+table.data-table i,
+table.data-table img { display: none !important; }
+
+/* Members is the intentional exception: only its requested action icons remain visible. */
+table.members-register-table .table-actions i { display: inline-block !important; }
+
+.compact-settings-table th,
+.compact-settings-table td { padding: 0.55rem 0.7rem; vertical-align: middle; }
+.compact-settings-table th { width: 42%; white-space: normal; }
+.compact-settings-table small { display: block; margin-top: 0.25rem; }
+.compact-settings-table input { min-width: 0; }
+
+.compact-income-table th,
+.compact-income-table td { padding: 0.45rem 0.55rem; line-height: 1.25; }
+.compact-income-table td:nth-child(1) { word-break: break-word; }
+
+@media (max-width: 600px) {
+  .compact-settings-table th,
+  .compact-settings-table td { padding: 0.45rem; font-size: 0.8rem; }
+  .compact-settings-table th { width: 38%; }
+}
+
+/* Keep the four requested Members actions in one compact horizontal strip. */
+@media (max-width: 600px) {
+  html body table.members-register-table { table-layout: fixed !important; }
+  html body table.members-register-table th:nth-child(1),
+  html body table.members-register-table td:nth-child(1) { width: 4% !important; }
+  html body table.members-register-table th:nth-child(2),
+  html body table.members-register-table td:nth-child(2) { width: 20% !important; }
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3) { width: 16% !important; }
+  html body table.members-register-table th:nth-child(4),
+  html body table.members-register-table td:nth-child(4) { width: 10% !important; }
+  html body table.members-register-table th:nth-child(5),
+  html body table.members-register-table td:nth-child(5) { width: 12% !important; }
+  html body table.members-register-table th:nth-child(6),
+  html body table.members-register-table td:nth-child(6) { width: 12% !important; }
+  html body table.members-register-table th:nth-child(7),
+  html body table.members-register-table td:nth-child(7) { width: 6% !important; }
+  html body table.members-register-table th:nth-child(8),
+  html body table.members-register-table td:nth-child(8) { width: 20% !important; }
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    gap: 0.08rem !important;
+    white-space: nowrap !important;
+  }
+  html body table.members-register-table td:last-child .btn-action-icon {
+    flex: 0 0 16px !important;
+    width: 16px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding: 0 !important;
+    font-size: 0.5rem !important;
+  }
+}
+
+/* Keep long transaction type names from consuming the neighbouring mobile
+   columns. The full value remains available in the cell and in search/export. */
+@media (max-width: 768px) {
+  #recent-transactions-tbody td:nth-child(3),
+  #recent-transactions-tbody th:nth-child(3) {
+    width: 16% !important;
+    max-width: 16% !important;
+  }
+
+  #recent-transactions-tbody td:nth-child(3) .badge-status,
+  .transaction-table-wrap td:nth-child(2) .status-badge {
+    display: block;
+    max-width: 100%;
+    padding: .12rem .18rem !important;
+    font-size: .48rem !important;
+    line-height: 1.1 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+    text-align: center;
+  }
+}
+
+.table-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  margin-top: .75rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--border-color);
+}
+
 /* Compact financial summaries remain tables at every viewport size. */
 .monthly-report-metrics { display: none !important; }
 .compact-detail-table-wrap,
@@ -1289,5 +1772,78 @@ button {
     min-height: 36px !important;
     padding: .4rem .55rem !important;
     font-size: .72rem !important;
+  }
+}
+
+/* Final scoped overrides for the current mobile table pass. */
+@media (max-width: 600px) {
+  html body table.members-register-table th:nth-child(1),
+  html body table.members-register-table td:nth-child(1) { width: 4% !important; }
+  html body table.members-register-table th:nth-child(2),
+  html body table.members-register-table td:nth-child(2) { width: 18% !important; }
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3) { width: 14% !important; }
+  html body table.members-register-table th:nth-child(4),
+  html body table.members-register-table td:nth-child(4) { width: 10% !important; }
+  html body table.members-register-table th:nth-child(5),
+  html body table.members-register-table td:nth-child(5) { width: 11% !important; }
+  html body table.members-register-table th:nth-child(6),
+  html body table.members-register-table td:nth-child(6) { width: 11% !important; }
+  html body table.members-register-table th:nth-child(7),
+  html body table.members-register-table td:nth-child(7) { width: 6% !important; }
+  html body table.members-register-table th:nth-child(8),
+  html body table.members-register-table td:nth-child(8) { width: 24% !important; }
+  html body table.members-register-table th:nth-child(3),
+  html body table.members-register-table td:nth-child(3),
+  html body table.members-register-table th:nth-child(3) *,
+  html body table.members-register-table td:nth-child(3) * {
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+  }
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 20px) !important;
+    grid-template-rows: repeat(2, 20px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: normal !important;
+  }
+  html body table.members-register-table td:last-child .btn-action-icon {
+    flex: none !important;
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    font-size: .55rem !important;
+  }
+  html body table.collection-history-table {
+    min-width: 0 !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+  html body table.collection-history-table th,
+  html body table.collection-history-table td { font-size: .55rem !important; padding: .28rem .2rem !important; }
+
+  html body table.group-members-table .group-members-actions i {
+    display: inline-block !important;
+    visibility: visible !important;
+  }
+  html body table.group-members-table .group-members-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    gap: .12rem !important;
+  }
+  html body table.group-members-table .group-members-actions .btn-action-icon {
+    width: 18px !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    padding: 0 !important;
+    font-size: .52rem !important;
   }
 }

@@ -9,6 +9,165 @@
   margin-bottom: 1.5rem;
 }
 
+/* Compact dashboard summaries: keep financial values in a real table that
+   wraps inside the viewport instead of creating horizontal page scrolling. */
+.dashboard-table-card {
+  width: 100%;
+  margin: 0 0 1.5rem;
+  padding: .35rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  overflow: hidden;
+}
+
+.dashboard-compact-table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: .82rem;
+}
+
+.dashboard-compact-table caption {
+  padding: .55rem .65rem;
+  text-align: left;
+  color: var(--text-main);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dashboard-compact-table th,
+.dashboard-compact-table td {
+  padding: .5rem .55rem;
+  border: 1px solid var(--border-color);
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-compact-table th {
+  width: 30%;
+  color: var(--text-main);
+  text-align: left;
+  font-weight: 700;
+}
+
+.dashboard-compact-table td:nth-child(2) {
+  width: 25%;
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+.dashboard-compact-table td:nth-child(3) {
+  width: 45%;
+  color: var(--text-muted);
+  font-size: .75rem;
+}
+
+.dashboard-compact-table tbody tr:nth-child(even) { background: var(--bg-main); }
+.dashboard-compact-table .dashboard-table-total { background: #ecfdf5; }
+.dashboard-compact-table .dashboard-table-total td:nth-child(2) { color: #047857; }
+table.dashboard-compact-table i,
+table.dashboard-compact-table img { display: none !important; }
+.dashboard-overview-table i,
+.dashboard-overview-table img { display: none !important; }
+
+/* Present the longer overview cards as compact, table-like rows while
+   retaining their existing IDs, colors, and live value updates. */
+.dashboard-overview-table {
+  display: block !important;
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dashboard-overview-table > div {
+  display: grid !important;
+  grid-template-columns: minmax(0, 38%) minmax(0, 25%) minmax(0, 37%);
+  align-items: center;
+  gap: .4rem !important;
+  min-height: 3.1rem;
+  padding: .45rem .6rem !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-radius: 0 !important;
+  background: var(--bg-surface) !important;
+}
+
+.dashboard-overview-table > div:last-child { border-bottom: 0 !important; }
+.dashboard-overview-table > div > div { margin: 0 !important; }
+.dashboard-overview-table > div > div:first-child { display: contents !important; }
+.dashboard-overview-table > div > div:first-child span {
+  color: var(--text-main) !important;
+  font-size: .76rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+}
+.dashboard-overview-table > div > div:first-child i { grid-column: 3; grid-row: 1 / span 2; justify-self: end; }
+.dashboard-overview-table > div > div[id] {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  font-size: 1.05rem !important;
+  text-align: right;
+}
+.dashboard-overview-table > div > div:last-child:not([id]) {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  color: var(--text-muted) !important;
+  font-size: .68rem !important;
+  text-align: left;
+}
+
+/* The first five overview rows already name the metric in the first column;
+   keep only the label and value so descriptions cannot collide with values. */
+.dashboard-overview-table > div:not(:has(> div[id] + div[id])) > div:last-child:not([id]) {
+  display: none !important;
+}
+
+/* Pending rows have two values: member count and amount/outstanding. Keep
+   them in separate compact columns instead of stacking over one another. */
+.dashboard-overview-table > div:has(> div[id] + div[id]) > div[id]:nth-of-type(2) {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: .82rem !important;
+  text-align: right;
+}
+.dashboard-overview-table > div:has(> div[id] + div[id]) > div[id]:nth-of-type(3) {
+  grid-column: 3;
+  grid-row: 1;
+  color: var(--text-muted) !important;
+  font-size: .72rem !important;
+  text-align: left;
+}
+
+@media (max-width: 480px) {
+  .dashboard-overview-table > div {
+    grid-template-columns: minmax(0, 40%) minmax(0, 27%) minmax(0, 33%);
+    min-height: 2.45rem;
+    padding: .3rem .35rem !important;
+  }
+  .dashboard-overview-table > div > div:first-child span { font-size: .59rem !important; }
+  .dashboard-overview-table > div > div[id] { font-size: .78rem !important; }
+  .dashboard-overview-table > div > div:last-child:not([id]) { font-size: .57rem !important; }
+  .dashboard-overview-table > div:has(> div[id] + div[id]) > div[id]:nth-of-type(2) { font-size: .68rem !important; }
+  .dashboard-overview-table > div:has(> div[id] + div[id]) > div[id]:nth-of-type(3) { font-size: .55rem !important; }
+}
+
+@media (max-width: 480px) {
+  .dashboard-table-card { padding: .2rem; margin-bottom: 1rem; }
+  .dashboard-compact-table { font-size: .68rem; }
+  .dashboard-compact-table caption { padding: .4rem .45rem; font-size: .85rem; }
+  .dashboard-compact-table th,
+  .dashboard-compact-table td { padding: .3rem .25rem; line-height: 1.2; }
+  .dashboard-compact-table th { width: 31%; }
+  .dashboard-compact-table td:nth-child(2) { width: 24%; font-size: .78rem; }
+  .dashboard-compact-table td:nth-child(3) { width: 45%; font-size: .62rem; }
+}
+
 .metric-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);

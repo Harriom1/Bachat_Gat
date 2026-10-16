@@ -16,14 +16,31 @@
     .transaction-filter-grid select, .transaction-filter-grid input { width: 100%; min-width: 0; }
     .transaction-table-wrap { overflow-x: auto; overflow-y: hidden; width: 100%; -webkit-overflow-scrolling: touch; }
     .transaction-table-wrap .data-table { min-width: 1120px; }
+    .table-pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-top: .75rem; padding-top: .75rem; border-top: 1px solid var(--border-color); }
+    @media (max-width: 768px) {
+      .transaction-table-wrap { overflow-x: hidden; }
+      .transaction-table-wrap .data-table { width: 100%; min-width: 0 !important; table-layout: fixed; }
+    }
     @media (max-width: 900px) {
       .transaction-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .transaction-filter-grid .transaction-search { grid-column: 1 / -1; }
     }
     @media (max-width: 560px) {
-      .transaction-filter-grid { grid-template-columns: 1fr; }
-      .transaction-filter-grid .transaction-search { grid-column: auto; }
-      .transaction-filter-grid + .filter-count { justify-self: start; }
+      /* Keep search compact and place the four filters in two mobile rows. */
+      .transaction-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: .5rem;
+      }
+      .transaction-filter-grid .transaction-search { grid-column: 1 / -1; }
+      .transaction-filter-grid input,
+      .transaction-filter-grid select {
+        height: 34px;
+        min-height: 34px;
+        padding: .35rem .5rem;
+        font-size: .72rem;
+      }
+      .transaction-filter-grid .transaction-search i { top: 9px !important; right: 9px !important; }
+      .filter-count { width: 100%; text-align: right; font-size: .72rem !important; }
     }
   </style>
 </head>
@@ -181,7 +198,6 @@
             <table class="data-table mobile-card-table responsive-scroll-table">
               <thead>
                 <tr>
-                  <th>Transaction ID</th>
                   <th>Date & Time</th>
                   <th>Type</th>
                   <th>Member</th>
@@ -195,13 +211,18 @@
               </thead>
               <tbody id="transactions-table-body">
                 <tr>
-                  <td colspan="10" class="text-center py-4">
+                  <td colspan="9" class="text-center py-4">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2 text-muted">Loading transactions...</p>
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div id="transactions-pagination" class="table-pagination" aria-label="Transactions pagination">
+            <button type="button" id="transactions-page-prev" class="btn btn-outline-secondary" disabled>Previous</button>
+            <span id="transactions-page-info">Page 1 of 1</span>
+            <button type="button" id="transactions-page-next" class="btn btn-outline-secondary" disabled>Next</button>
           </div>
         </div>
       </div>
@@ -215,6 +236,8 @@
   <script>
     let allTransactions = [];
     let currentFilteredTransactions = [];
+    let currentTransactionPage = 1;
+    const TRANSACTIONS_PER_PAGE = 10;
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
@@ -227,6 +250,8 @@
       document.getElementById('filter-year').addEventListener('change', applyFilters);
       document.getElementById('filter-member').addEventListener('change', applyFilters);
       document.getElementById('btn-export-csv').addEventListener('click', exportToCsv);
+      document.getElementById('transactions-page-prev').addEventListener('click', () => goToTransactionPage(currentTransactionPage - 1));
+      document.getElementById('transactions-page-next').addEventListener('click', () => goToTransactionPage(currentTransactionPage + 1));
 
       window.addEventListener('groupChanged', async () => {
         await loadTransactions();
@@ -254,8 +279,9 @@
       try {
         allTransactions = await api.getTransactions(groupId);
         currentFilteredTransactions = [...allTransactions];
+        currentTransactionPage = 1;
         calculateSummaryMetrics(allTransactions);
-        renderTransactions(allTransactions);
+        renderTransactionPage();
       } catch (err) {
         Common.showToast('Failed to load transactions: ' + err.message, 'danger');
       }
@@ -320,7 +346,23 @@
       });
 
       calculateSummaryMetrics(currentFilteredTransactions);
-      renderTransactions(currentFilteredTransactions);
+      currentTransactionPage = 1;
+      renderTransactionPage();
+    }
+
+    function renderTransactionPage() {
+      const totalPages = Math.max(1, Math.ceil(currentFilteredTransactions.length / TRANSACTIONS_PER_PAGE));
+      currentTransactionPage = Math.min(Math.max(1, currentTransactionPage), totalPages);
+      const start = (currentTransactionPage - 1) * TRANSACTIONS_PER_PAGE;
+      renderTransactions(currentFilteredTransactions.slice(start, start + TRANSACTIONS_PER_PAGE));
+      document.getElementById('transactions-page-info').textContent = `Page ${currentTransactionPage} of ${totalPages}`;
+      document.getElementById('transactions-page-prev').disabled = currentTransactionPage <= 1;
+      document.getElementById('transactions-page-next').disabled = currentTransactionPage >= totalPages;
+    }
+
+    function goToTransactionPage(page) {
+      currentTransactionPage = page;
+      renderTransactionPage();
     }
 
     function matchesTransactionCategory(actualType, selectedType) {
@@ -574,7 +616,7 @@
       if (!txns || txns.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="10" class="text-center py-4 text-muted">
+            <td colspan="9" class="text-center py-4 text-muted">
               <i class="bi bi-inbox" style="font-size: 2rem;"></i>
               <p class="mt-2">No transactions found matching your criteria.</p>
             </td>
@@ -592,7 +634,6 @@
 
         return `
           <tr>
-            <td><strong style="color: var(--primary); font-family: monospace;">${escapeHtml(t.id || '')}</strong></td>
             <td>${Common.formatDateTime(t.date || t.createdAt)}</td>
             <td>${typeBadge}</td>
             <td>${t.memberId ? `<span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.memberName || t.memberId)}</span>` : '<span class="text-muted">Group Fund</span>'}</td>

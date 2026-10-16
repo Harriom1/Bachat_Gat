@@ -113,12 +113,12 @@
             <h1 class="page-title" data-i18n="groupProfileTitle">Bachat Gat Profile & Member Management</h1>
             <p class="page-subtitle" data-i18n="groupProfileSubtitle">Official registration numbers, office bearers, meeting schedule, designated bank accounts, and member roster</p>
           </div>
-          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-            <button id="btn-create-group" class="btn-primary-custom" onclick="openCreateGroupModal()" data-i18n="newGroupBtn">
-              <i class="bi bi-plus-circle-fill"></i> New Group Creation
+          <div class="corner-page-actions" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button id="btn-create-group" class="btn-primary-custom corner-action" onclick="openCreateGroupModal()" data-i18n="newGroupBtn" title="New Group Creation" aria-label="New Group Creation">
+              <i class="bi bi-plus-circle-fill"></i><span class="action-label">New Group Creation</span>
             </button>
-            <button id="btn-edit-group" class="btn-outline-custom" onclick="openEditModal()" data-i18n="editGroupBtn">
-              <i class="bi bi-pencil-square"></i> Edit Group Profile
+            <button id="btn-edit-group" class="btn-outline-custom corner-action" onclick="openEditModal()" data-i18n="editGroupBtn" title="Edit Group Profile" aria-label="Edit Group Profile">
+              <i class="bi bi-pencil-square"></i><span class="action-label">Edit Group Profile</span>
             </button>
           </div>
         </div>
@@ -286,7 +286,7 @@
 
           <!-- Enrolled Members Table -->
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table group-members-table">
               <thead>
                 <tr>
                   <th>Sr. No.</th>
@@ -336,7 +336,6 @@
               <thead>
                 <tr>
                   <th data-i18n="tableBorrowerName">Borrower Name</th>
-                  <th data-i18n="tableLoanId">Loan ID</th>
                   <th style="text-align: right;" data-i18n="tablePrincipal">Sanctioned Amount (₹)</th>
                   <th style="text-align: right;" data-i18n="tableInterestRate">Interest Rate</th>
                   <th style="text-align: right;" data-i18n="tableMonthlyEmi">Monthly Payment / EMI (₹)</th>
@@ -347,7 +346,7 @@
                 </tr>
               </thead>
               <tbody id="group-loans-tbody">
-                <tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading group loan transparency records...</td></tr>
+                <tr><td colspan="8" style="text-align: center; padding: 2rem;">Loading group loan transparency records...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1151,7 +1150,7 @@
       const tbody = document.getElementById('group-loans-tbody');
       if (!tbody) return;
       if (!loans || loans.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" class="empty-state" style="text-align: center; padding: 2rem;">No loans taken in this group yet. Collective savings are 100% intact.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="empty-state" style="text-align: center; padding: 2rem;">No loans taken in this group yet. Collective savings are 100% intact.</td></tr>`;
         const countEl = document.getElementById('grp-loan-active-count');
         const sancEl = document.getElementById('grp-loan-total-sanctioned');
         if (countEl) countEl.textContent = '0';
@@ -1178,7 +1177,6 @@
         return `
           <tr>
             <td><strong>${escapeHtml(l.memberName || '-')}</strong></td>
-            <td><code style="color: var(--text-muted);">${escapeHtml(l.loanId || l.id || '-')}</code></td>
             <td class="table-currency" style="font-weight: 600;">${Common.formatIndianCurrency(principal)}</td>
             <td class="table-currency">${rate.toFixed(1)}% p.a.</td>
             <td class="table-currency" style="font-weight: 700; color: var(--info);">${Common.formatIndianCurrency(emi)}</td>
@@ -1288,7 +1286,6 @@
                 ${m.designation && m.designation !== 'MEMBER' ? Common.getRoleBadge({ designation: m.designation }, currentLang) : ''}
               </div>
               ${m.fullNameMr && currentLang !== 'mr' ? `<div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(m.fullNameMr)}</div>` : ''}
-              <div style="font-size: 0.75rem; color: var(--text-muted);">${m.guardianName ? 'Rel: ' + escapeHtml(m.guardianName) : ''}</div>
             </td>
             <td class="table-currency">${Common.formatIndianCurrency(monthlyBachat)}</td>
             <td class="table-currency" style="font-weight: 700; color: var(--success);">${Common.formatIndianCurrency(totalSavings)}</td>
@@ -1299,13 +1296,9 @@
             <td><strong style="color: var(--primary);">${nextDueDate}</strong></td>
             <td>${statusBadge}</td>
             <td style="text-align: right;">
-              <div class="table-actions" style="justify-content: flex-end;">
-                <button class="btn-action-icon" title="View Member 360 Dossier" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'">
-                  <i class="bi bi-person-bounding-box"></i>
-                </button>
-                <button class="btn-action-icon" title="Remove from Group" style="color: var(--danger);" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
-                  <i class="bi bi-trash3-fill"></i>
-                </button>
+              <div class="table-actions group-members-actions" style="justify-content: flex-end;">
+                <button class="btn-action-icon" title="View Member 360 Dossier" aria-label="View Member 360 Dossier" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'"><i class="bi bi-person-bounding-box"></i></button>
+                <button class="btn-action-icon" title="Remove from Group" aria-label="Remove from Group" style="color: var(--danger);" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-person-dash-fill"></i></button>
               </div>
             </td>
           </tr>

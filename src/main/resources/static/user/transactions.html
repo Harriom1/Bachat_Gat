@@ -128,7 +128,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Txn ID</th>
                   <th>Date & Time</th>
                   <th>Transaction Type</th>
                   <th>Loan Ref</th>
@@ -140,10 +139,15 @@
               </thead>
               <tbody id="user-txns-tbody">
                 <tr>
-                  <td colspan="8" class="text-center py-4 text-muted">Loading your transactions...</td>
+                  <td colspan="7" class="text-center py-4 text-muted">Loading your transactions...</td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div id="user-transactions-pagination" class="table-pagination" aria-label="Transactions pagination">
+            <button type="button" id="user-transactions-page-prev" class="btn btn-outline-secondary" disabled>Previous</button>
+            <span id="user-transactions-page-info">Page 1 of 1</span>
+            <button type="button" id="user-transactions-page-next" class="btn btn-outline-secondary" disabled>Next</button>
           </div>
         </div>
       </div>
@@ -157,6 +161,8 @@
   <script>
     let myTransactions = [];
     let filteredTransactions = [];
+    let currentTransactionPage = 1;
+    const TRANSACTIONS_PER_PAGE = 10;
 
     document.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.isAuthenticated()) {
@@ -195,6 +201,8 @@
         document.getElementById('user-filter-month').addEventListener('change', applyFilters);
         document.getElementById('user-filter-year').addEventListener('change', applyFilters);
         document.getElementById('btn-export-csv').addEventListener('click', exportToCsv);
+        document.getElementById('user-transactions-page-prev').addEventListener('click', () => goToTransactionPage(currentTransactionPage - 1));
+        document.getElementById('user-transactions-page-next').addEventListener('click', () => goToTransactionPage(currentTransactionPage + 1));
       } catch (err) {
         Common.showToast('Failed to load transactions: ' + err.message, 'danger');
       }
@@ -221,13 +229,29 @@
       });
 
       document.getElementById('user-showing-count').textContent = filteredTransactions.length;
-      renderTransactions(filteredTransactions);
+      currentTransactionPage = 1;
+      renderTransactionPage();
+    }
+
+    function renderTransactionPage() {
+      const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / TRANSACTIONS_PER_PAGE));
+      currentTransactionPage = Math.min(Math.max(1, currentTransactionPage), totalPages);
+      const start = (currentTransactionPage - 1) * TRANSACTIONS_PER_PAGE;
+      renderTransactions(filteredTransactions.slice(start, start + TRANSACTIONS_PER_PAGE));
+      document.getElementById('user-transactions-page-info').textContent = `Page ${currentTransactionPage} of ${totalPages}`;
+      document.getElementById('user-transactions-page-prev').disabled = currentTransactionPage <= 1;
+      document.getElementById('user-transactions-page-next').disabled = currentTransactionPage >= totalPages;
+    }
+
+    function goToTransactionPage(page) {
+      currentTransactionPage = page;
+      renderTransactionPage();
     }
 
     function renderTransactions(txns) {
       const tbody = document.getElementById('user-txns-tbody');
       if (!txns || txns.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No transactions found for the selected filter.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No transactions found for the selected filter.</td></tr>`;
         return;
       }
 
@@ -238,7 +262,6 @@
 
         return `
           <tr>
-            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(t.id)}</strong></td>
             <td>${Common.formatDateTime(t.date || t.createdAt)}</td>
             <td><span class="badge" style="background: var(--bg-main); color: var(--text-main); font-weight: 600;">${escapeHtml(t.type.replace(/_/g, ' '))}</span></td>
             <td>${t.loanId ? `<span style="font-family: monospace;">${escapeHtml(t.loanId)}</span>` : '-'}</td>

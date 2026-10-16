@@ -86,71 +86,37 @@
             <h1 class="page-title" data-i18n="dashboard">Executive Dashboard</h1>
             <p class="page-subtitle">Real-time financial status, member savings overview, and loan monitoring</p>
           </div>
-          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-            <button id="btn-quick-generate-monthly" class="btn-primary-custom">
-              <i class="bi bi-arrow-repeat"></i> <span data-i18n="generateMonthly">Generate Monthly Due</span>
+          <div class="corner-page-actions">
+            <button id="btn-quick-generate-monthly" class="btn-primary-custom" title="Generate Monthly Due" aria-label="Generate Monthly Due">
+              <i class="bi bi-arrow-repeat"></i><span class="action-label" data-i18n="generateMonthly">Generate Monthly Due</span>
             </button>
-            <a href="/admin/collections.html?action=record" class="btn-outline-custom">
-              <i class="bi bi-plus-circle"></i> <span data-i18n="recordPayment">Record Payment</span>
+            <a href="/admin/collections.html?action=record" class="btn-outline-custom" title="Record Payment" aria-label="Record Payment">
+              <i class="bi bi-plus-circle"></i><span class="action-label" data-i18n="recordPayment">Record Payment</span>
             </a>
           </div>
         </div>
 
-        <!-- Metrics Cards Grid -->
-        <div class="metrics-grid">
+        <!-- Compact financial summary table (data IDs are retained for existing dashboard logic). -->
+        <div class="dashboard-table-card dashboard-metrics-table-wrap">
+          <table class="dashboard-compact-table dashboard-metrics-table">
+            <caption>Dashboard financial summary</caption>
+            <tbody>
           <!-- Active Members -->
-          <div class="metric-card">
-            <div class="metric-header">
-              <span class="metric-label" data-i18n="activeMembers">Active Members</span>
-              <div class="metric-icon-wrap icon-blue"><i class="bi bi-people-fill"></i></div>
-            </div>
-            <div id="metric-active-members" class="metric-value">20</div>
-            <div class="metric-sub"><i class="bi bi-check-circle-fill text-success"></i> 100% active standing</div>
-          </div>
+              <tr><th scope="row"><i class="bi bi-people-fill"></i> <span data-i18n="activeMembers">Active Members</span></th><td id="metric-active-members">20</td><td><i class="bi bi-check-circle-fill text-success"></i> 100% active standing</td></tr>
 
           <!-- Monthly Collection -->
-          <div class="metric-card success">
-            <div class="metric-header">
-              <span class="metric-label" data-i18n="monthlyCollected">Monthly Collection</span>
-              <div class="metric-icon-wrap icon-green"><i class="bi bi-cash-stack"></i></div>
-            </div>
-            <div id="metric-monthly-collected" class="metric-value">₹14,000</div>
-            <div class="metric-sub">
-              Expected: <strong id="metric-monthly-expected">₹1,00,000</strong> (<span id="metric-collection-pct" class="text-success">14%</span>)
-            </div>
-          </div>
+              <tr><th scope="row"><i class="bi bi-cash-stack"></i> <span data-i18n="monthlyCollected">Monthly Collection</span></th><td id="metric-monthly-collected">₹14,000</td><td>Expected: <strong id="metric-monthly-expected">₹1,00,000</strong> (<span id="metric-collection-pct" class="text-success">14%</span>)</td></tr>
 
           <!-- Total Savings Fund -->
-          <div class="metric-card secondary">
-            <div class="metric-header">
-              <span class="metric-label" data-i18n="totalSavings">Total Group Savings</span>
-              <div class="metric-icon-wrap icon-teal"><i class="bi bi-piggy-bank-fill"></i></div>
-            </div>
-            <div id="metric-total-savings" class="metric-value">₹5,40,000</div>
-            <div class="metric-sub"><i class="bi bi-shield-lock-fill" style="color: var(--secondary);"></i> Separately ledged share capital</div>
-          </div>
+              <tr><th scope="row"><i class="bi bi-piggy-bank-fill"></i> <span data-i18n="totalSavings">Total Group Savings</span></th><td id="metric-total-savings">₹5,40,000</td><td><i class="bi bi-shield-lock-fill"></i> Separately ledged share capital</td></tr>
 
           <!-- Loans Outstanding -->
-          <div class="metric-card warning">
-            <div class="metric-header">
-              <span class="metric-label" data-i18n="outstandingLoans">Loan Outstanding</span>
-              <div class="metric-icon-wrap icon-amber"><i class="bi bi-hourglass-split"></i></div>
-            </div>
-            <div id="metric-loans-outstanding" class="metric-value">₹26,400</div>
-            <div class="metric-sub">
-              Disbursed: <span id="metric-loans-disbursed">₹40,000</span> | Interest: <span id="metric-interest-collected" class="text-success">₹1,600</span>
-            </div>
-          </div>
+              <tr><th scope="row"><i class="bi bi-hourglass-split"></i> <span data-i18n="outstandingLoans">Loan Outstanding</span></th><td id="metric-loans-outstanding">₹26,400</td><td>Disbursed: <span id="metric-loans-disbursed">₹40,000</span> | Interest: <span id="metric-interest-collected" class="text-success">₹1,600</span></td></tr>
 
           <!-- Current Group Fund (Section 11 & 13) -->
-          <div class="metric-card" style="border-left: 4px solid #10b981; background: #f0fdf4;">
-            <div class="metric-header">
-              <span class="metric-label" style="color: #166534; font-weight: 700;">Current Group Fund</span>
-              <div class="metric-icon-wrap icon-green"><i class="bi bi-bank2"></i></div>
-            </div>
-            <div id="metric-available-fund" class="metric-value" style="color: #15803d; font-weight: 800;">₹0</div>
-            <div class="metric-sub" style="color: #166534;">Available group cash liquidity</div>
-          </div>
+              <tr class="dashboard-table-total"><th scope="row"><i class="bi bi-bank2"></i> Current Group Fund</th><td id="metric-available-fund">₹0</td><td>Available group cash liquidity</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Group Fund Transparency Breakdown (Section 14) -->
@@ -167,36 +133,18 @@
             <span class="badge" style="background: #e0f2fe; color: #0284c7; font-weight: 600;">SINGLE SOURCE OF TRUTH</span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; text-align: center;">
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Total Savings</small>
-              <strong id="trans-savings" style="color: #0284c7; font-size: 1.05rem;">+ ₹0</strong>
-            </div>
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Loan Interest</small>
-              <strong id="trans-interest" style="color: #16a34a; font-size: 1.05rem;">+ ₹0</strong>
-            </div>
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Other Income</small>
-              <strong id="trans-other-income" style="color: #16a34a; font-size: 1.05rem;">+ ₹0</strong>
-            </div>
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Group Expenses</small>
-              <strong id="trans-expenses" style="color: #dc2626; font-size: 1.05rem;">- ₹0</strong>
-            </div>
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Loans Disbursed</small>
-              <strong id="trans-disbursed" style="color: #ea580c; font-size: 1.05rem;">- ₹0</strong>
-            </div>
-            <div style="background: #ffffff; padding: 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;">
-              <small style="color: #64748b; display: block;">Principal Repaid</small>
-              <strong id="trans-principal-repaid" style="color: #2563eb; font-size: 1.05rem;">+ ₹0</strong>
-            </div>
-            <div style="background: #ecfdf5; padding: 0.75rem; border-radius: 8px; border: 2px solid #10b981;">
-              <small style="color: #065f46; display: block; font-weight: 700;">Current Available Fund</small>
-              <strong id="trans-available-fund" style="color: #047857; font-size: 1.15rem;">₹0</strong>
-            </div>
-          </div>
+          <table class="dashboard-compact-table dashboard-breakdown-table">
+            <caption>Accounting breakdown</caption>
+            <tbody>
+              <tr><th scope="row">Total Savings</th><td id="trans-savings">+ ₹0</td></tr>
+              <tr><th scope="row">Loan Interest</th><td id="trans-interest">+ ₹0</td></tr>
+              <tr><th scope="row">Other Income</th><td id="trans-other-income">+ ₹0</td></tr>
+              <tr><th scope="row">Group Expenses</th><td id="trans-expenses">- ₹0</td></tr>
+              <tr><th scope="row">Loans Disbursed</th><td id="trans-disbursed">- ₹0</td></tr>
+              <tr><th scope="row">Principal Repaid</th><td id="trans-principal-repaid">+ ₹0</td></tr>
+              <tr class="dashboard-table-total"><th scope="row">Current Available Fund</th><td id="trans-available-fund">₹0</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Pending Applications Alert Banner if any -->
@@ -231,7 +179,7 @@
             </span>
           </div>
 
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+          <div class="dashboard-compact-summary-grid dashboard-overview-table" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
             <!-- 1. Total Group Fund -->
             <div style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 1.1rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
@@ -349,11 +297,9 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Txn ID</th>
                   <th data-i18n="date">Date</th>
                   <th data-i18n="members">Member</th>
                   <th>Type</th>
-                  <th>Mode</th>
                   <th data-i18n="amount">Amount</th>
                   <th>Principal</th>
                   <th>Interest</th>
@@ -361,7 +307,7 @@
                 </tr>
               </thead>
               <tbody id="recent-transactions-tbody">
-                <tr><td colspan="9" style="text-align: center;">Loading ledger transactions...</td></tr>
+                <tr><td colspan="8" style="text-align: center;">Loading ledger transactions...</td></tr>
               </tbody>
             </table>
           </div>
@@ -545,17 +491,15 @@
     function renderRecentTransactions(transactions) {
       const tbody = document.getElementById('recent-transactions-tbody');
       if (!transactions || transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No transaction records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No transaction records found.</td></tr>';
         return;
       }
 
       tbody.innerHTML = transactions.map(t => `
         <tr>
-          <td><code style="font-size: 0.8rem; font-weight: 600;">${t.transactionId}</code></td>
           <td>${Common.formatDate(t.date)}</td>
           <td><strong>${t.memberName || '-'}</strong></td>
           <td><span class="badge-status ${t.type.includes('LOAN') ? 'badge-partial' : 'badge-paid'}">${t.type}</span></td>
-          <td>${t.paymentMethod || 'CASH'}</td>
           <td class="table-currency text-success">${Common.formatINR(t.amount)}</td>
           <td class="table-currency">${Common.formatINR(t.principalAmount)}</td>
           <td class="table-currency">${Common.formatINR(t.interestAmount)}</td>

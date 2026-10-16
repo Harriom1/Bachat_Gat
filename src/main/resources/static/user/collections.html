@@ -95,13 +95,13 @@
             <h1 class="page-title" data-i18n="myCollectionRecords">My Collection Records & Share Deposits</h1>
             <p class="page-subtitle" data-i18n="collectionSubtitle">Monthly contribution history, verified receipts, and late fee audits</p>
           </div>
-          <button onclick="window.print()" class="btn-outline-custom">
-            <i class="bi bi-printer"></i> <span data-i18n="printCollections">Print Collections</span>
+          <button onclick="window.print()" class="btn-outline-custom corner-action" title="Print Collections" aria-label="Print Collections">
+            <i class="bi bi-printer"></i><span class="action-label" data-i18n="printCollections">Print Collections</span>
           </button>
         </div>
 
         <!-- Metrics -->
-        <div class="metrics-grid mb-4">
+        <div class="metrics-grid compact-metric-table mb-4">
           <div class="metric-card success">
             <div class="metric-header">
               <span class="metric-label" data-i18n="totalShareDeposited">Total Share Deposited</span>
@@ -153,7 +153,7 @@
             </div>
             <span id="group-collection-period" class="badge-status badge-pending">Loading...</span>
           </div>
-          <div class="metrics-grid" style="margin-bottom:1rem;">
+          <div class="metrics-grid compact-metric-table" style="margin-bottom:1rem;">
             <div class="metric-card success"><div class="metric-label">Members Paid</div><div id="group-paid-count" class="metric-value">0</div></div>
             <div class="metric-card warning"><div class="metric-label">Members Pending</div><div id="group-pending-count" class="metric-value">0</div></div>
             <div class="metric-card"><div class="metric-label">Collected This Month</div><div id="group-collected-total" class="metric-value">₹0</div></div>
@@ -526,8 +526,8 @@
                 </div>
               </div>
               ${!isPaid ? `
-                <button type="button" class="btn-primary-custom" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${curRec.id}', ${curRec.expectedAmount}, ${curRec.pendingAmount || curRec.expectedAmount}, ${curRec.lateFeeAmount || 0}, ${curRec.month}, ${curRec.year})">
-                  <i class="bi bi-credit-card-2-front"></i> ${payNowTxt}
+                <button type="button" class="btn-primary-custom spotlight-pay-action" title="Pay now" aria-label="Pay now" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${curRec.id}', ${curRec.expectedAmount}, ${curRec.pendingAmount || curRec.expectedAmount}, ${curRec.lateFeeAmount || 0}, ${curRec.month}, ${curRec.year})">
+                  <i class="bi bi-credit-card-2-front"></i><span class="action-label">${payNowTxt}</span>
                 </button>
               ` : `
                 <span class="badge" style="background: #dcfce7; color: #16a34a; font-weight: 600; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
@@ -571,8 +571,8 @@
                 </div>
               </div>
               ${!isPaid ? `
-                <button type="button" class="btn-outline-custom" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${upRec.id}', ${upRec.expectedAmount}, ${upRec.expectedAmount}, 0, ${upRec.month}, ${upRec.year})">
-                  <i class="bi bi-wallet2"></i> ${payAdvTxt}
+                <button type="button" class="btn-outline-custom spotlight-pay-action" title="Pay in advance" aria-label="Pay in advance" style="padding: 0.45rem 1rem; font-size: 0.85rem;" onclick="openPaymentModal('${upRec.id}', ${upRec.expectedAmount}, ${upRec.expectedAmount}, 0, ${upRec.month}, ${upRec.year})">
+                  <i class="bi bi-wallet2"></i><span class="action-label">${payAdvTxt}</span>
                 </button>
               ` : `
                 <span class="badge" style="background: #dcfce7; color: #16a34a; font-weight: 600; padding: 0.4rem 0.75rem; font-size: 0.8rem;">
@@ -619,14 +619,14 @@
         let actionHtml = '';
         if (isPaid) {
           actionHtml = `
-            <button type="button" class="btn btn-sm btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="viewReceiptForCollection('${escapeHtml(c.referenceNumber || c.id)}')">
-              <i class="bi bi-receipt"></i> ${receiptTxt}
+            <button type="button" class="btn btn-sm btn-outline-custom collection-row-action" title="View receipt" aria-label="View receipt" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="viewReceiptForCollection('${escapeHtml(c.referenceNumber || c.id)}')">
+              <i class="bi bi-receipt" aria-hidden="true"></i><span class="action-label">${receiptTxt}</span>
             </button>
           `;
         } else {
           actionHtml = `
-            <button type="button" class="btn-primary-custom" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" onclick="openPaymentModal('${c.id}', ${c.expectedAmount}, ${pendingAmount}, ${lateFee}, ${c.month}, ${c.year})">
-              <i class="bi bi-credit-card-2-front"></i> ${payNowTxt}
+            <button type="button" class="btn-primary-custom collection-row-action" title="Pay now" aria-label="Pay now" style="padding: 0.3rem 0.65rem; font-size: 0.75rem;" onclick="openPaymentModal('${c.id}', ${c.expectedAmount}, ${pendingAmount}, ${lateFee}, ${c.month}, ${c.year})">
+              <i class="bi bi-credit-card-2-front" aria-hidden="true"></i><span class="action-label">${payNowTxt}</span>
             </button>
           `;
         }

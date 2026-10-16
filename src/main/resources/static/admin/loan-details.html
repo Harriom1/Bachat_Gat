@@ -84,15 +84,15 @@
             </div>
             <p class="page-subtitle">Borrower: <strong id="dtl-member-name">-</strong> (<span id="dtl-member-id">-</span>) | Sanctioned: <span id="dtl-sanction-date">-</span></p>
           </div>
-          <div style="display: flex; gap: 0.75rem;">
-            <button id="btn-open-repay" class="btn-primary-custom">
-              <i class="bi bi-cash-coin"></i> Record Repayment
+          <div class="loan-detail-actions">
+            <button id="btn-open-repay" class="btn-primary-custom" title="Record Repayment" aria-label="Record Repayment">
+              <i class="bi bi-cash-coin"></i><span class="action-label">Record Repayment</span>
             </button>
-            <button id="btn-open-extra" class="btn-outline-custom">
-              <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i> Extra Prepayment
+            <button id="btn-open-extra" class="btn-outline-custom" title="Extra Prepayment" aria-label="Extra Prepayment">
+              <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i><span class="action-label">Extra Prepayment</span>
             </button>
-            <button onclick="window.print()" class="btn-outline-custom">
-              <i class="bi bi-printer"></i> Print Statement
+            <button onclick="window.print()" class="btn-outline-custom" title="Print Statement" aria-label="Print Statement">
+              <i class="bi bi-printer"></i><span class="action-label">Print Statement</span>
             </button>
           </div>
         </div>

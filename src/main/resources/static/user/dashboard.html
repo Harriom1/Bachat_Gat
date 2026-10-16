@@ -94,7 +94,7 @@
         </div>
 
         <!-- Metric Grid (Section 10 & 13) -->
-        <div class="metrics-grid" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+        <div class="metrics-grid compact-metric-table" style="margin-bottom: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
           <!-- My Savings -->
           <div class="metric-card success">
             <div class="metric-header">
@@ -476,7 +476,6 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Txn ID</th>
                   <th>Date</th>
                   <th>Type</th>
                   <th style="text-align: right;">Amount (₹)</th>
@@ -485,7 +484,7 @@
               </thead>
               <tbody id="user-recent-txns-tbody">
                 <tr>
-                  <td colspan="5" class="text-center py-3 text-muted">Loading your transactions...</td>
+                  <td colspan="4" class="text-center py-3 text-muted">Loading your transactions...</td>
                 </tr>
               </tbody>
             </table>
@@ -934,7 +933,7 @@
     function renderRecentTransactions(txns) {
       const tbody = document.getElementById('user-recent-txns-tbody');
       if (!txns || txns.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">No transactions recorded yet.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3 text-muted">No transactions recorded yet.</td></tr>`;
         return;
       }
 
@@ -942,7 +941,6 @@
         const isInflow = ['MEMBER_SAVING', 'SHARE_CONTRIBUTION', 'LOAN_REPAYMENT', 'EXTRA_LOAN_PAYMENT'].includes(t.type);
         return `
           <tr>
-            <td><strong style="font-family: monospace; color: var(--primary);">${escapeHtml(t.id)}</strong></td>
             <td>${Common.formatDate(t.date || t.createdAt)}</td>
             <td><span class="badge" style="background: var(--bg-main); color: var(--text-main);">${escapeHtml(t.type.replace('_', ' '))}</span></td>
             <td style="text-align: right;"><strong class="${isInflow ? 'text-success' : 'text-danger'}">${Common.formatIndianCurrency(t.amount)}</strong></td>

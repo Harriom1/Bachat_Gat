@@ -78,7 +78,7 @@
         </div>
 
         <!-- Metric Summary -->
-        <div class="metrics-grid" style="margin-bottom: 1.5rem;">
+        <div class="metrics-grid compact-metric-table" style="margin-bottom: 1.5rem;">
           <div class="metric-card success">
             <div class="metric-header">
               <span class="metric-label" data-i18n="totalSavingsBalance">Total Savings Balance</span>
@@ -161,7 +161,6 @@
               <thead>
                 <tr>
                   <th data-i18n="date">Date</th>
-                  <th>Transaction ID</th>
                   <th>Source / Category</th>
                   <th>Description</th>
                   <th style="text-align: right;">Dividend Added (₹)</th>
@@ -170,7 +169,7 @@
               </thead>
               <tbody id="user-dividends-tbody">
                 <tr>
-                  <td colspan="6" class="text-center py-4 text-muted">No income distributions credited yet.</td>
+                  <td colspan="5" class="text-center py-4 text-muted">No income distributions credited yet.</td>
                 </tr>
               </tbody>
             </table>
@@ -251,14 +250,13 @@
       const divTxns = allTxns.filter(t => t.type === 'MEMBER_INCOME_DISTRIBUTION' || t.category === 'DISTRIBUTION');
 
       if (!divTxns || divTxns.length === 0) {
-        divTbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No income distributions credited yet. When group loan interest or income is distributed, it will appear here and increase your savings balance.</td></tr>`;
+        divTbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">No income distributions credited yet. When group loan interest or income is distributed, it will appear here and increase your savings balance.</td></tr>`;
       } else {
         divTbody.innerHTML = divTxns.map(t => {
           const amt = parseFloat(t.amount || 0);
           return `
             <tr>
               <td><strong>${Common.formatDate(t.date || t.createdAt)}</strong></td>
-              <td><code style="font-weight: 700; color: var(--primary);">${escapeHtml(t.id)}</code></td>
               <td><span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7; font-weight: 600;">INCOME DIVIDEND</span></td>
               <td>${escapeHtml(t.description || 'Income Distribution')}</td>
               <td style="text-align: right; font-weight: 700; color: var(--success);">+${Common.formatIndianCurrency(amt)}</td>

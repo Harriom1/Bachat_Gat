@@ -23,7 +23,7 @@ public class JwtTokenProvider {
     private final String issuer;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret:bachatgat-shg-super-secure-jwt-secret-key-at-least-256-bits-long-2026-production}") String secret,
+            @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms:900000}") long expirationMs,
             @Value("${jwt.issuer:bachatgat-api}") String issuer) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));

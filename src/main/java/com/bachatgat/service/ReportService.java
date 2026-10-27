@@ -3,8 +3,22 @@ package com.bachatgat.service;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -13,16 +27,49 @@ import java.util.UUID;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 @Service
 public class ReportService {
 
     private final FirestoreDataService dataService;
     private final GroupFundService groupFundService;
+    private final JavaMailSender mailSender;
+    private final ObjectMapper objectMapper;
 
-    public ReportService(FirestoreDataService dataService, GroupFundService groupFundService) {
+    @Value("${spring.mail.host:}")
+    private String smtpHost;
+    @Value("${spring.mail.username:}")
+    private String smtpUsername;
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
+    @Value("${report.delivery.email.from:}")
+    private String reportEmailFrom;
+    @Value("${report.delivery.whatsapp.enabled:false}")
+    private boolean whatsappReportsEnabled;
+    @Value("${report.delivery.whatsapp.graph-version:v22.0}")
+    private String whatsappGraphVersion;
+    @Value("${report.delivery.whatsapp.phone-number-id:}")
+    private String whatsappPhoneNumberId;
+    @Value("${report.delivery.whatsapp.access-token:}")
+    private String whatsappAccessToken;
+    @Value("${report.delivery.whatsapp.default-country-code:91}")
+    private String whatsappDefaultCountryCode;
+
+    public ReportService(FirestoreDataService dataService, GroupFundService groupFundService,
+                         ObjectProvider<JavaMailSender> mailSenderProvider,
+                         ObjectMapper objectMapper) {
         this.dataService = dataService;
         this.groupFundService = groupFundService;
+        this.mailSender = mailSenderProvider.getIfAvailable();
+        this.objectMapper = objectMapper;
+    }
+
+    public Map<String, Object> getDeliveryStatus() {
+        Map<String, Object> status = new LinkedHashMap<>();
+        status.put("emailConfigured", isEmailConfigured());
+        status.put("whatsappConfigured", isWhatsAppConfigured());
+        return status;
     }
 
     public Map<String, Object> getMonthlyReport(String groupId, int month, int year) {
@@ -96,7 +143,8 @@ public class ReportService {
         report.put("otherIncome", otherIncome);
         report.put("loanDisbursement", loanDisbursement);
         report.put("monthlyExpenses", expenses);
-        report.put("remainingFund", groupFundService.getAvailableFundBefore(groupId, endExclusive));
+        // Keep this identical to the dashboard's current available-fund value.
+        report.put("remainingFund", groupFundService.getAvailableFund(groupId));
         report.put("outstandingLoanPrincipal", outstandingLoan);
         report.put("transactions", monthTransactions);
         report.put("incomes", monthIncomes);
@@ -106,6 +154,26 @@ public class ReportService {
         report.put("loansGivenThisMonth", !loansGiven.isEmpty());
         report.put("savingsPaidMembers", monthCollections.stream().filter(c -> c.getStatus() == CollectionStatus.PAID || c.getStatus() == CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
         report.put("pendingShareMembers", monthCollections.stream().filter(c -> c.getStatus() != CollectionStatus.PAID && c.getStatus() != CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
+
+        Map<String, CollectionRecord> monthlyCollectionsByMember = monthCollections.stream()
+                .filter(c -> c.getMemberId() != null)
+                .collect(java.util.stream.Collectors.toMap(CollectionRecord::getMemberId, c -> c, (first, duplicate) -> first));
+        List<Map<String, Object>> paidMonthlyBachat = new ArrayList<>();
+        List<Map<String, Object>> unpaidMonthlyBachat = new ArrayList<>();
+        for (Member member : groupMembers) {
+            CollectionRecord collection = monthlyCollectionsByMember.get(member.getMemberId());
+            boolean paid = collection != null
+                    && (collection.getStatus() == CollectionStatus.PAID || collection.getStatus() == CollectionStatus.LATE);
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("memberName", member.getFullName());
+            row.put("monthlyBachat", collection != null
+                    ? nz(collection.getExpectedAmount())
+                    : nz(member.getMonthlyBachatAmount()));
+            row.put("status", paid ? "PAID" : "NOT PAID");
+            (paid ? paidMonthlyBachat : unpaidMonthlyBachat).add(row);
+        }
+        report.put("paidMonthlyBachat", paidMonthlyBachat);
+        report.put("unpaidMonthlyBachat", unpaidMonthlyBachat);
         report.put("memberLoanLedger", groupMembers.stream()
                 .map(m -> {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();
@@ -364,27 +432,236 @@ public class ReportService {
     }
 
     public Map<String, Object> shareReportWhatsApp(String groupId, com.bachatgat.dto.ReportShareRequest request, String adminUsername) {
-        Map<String, Object> res = new HashMap<>();
-        String reportId = "RPT-" + UUID.randomUUID().toString().substring(0, 8);
-        res.put("reportId", reportId);
+        requireChannel(request, "WHATSAPP");
+        requireWhatsAppConfiguration();
+        byte[] pdf = generateReportPdf(groupId, request);
+        String mediaId = uploadWhatsAppDocument(pdf, request);
+        String recipient = normalizeWhatsAppNumber(request.getRecipient());
+        Map<String, Object> message = new LinkedHashMap<>();
+        message.put("messaging_product", "whatsapp");
+        message.put("to", recipient);
+        message.put("type", "document");
+        Map<String, Object> document = new LinkedHashMap<>();
+        document.put("id", mediaId);
+        document.put("filename", reportFileName(request));
+        if (request.getCustomMessage() != null && !request.getCustomMessage().isBlank()) {
+            document.put("caption", request.getCustomMessage().trim());
+        }
+        message.put("document", document);
+        HttpResponse<String> response = sendWhatsAppRequest("messages", objectMapper.valueToTree(message).toString());
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            throw new IllegalArgumentException("WhatsApp delivery failed: " + safeProviderError(response.body()));
+        }
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("reportId", "RPT-" + UUID.randomUUID().toString().substring(0, 8));
         res.put("channel", "WHATSAPP");
-        res.put("recipient", request.getRecipient());
+        res.put("recipient", recipient);
         res.put("status", "SENT");
-        res.put("timestamp", java.time.LocalDateTime.now().toString());
-        res.put("message", "Financial report generated and dispatched to WhatsApp recipient: " + request.getRecipient());
+        res.put("attachment", reportFileName(request));
+        res.put("message", "PDF report sent to the WhatsApp number ending in " + recipient.substring(Math.max(0, recipient.length() - 4)) + ".");
         return res;
     }
 
     public Map<String, Object> sendReportEmail(String groupId, com.bachatgat.dto.ReportShareRequest request, String adminUsername) {
-        Map<String, Object> res = new HashMap<>();
-        String reportId = "RPT-" + UUID.randomUUID().toString().substring(0, 8);
-        res.put("reportId", reportId);
+        requireChannel(request, "EMAIL");
+        if (!request.getRecipient().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Recipient must be a valid email address.");
+        }
+        if (!isEmailConfigured()) {
+            throw new IllegalArgumentException("Email delivery is not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, and REPORT_EMAIL_FROM.");
+        }
+        byte[] pdf = generateReportPdf(groupId, request);
+        String subject = extractSubject(request.getCustomMessage());
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            helper.setFrom(reportEmailFrom);
+            helper.setTo(request.getRecipient().trim());
+            helper.setSubject(subject);
+            helper.setText(emailBody(groupId, request), false);
+            helper.addAttachment(reportFileName(request), new org.springframework.core.io.ByteArrayResource(pdf), "application/pdf");
+            mailSender.send(message);
+        } catch (MessagingException | RuntimeException ex) {
+            throw new IllegalArgumentException("Email delivery failed: " + ex.getMessage(), ex);
+        }
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("reportId", "RPT-" + UUID.randomUUID().toString().substring(0, 8));
         res.put("channel", "EMAIL");
-        res.put("recipient", request.getRecipient());
-        res.put("status", "QUEUED");
-        res.put("timestamp", java.time.LocalDateTime.now().toString());
-        res.put("message", "Financial report statement queued for background SMTP delivery to: " + request.getRecipient());
+        res.put("recipient", request.getRecipient().trim());
+        res.put("status", "SENT");
+        res.put("attachment", reportFileName(request));
+        res.put("message", "PDF report sent successfully to the entered email address.");
         return res;
+    }
+
+    private void requireWhatsAppConfiguration() {
+        if (!isWhatsAppConfigured()) {
+            throw new IllegalArgumentException("WhatsApp PDF delivery is not configured. Set WHATSAPP_REPORTS_ENABLED=true, WHATSAPP_PHONE_NUMBER_ID, and WHATSAPP_ACCESS_TOKEN.");
+        }
+    }
+
+    private boolean isWhatsAppConfigured() {
+        return whatsappReportsEnabled
+                && whatsappPhoneNumberId != null && !whatsappPhoneNumberId.isBlank()
+                && whatsappAccessToken != null && !whatsappAccessToken.isBlank();
+    }
+
+    private boolean isEmailConfigured() {
+        return mailSender != null
+                && smtpHost != null && !smtpHost.isBlank()
+                && smtpUsername != null && !smtpUsername.isBlank()
+                && smtpPassword != null && !smtpPassword.isBlank()
+                && reportEmailFrom != null && !reportEmailFrom.isBlank();
+    }
+
+    private void requireChannel(com.bachatgat.dto.ReportShareRequest request, String expected) {
+        if (request.getChannel() == null || !expected.equalsIgnoreCase(request.getChannel())) {
+            throw new IllegalArgumentException("This endpoint only accepts channel " + expected + ".");
+        }
+    }
+
+    private String normalizeWhatsAppNumber(String value) {
+        String digits = value == null ? "" : value.replaceAll("\\D", "");
+        if (digits.length() == 10) digits = whatsappDefaultCountryCode + digits;
+        if (digits.length() < 11 || digits.length() > 15) {
+            throw new IllegalArgumentException("WhatsApp number must include a valid country code and contain 11 to 15 digits.");
+        }
+        return digits;
+    }
+
+    private String uploadWhatsAppDocument(byte[] pdf, com.bachatgat.dto.ReportShareRequest request) {
+        String boundary = "----BachatGat" + UUID.randomUUID();
+        ByteArrayOutputStream body = new ByteArrayOutputStream();
+        writePart(body, boundary, "messaging_product", "whatsapp");
+        writePart(body, boundary, "type", "application/pdf");
+        String fileName = reportFileName(request);
+        writeFilePart(body, boundary, "file", fileName, "application/pdf", pdf);
+        writeAscii(body, "--" + boundary + "--\\r\\n");
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create("https://graph.facebook.com/" + whatsappGraphVersion + "/" + whatsappPhoneNumberId + "/media"))
+                .header("Authorization", "Bearer " + whatsappAccessToken)
+                .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+                .build();
+        try {
+            HttpResponse<String> response = HttpClient.newHttpClient().send(httpRequest, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new IllegalArgumentException("WhatsApp PDF upload failed: " + safeProviderError(response.body()));
+            }
+            JsonNode mediaId = objectMapper.readTree(response.body()).get("id");
+            if (mediaId == null || mediaId.asText().isBlank()) throw new IllegalArgumentException("WhatsApp provider returned no media ID.");
+            return mediaId.asText();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalArgumentException("WhatsApp PDF upload was interrupted.", ex);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException(ex.getMessage(), ex);
+        }
+    }
+
+    private HttpResponse<String> sendWhatsAppRequest(String resource, String json) {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("https://graph.facebook.com/" + whatsappGraphVersion + "/" + whatsappPhoneNumberId + "/" + resource))
+                .header("Authorization", "Bearer " + whatsappAccessToken)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        try {
+            return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalArgumentException("WhatsApp delivery was interrupted.", ex);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Could not connect to WhatsApp: " + ex.getMessage(), ex);
+        }
+    }
+
+    private void writePart(ByteArrayOutputStream out, String boundary, String name, String value) {
+        writeAscii(out, "--" + boundary + "\\r\\nContent-Disposition: form-data; name=\\\"" + name + "\\\"\\r\\n\\r\\n" + value + "\\r\\n");
+    }
+
+    private void writeFilePart(ByteArrayOutputStream out, String boundary, String name, String fileName, String contentType, byte[] bytes) {
+        writeAscii(out, "--" + boundary + "\\r\\nContent-Disposition: form-data; name=\\\"" + name + "\\\"; filename=\\\"" + fileName + "\\\"\\r\\nContent-Type: " + contentType + "\\r\\n\\r\\n");
+        out.writeBytes(bytes);
+        writeAscii(out, "\\r\\n");
+    }
+
+    private void writeAscii(ByteArrayOutputStream out, String value) { out.writeBytes(value.getBytes(StandardCharsets.US_ASCII)); }
+
+    private String safeProviderError(String body) {
+        try {
+            JsonNode error = objectMapper.readTree(body).path("error").path("message");
+            return error.asText(body == null || body.isBlank() ? "unknown provider error" : body);
+        } catch (Exception ignored) { return body == null || body.isBlank() ? "unknown provider error" : body; }
+    }
+
+    private String reportFileName(com.bachatgat.dto.ReportShareRequest request) {
+        String type = request.getReportType() == null ? "financial-report" : request.getReportType().toLowerCase().replaceAll("[^a-z0-9]+", "-");
+        return "bachat-gat-" + type + "-" + LocalDate.now() + ".pdf";
+    }
+
+    private String extractSubject(String customMessage) {
+        if (customMessage == null || customMessage.isBlank()) return "Bachat Gat financial report";
+        String firstLine = customMessage.lines().findFirst().orElse("").trim();
+        return firstLine.isBlank() ? "Bachat Gat financial report" : firstLine;
+    }
+
+    private String emailBody(String groupId, com.bachatgat.dto.ReportShareRequest request) {
+        String note = request.getCustomMessage() == null ? "" : request.getCustomMessage();
+        return "Attached is the requested Bachat Gat financial report for group " + groupId + ".\\n\\n" + note;
+    }
+
+    private byte[] generateReportPdf(String groupId, com.bachatgat.dto.ReportShareRequest request) {
+        Map<String, Object> report;
+        String type = request.getReportType() == null ? "MONTHLY" : request.getReportType().toUpperCase();
+        switch (type) {
+            case "FINANCIAL_SUMMARY" -> report = getGroupFinancialSummary(groupId);
+            case "MONTHLY", "MONTHLY_AUDIT" -> report = getMonthlyReport(groupId, request.getMonth() == null ? LocalDate.now().getMonthValue() : request.getMonth(), request.getYear() == null ? LocalDate.now().getYear() : request.getYear());
+            case "YEARLY", "YEARLY_STATEMENT" -> report = getYearlyReport(groupId, request.getYear() == null ? LocalDate.now().getYear() : request.getYear());
+            case "OUTSTANDING", "OUTSTANDING_LOANS" -> report = getOutstandingReport(groupId);
+            case "MEMBER_STATEMENT" -> {
+                if (request.getMemberId() == null || request.getMemberId().isBlank()) throw new IllegalArgumentException("Member ID is required for a member statement.");
+                report = getMemberStatement(request.getMemberId());
+            }
+            default -> throw new IllegalArgumentException("Unsupported report type: " + request.getReportType());
+        }
+        Group group = dataService.findGroupById(groupId).orElse(null);
+        String title = "Bachat Gat Financial Report - " + type;
+        StringBuilder text = new StringBuilder(title).append("\\nGroup: ").append(group != null ? group.getGroupName() : groupId).append("\\nGenerated: ").append(java.time.LocalDateTime.now()).append("\\n\\n");
+        report.forEach((key, value) -> {
+            if (value == null || value instanceof List<?> || value instanceof Group || value instanceof Member) return;
+            text.append(key).append(": ").append(value).append("\\n");
+        });
+        return simplePdf(text.toString());
+    }
+
+    private byte[] simplePdf(String content) {
+        String[] lines = content.replaceAll("[^\\x20-\\x7E\\n]", "?").split("\\n");
+        StringBuilder stream = new StringBuilder("BT\\n/F1 10 Tf\\n50 760 Td\\n");
+        for (String line : lines) {
+            String safe = escapePdf(line.length() > 100 ? line.substring(0, 100) : line);
+            stream.append("(").append(safe).append(") Tj\\n0 -14 Td\\n");
+        }
+        stream.append("ET\\n");
+        byte[] bytes = stream.toString().getBytes(StandardCharsets.US_ASCII);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
+            out.writeBytes("%PDF-1.4\\n".getBytes(StandardCharsets.US_ASCII));
+            long[] offsets = new long[6];
+            offsets[1] = out.size(); out.writeBytes("1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\\n".getBytes(StandardCharsets.US_ASCII));
+            offsets[2] = out.size(); out.writeBytes("2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\\n".getBytes(StandardCharsets.US_ASCII));
+            offsets[3] = out.size(); out.writeBytes("3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>endobj\\n".getBytes(StandardCharsets.US_ASCII));
+            offsets[4] = out.size(); out.writeBytes("4 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\\n".getBytes(StandardCharsets.US_ASCII));
+            offsets[5] = out.size(); out.writeBytes(("5 0 obj<< /Length " + bytes.length + " >>stream\\n").getBytes(StandardCharsets.US_ASCII)); out.writeBytes(bytes); out.writeBytes("endstream endobj\\n".getBytes(StandardCharsets.US_ASCII));
+            long xref = out.size(); out.writeBytes("xref\\n0 6\\n0000000000 65535 f \\n".getBytes(StandardCharsets.US_ASCII));
+            for (int i = 1; i <= 5; i++) out.writeBytes(String.format("%010d 00000 n \\n", offsets[i]).getBytes(StandardCharsets.US_ASCII));
+            out.writeBytes(("trailer<< /Size 6 /Root 1 0 R >>\\nstartxref\\n" + xref + "\\n%%EOF").getBytes(StandardCharsets.US_ASCII));
+            return out.toByteArray();
+        } catch (Exception ex) { throw new IllegalArgumentException("Could not generate report PDF.", ex); }
+    }
+
+    private String escapePdf(String value) {
+        return value == null ? "" : value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)");
     }
 }
 

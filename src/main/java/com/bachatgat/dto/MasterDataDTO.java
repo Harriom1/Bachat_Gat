@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 public class MasterDataDTO {
     @JsonAlias("monthlyShareAmount")
     private BigDecimal monthlyBachatAmount;
+    @JsonAlias({"defaultLoanEmi", "defaultLoanEmiAmount"})
     private BigDecimal defaultLoanEmiAmount;
     private BigDecimal loanInterestRate;
     private String loanInterestType;

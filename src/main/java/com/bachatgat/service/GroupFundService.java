@@ -94,6 +94,9 @@ public class GroupFundService {
         if (before != null) return BigDecimal.ZERO;
 
         BigDecimal savings = dataService.getMembersByGroupId(groupId).stream()
+                // Suspension pauses participation; it does not remove the
+                // member's accumulated savings from the group balance.
+                .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
                 .map(m -> nz(m.getTotalSavingsBalance())).reduce(BigDecimal.ZERO, BigDecimal::add);
         List<Loan> loans = getUniqueLoans(groupId);
         BigDecimal principalRecovered = loans.stream()
@@ -187,7 +190,9 @@ public class GroupFundService {
 
     private LegacyFundValues getLegacyFundValues(String groupId) {
         BigDecimal savings = dataService.getMembersByGroupId(groupId).stream()
-                .filter(m -> m.getStatus() == null || m.getStatus() == MemberStatus.ACTIVE)
+                // Suspended balances remain financially owned by the member;
+                // only exited members are removed from this legacy aggregate.
+                .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
                 .map(m -> nz(m.getTotalSavingsBalance())
                         .subtract(nz(m.getTotalOtherIncomeDistributed()))
                         .add(nz(m.getTotalOtherExpenseDistributed())))

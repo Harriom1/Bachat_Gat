@@ -79,6 +79,11 @@ public class AdminReportController {
         return ResponseEntity.ok(ApiResponse.ok(report));
     }
 
+    @GetMapping("/delivery-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDeliveryStatus() {
+        return ResponseEntity.ok(ApiResponse.ok(reportService.getDeliveryStatus()));
+    }
+
     @PostMapping("/share-whatsapp")
     public ResponseEntity<ApiResponse<Map<String, Object>>> shareReportWhatsApp(
             @RequestParam String groupId,

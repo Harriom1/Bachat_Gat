@@ -9,10 +9,13 @@ import com.bachatgat.model.*;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.*;
 import jakarta.validation.Valid;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
@@ -235,6 +238,22 @@ public class CurrentUserController {
         String memberId = requireMemberId(principal);
         List<DocumentRecord> docs = documentService.getMemberDocuments(memberId);
         return ResponseEntity.ok(ApiResponse.ok(docs));
+    }
+
+    @PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<DocumentRecord>> uploadMyDocument(
+            @RequestParam String documentType,
+            @RequestParam(required = false) String loanId,
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal principal) throws IOException {
+        String memberId = requireMemberId(principal);
+        String groupId = principal.getGroupId();
+        if (groupId == null || groupId.isBlank()) {
+            throw new ForbiddenException("Logged-in user is not assigned to a group.");
+        }
+        DocumentRecord doc = documentService.uploadDocument(
+                groupId, memberId, loanId, documentType, file, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("Document uploaded successfully", doc));
     }
 
     @GetMapping("/notifications")

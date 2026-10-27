@@ -75,7 +75,17 @@ public class MasterDataService {
         if (memberLoanLimit != null && memberLoanLimit.signum() <= 0) {
             throw new IllegalArgumentException("Maximum loan per member must be greater than zero.");
         }
-        if (groupLoanCapacity != null && memberLoanLimit != null
+        boolean groupCapacityChanged = dto.getMaxLoanAmount() != null
+                && (current.getMaxLoanAmount() == null
+                    || dto.getMaxLoanAmount().compareTo(current.getMaxLoanAmount()) != 0);
+        boolean memberLimitChanged = dto.getMaxLoanAmountPerMember() != null
+                && (current.getMaxLoanAmountPerMember() == null
+                    || dto.getMaxLoanAmountPerMember().compareTo(current.getMaxLoanAmountPerMember()) != 0);
+        // Older data may already contain an inconsistent pair. Do not block an
+        // unrelated monthly-bachat change, but reject any new loan-limit change
+        // that would create or preserve an invalid relationship.
+        if ((groupCapacityChanged || memberLimitChanged)
+                && groupLoanCapacity != null && memberLoanLimit != null
                 && memberLoanLimit.compareTo(groupLoanCapacity) > 0) {
             throw new IllegalArgumentException("Maximum loan per member cannot exceed the group's maximum loan capacity.");
         }
@@ -89,12 +99,8 @@ public class MasterDataService {
             throw new IllegalArgumentException("Monthly Bachat changes cannot start before the current configuration");
         }
 
-        // Archive previous version without changing already-recorded months.
-        current.setActive(false);
-        current.setEffectiveTo(effectiveFrom.minusDays(1));
-        dataService.saveMasterData(current);
-
-        // Build new version
+        // Build the replacement before archiving the current version. This keeps
+        // one active rule available if persistence of the new version fails.
         GroupMasterData newMd = new GroupMasterData();
         newMd.setId(groupId + "_v" + nextVersion);
         newMd.setGroupId(groupId);
@@ -123,9 +129,17 @@ public class MasterDataService {
 
         GroupMasterData saved = dataService.saveMasterData(newMd);
 
-        // Always sync Group default policy with the latest master data settings
+        // Archive previous version only after the replacement is stored.
+        current.setActive(false);
+        current.setEffectiveTo(effectiveFrom.minusDays(1));
+        dataService.saveMasterData(current);
+
+        // Keep the Group fields as the currently effective fallback. A future
+        // version must not change today's UI or calculations before its
+        // effective month; date-based master-data lookup handles the future.
         Group group = dataService.findGroupById(groupId).orElse(null);
-        if (group != null) {
+        boolean effectiveNow = !effectiveFrom.isAfter(LocalDate.now().withDayOfMonth(1));
+        if (group != null && effectiveNow) {
             if (newMd.getMonthlyBachatAmount() != null) group.setMonthlyBachatAmount(newMd.getMonthlyBachatAmount());
             if (newMd.getLoanInterestRate() != null) group.setDefaultInterestRate(newMd.getLoanInterestRate());
             if (newMd.getLoanInterestType() != null) group.setLoanInterestType(newMd.getLoanInterestType());
@@ -140,7 +154,7 @@ public class MasterDataService {
         // BEHAVIOUR HANDLING (Section 8)
         // If update scope applies to existing records or both:
         String scope = newMd.getUpdateScope();
-        if ("EXISTING_ONLY".equalsIgnoreCase(scope) || "BOTH".equalsIgnoreCase(scope)) {
+        if (effectiveNow && ("EXISTING_ONLY".equalsIgnoreCase(scope) || "BOTH".equalsIgnoreCase(scope))) {
             // Update active members' monthly bachat amount without corrupting historical collections
             List<Member> activeMembers = dataService.getMembersByGroupId(groupId);
             for (Member m : activeMembers) {

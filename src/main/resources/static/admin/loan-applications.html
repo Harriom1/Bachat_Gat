@@ -81,7 +81,7 @@
 
         <div class="card-box">
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table loan-applications-table">
               <thead>
                 <tr>
                   <th>App ID</th>
@@ -89,7 +89,6 @@
                   <th data-i18n="memberId">Member ID</th>
                   <th data-i18n="fullName">Member Name</th>
                   <th>Requested Amount</th>
-                  <th>Purpose</th>
                   <th>Term</th>
                   <th>Sanctioned Amount</th>
                   <th data-i18n="status">Status</th>
@@ -97,7 +96,7 @@
                 </tr>
               </thead>
               <tbody id="loan-apps-tbody">
-                <tr><td colspan="10" style="text-align: center;">Loading loan applications...</td></tr>
+                <tr><td colspan="9" style="text-align: center;">Loading loan applications...</td></tr>
               </tbody>
             </table>
           </div>
@@ -294,7 +293,7 @@
     function renderApplications(apps) {
       const tbody = document.getElementById('loan-apps-tbody');
       if (!apps || apps.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No loan applications received.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">No loan applications received.</td></tr>';
         return;
       }
 
@@ -305,14 +304,13 @@
           <td><code>${a.memberId}</code></td>
           <td><strong>${a.memberName}</strong></td>
           <td class="table-currency" style="color: var(--primary); font-weight: 700;">${Common.formatINR(a.requestedAmount)}</td>
-          <td>${a.purpose}</td>
           <td>${a.preferredDurationMonths} mos</td>
           <td class="table-currency text-success">${a.approvedAmount ? Common.formatINR(a.approvedAmount) : '-'}</td>
           <td>${Common.getStatusBadge(a.status)}</td>
           <td>
             ${a.status === 'PENDING' ? `
-              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.75rem;" onclick="openReviewModal('${a.id}')">
-                Review & Sanction
+              <button class="btn-primary-custom loan-action-icon" title="Review and sanction loan" aria-label="Review and sanction loan" onclick="openReviewModal('${a.id}')">
+                <i class="bi bi-clipboard-check"></i>
               </button>
             ` : `
               <span style="font-size: 0.8rem; color: var(--text-muted);">${a.generatedLoanId ? 'Loan: ' + a.generatedLoanId : a.status}</span>

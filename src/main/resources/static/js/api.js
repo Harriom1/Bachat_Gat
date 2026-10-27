@@ -219,6 +219,13 @@ class ApiClient {
     return this.request('/me/documents');
   }
 
+  uploadMyDocument(formData) {
+    return this.request('/me/documents', {
+      method: 'POST',
+      body: formData
+    });
+  }
+
   getMyNotifications() {
     return this.request('/me/notifications');
   }
@@ -617,6 +624,10 @@ class ApiClient {
   getOutstandingReport(groupId) {
     const targetGroupId = this.resolveAdminGroupId(groupId);
     return this.request(`/admin/reports/outstanding?groupId=${encodeURIComponent(targetGroupId)}`);
+  }
+
+  getReportDeliveryStatus() {
+    return this.request('/admin/reports/delivery-status');
   }
 
   shareReportWhatsApp(groupId, shareData) {

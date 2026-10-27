@@ -36,9 +36,11 @@
 
         <li class="menu-category">RECORDS & NOTICES</li>
         <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/reports.html" class="menu-item"><i class="bi bi-bar-chart-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
         <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
         <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
         <li><a href="/guide.html" target="_blank" class="menu-item" style="color: #38bdf8;"><i class="bi bi-book-half menu-icon"></i><span>Project Guide</span></a></li>
+        <li><a href="/user/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
       </ul>
       <div class="sidebar-footer">
         <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
@@ -310,7 +312,7 @@
               </div>
 
               <div id="extra-loan-payment-wrap" class="form-group mb-3" style="display:none;">
-                <label class="form-label">Other</label>
+                <label class="form-label">Extra Principal Payment</label>
                 <div class="input-group">
                   <span class="input-group-text">₹</span>
                   <input type="number" id="extra-loan-payment" class="form-control" min="0" step="1" value="0" placeholder="e.g. 1000">
@@ -810,7 +812,7 @@
           const remarks = document.getElementById('pay-modal-remarks').value.trim();
           const rawExtra = document.getElementById('extra-loan-payment')?.value || '';
           const extraLoanAmt = rawExtra === '' ? 0 : Number(rawExtra);
-          if (!Number.isFinite(extraLoanAmt) || extraLoanAmt < 0 || !/^\d+(\.\d{1,2})?$/.test(rawExtra)) {
+          if (!Number.isFinite(extraLoanAmt) || extraLoanAmt < 0 || (rawExtra !== '' && !/^\d+(\.\d{1,2})?$/.test(rawExtra))) {
             Common.showToast('Other must be a valid non-negative amount with at most 2 decimals.', 'danger');
             return;
           }

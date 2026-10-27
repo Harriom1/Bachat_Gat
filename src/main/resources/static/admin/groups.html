@@ -118,7 +118,7 @@
               <i class="bi bi-plus-circle-fill"></i><span class="action-label">New Group Creation</span>
             </button>
             <button id="btn-edit-group" class="btn-outline-custom corner-action" onclick="openEditModal()" data-i18n="editGroupBtn" title="Edit Group Profile" aria-label="Edit Group Profile">
-              <i class="bi bi-pencil-square"></i><span class="action-label">Edit Group Profile</span>
+              <i class="bi bi-pencil-square" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -295,15 +295,13 @@
                   <th data-i18n="tableTotalSavings">Total Savings</th>
                   <th data-i18n="tablePaidAmount">Paid Amount</th>
                   <th data-i18n="tablePendingAmount">Pending Amount</th>
-                  <th data-i18n="tableStartDate">Start Date</th>
-                  <th data-i18n="tableEndDate">End Date</th>
                   <th data-i18n="tableNextDueDate">Next Due Date</th>
                   <th data-i18n="tableStatus">Status</th>
                   <th style="text-align: right;" data-i18n="tableAction">Action</th>
                 </tr>
               </thead>
               <tbody id="group-members-tbody">
-                <tr><td colspan="11" style="text-align: center; padding: 2rem;">Loading group members...</td></tr>
+                <tr><td colspan="9" style="text-align: center; padding: 2rem;">Loading group members...</td></tr>
               </tbody>
             </table>
           </div>
@@ -1245,7 +1243,11 @@
       const totalTarget = members.length * share;
       document.getElementById('grp-stat-target').textContent = Common.formatIndianCurrency(totalTarget);
 
-      const totalSavings = members.filter(m => m.status === 'ACTIVE').reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
+      // Suspended members retain their saved balance; only exited members are
+      // excluded from the group's member savings total.
+      const totalSavings = members
+        .filter(m => String(m.status || '').toUpperCase() !== 'EXITED')
+        .reduce((sum, m) => sum + (parseFloat(m.totalSavingsBalance) || 0), 0);
       document.getElementById('grp-stat-savings').textContent = Common.formatIndianCurrency(totalSavings);
 
       const noLoans = members.filter(m => !m.activeLoanId || parseFloat(m.currentLoanOutstanding || 0) <= 0);
@@ -1256,7 +1258,7 @@
       const tbody = document.getElementById('group-members-tbody');
       if (!tbody) return;
       if (!members || members.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="13" class="empty-state" style="text-align: center; padding: 2rem;">No members enrolled in this group yet. Click <strong>"Add Member to Group"</strong> above to enroll members.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="empty-state" style="text-align: center; padding: 2rem;">No members enrolled in this group yet. Click <strong>"Add Member to Group"</strong> above to enroll members.</td></tr>`;
         return;
       }
 
@@ -1267,8 +1269,6 @@
         const totalSavings = parseFloat(m.totalSavingsBalance || 0);
         const paidAmount = totalSavings;
         const pendingAmount = parseFloat(m.pendingSavings || 0);
-        const startDate = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : (m.joiningDate ? Common.formatDate(m.joiningDate) : '-');
-        const endDate = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
         const nextDueDate = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of Month';
         const memberDisplayName = Common.getLocalizedMemberName(m, currentLang);
 
@@ -1291,14 +1291,16 @@
             <td class="table-currency" style="font-weight: 700; color: var(--success);">${Common.formatIndianCurrency(totalSavings)}</td>
             <td class="table-currency">${Common.formatIndianCurrency(paidAmount)}</td>
             <td class="table-currency" style="color: ${pendingAmount > 0 ? 'var(--danger)' : 'var(--text-muted)'};">${Common.formatIndianCurrency(pendingAmount)}</td>
-            <td>${startDate}</td>
-            <td>${endDate}</td>
             <td><strong style="color: var(--primary);">${nextDueDate}</strong></td>
             <td>${statusBadge}</td>
             <td style="text-align: right;">
               <div class="table-actions group-members-actions" style="justify-content: flex-end;">
-                <button class="btn-action-icon" title="View Member 360 Dossier" aria-label="View Member 360 Dossier" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'"><i class="bi bi-person-bounding-box"></i></button>
-                <button class="btn-action-icon" title="Remove from Group" aria-label="Remove from Group" style="color: var(--danger);" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-person-dash-fill"></i></button>
+                <button class="btn-action-icon" title="View Member 360 Dossier" aria-label="View Member 360 Dossier" onclick="window.location.href='/admin/member-details.html?id=${m.memberId}'">
+                  <svg class="action-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>
+                </button>
+                <button class="btn-action-icon remove-action" title="Remove from Group" aria-label="Remove from Group" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
+                  <svg class="action-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 7h6m-8 0h10m-7 0v10m3-10v10M6 7l1 13h10l1-13M10 4h4l1 3H9l1-3Z"></path><path d="M17 14h4m-2-2v4"></path></svg>
+                </button>
               </div>
             </td>
           </tr>

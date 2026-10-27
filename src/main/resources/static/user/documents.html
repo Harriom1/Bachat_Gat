@@ -10,6 +10,10 @@
   <link rel="stylesheet" href="/css/tables.css">
   <link rel="stylesheet" href="/css/responsive.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    table .btn-action-icon i { display: inline-block !important; visibility: visible !important; }
+    table .btn-action-icon { width: 1.7rem !important; min-width: 1.7rem !important; height: 1.7rem !important; padding: 0 !important; font-size: .7rem !important; }
+  </style>
 </head>
 <body>
   <div class="app-wrapper">
@@ -27,6 +31,7 @@
         <li><a href="/user/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">My Dashboard</span></a></li>
         <li><a href="/user/profile.html" class="menu-item"><i class="bi bi-person-badge-fill menu-icon"></i><span data-i18n="profile">My Profile</span></a></li>
         <li><a href="/user/savings.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="savings">My Savings</span></a></li>
+        <li><a href="/user/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">My Collections</span></a></li>
 
         <li class="menu-category">LOAN & CREDIT</li>
         <li><a href="/user/loan.html" class="menu-item"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="myLoan">My Loan</span></a></li>
@@ -34,8 +39,11 @@
 
         <li class="menu-category">RECORDS & NOTICES</li>
         <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
+        <li><a href="/user/reports.html" class="menu-item"><i class="bi bi-bar-chart-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
         <li><a href="/user/documents.html" class="menu-item active"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
         <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
+        <li><a href="/guide.html" target="_blank" class="menu-item" style="color: #38bdf8;"><i class="bi bi-book-half menu-icon"></i><span>Project Guide</span></a></li>
+        <li><a href="/user/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
       </ul>
       <div class="sidebar-footer">
         <a href="#" class="menu-item btn-logout" style="color: #f87171;"><i class="bi bi-box-arrow-left menu-icon"></i><span data-i18n="logout">Logout</span></a>
@@ -73,6 +81,9 @@
             <h1 class="page-title" data-i18n="documents">My Verified Documents</h1>
             <p class="page-subtitle">Your identity verifications, PAN document proofs, and signed loan agreements stored in Google Cloud Storage</p>
           </div>
+          <button id="btn-upload-my-doc" class="btn-primary-custom">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Upload Document
+          </button>
         </div>
 
         <div class="content-card">
@@ -100,6 +111,41 @@
     </main>
   </div>
 
+  <div id="modal-upload-my-doc" class="modal-backdrop" style="display: none;">
+    <div class="modal-box" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Upload Document</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-my-doc">&times;</button>
+      </div>
+      <form id="form-upload-my-doc">
+        <div class="form-group mb-3">
+          <label class="form-label required" for="my-doc-type">Select Document Name / Type</label>
+          <select id="my-doc-type" class="form-select" required>
+            <option value="KYC_PAN">PAN Card Scan</option>
+            <option value="KYC_AADHAAR">Aadhaar Card / ID Proof</option>
+            <option value="LOAN_AGREEMENT">Signed Loan Agreement</option>
+            <option value="MEETING_RESOLUTION">Meeting Minutes & Resolution</option>
+            <option value="BANK_PASSBOOK">Bank Statement / Passbook</option>
+            <option value="GENERAL">General Document</option>
+          </select>
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label" for="my-doc-loan-id">Loan ID (Optional)</label>
+          <input type="text" id="my-doc-loan-id" class="form-control" placeholder="e.g. LN-2026-001">
+        </div>
+        <div class="form-group mb-4">
+          <label class="form-label required" for="my-doc-file">Select File (PDF, PNG, JPG)</label>
+          <input type="file" id="my-doc-file" class="form-control" accept=".pdf,.png,.jpg,.jpeg" required>
+          <small class="text-muted">Choose the document type before uploading.</small>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" class="btn-outline-custom" id="btn-cancel-my-doc">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-my-doc">Upload Document</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
@@ -116,7 +162,47 @@
       } catch (err) {
         Common.showToast('Failed to load documents: ' + err.message, 'danger');
       }
+      document.getElementById('btn-upload-my-doc').addEventListener('click', () => {
+        document.getElementById('modal-upload-my-doc').style.display = 'flex';
+      });
+      document.getElementById('btn-close-my-doc').addEventListener('click', closeMyDocumentModal);
+      document.getElementById('btn-cancel-my-doc').addEventListener('click', closeMyDocumentModal);
+      document.getElementById('form-upload-my-doc').addEventListener('submit', handleMyDocumentUpload);
     });
+
+    function closeMyDocumentModal() {
+      document.getElementById('modal-upload-my-doc').style.display = 'none';
+    }
+
+    async function handleMyDocumentUpload(event) {
+      event.preventDefault();
+      const fileInput = document.getElementById('my-doc-file');
+      if (!fileInput.files || fileInput.files.length === 0) {
+        Common.showToast('Please select a file to upload', 'warning');
+        return;
+      }
+      const formData = new FormData();
+      formData.append('documentType', document.getElementById('my-doc-type').value);
+      const loanId = document.getElementById('my-doc-loan-id').value.trim();
+      if (loanId) formData.append('loanId', loanId);
+      formData.append('file', fileInput.files[0]);
+
+      const submit = document.getElementById('btn-submit-my-doc');
+      submit.disabled = true;
+      submit.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Uploading...';
+      try {
+        await api.uploadMyDocument(formData);
+        Common.showToast('Document uploaded successfully.', 'success');
+        document.getElementById('form-upload-my-doc').reset();
+        closeMyDocumentModal();
+        renderDocs(await api.getMyDocuments());
+      } catch (err) {
+        Common.showToast('Failed to upload document: ' + err.message, 'danger');
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Upload Document';
+      }
+    }
 
     function renderDocs(docs) {
       const tbody = document.getElementById('user-docs-tbody');
@@ -133,8 +219,8 @@
           <td>${Common.formatDate(d.uploadedAt)}</td>
           <td><span class="status-badge badge-active">${escapeHtml(d.status || 'VERIFIED')}</span></td>
           <td style="text-align: right;">
-            <a href="/api/documents/view/${encodeURIComponent(d.id || d.documentId)}" target="_blank" class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">
-              <i class="bi bi-eye"></i> <span data-i18n="viewDoc">View</span>
+            <a href="/api/documents/view/${encodeURIComponent(d.id || d.documentId)}" target="_blank" class="btn-action-icon" title="View document" aria-label="View document" style="width: 1.7rem; min-width: 1.7rem; height: 1.7rem; font-size: 0.7rem;">
+              <i class="bi bi-eye-fill"></i>
             </a>
           </td>
         </tr>

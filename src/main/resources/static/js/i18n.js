@@ -10,6 +10,9 @@ class I18nManager {
     this.translations = {};
     this.englishTranslations = {};
     this.englishTextToKey = new Map();
+    // Keep the English source for legacy hard-coded text nodes so a switch
+    // between Marathi, Hindi, and English is always reversible.
+    this.originalTextNodes = new WeakMap();
     this.observer = null;
     this.translationPassQueued = false;
   }
@@ -134,7 +137,10 @@ class I18nManager {
       const parent = textNode.parentElement;
       if (!parent || ['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'].includes(parent.tagName)) return;
       if (parent.closest('[data-i18n]')) return;
-      const original = textNode.nodeValue || '';
+      if (!this.originalTextNodes.has(textNode)) {
+        this.originalTextNodes.set(textNode, textNode.nodeValue || '');
+      }
+      const original = this.originalTextNodes.get(textNode) || '';
       const trimmed = original.trim();
       const key = this.englishTextToKey.get(trimmed);
       if (!key || !this.translations[key]) return;

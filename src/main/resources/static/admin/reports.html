@@ -45,6 +45,19 @@
       border: 1px solid var(--border-color);
       box-shadow: var(--shadow-sm);
     }
+    .printable-sheet table th,
+    .printable-sheet table td {
+      text-align: center !important;
+      vertical-align: middle;
+    }
+    @media (max-width: 768px) {
+      .printable-sheet {
+        overflow-x: auto;
+      }
+      .printable-sheet table {
+        min-width: 680px;
+      }
+    }
     @media print {
       body * {
         visibility: hidden;
@@ -145,10 +158,10 @@
             <button onclick="exportCurrentReportCSV()" class="btn-outline-custom report-corner-action" title="Export CSV" aria-label="Export CSV">
               <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i><span class="action-label">Export CSV</span>
             </button>
-            <button onclick="openWhatsAppModal()" class="btn-outline-custom report-corner-action" title="Share by WhatsApp" aria-label="Share by WhatsApp">
+            <button id="btn-open-whatsapp" onclick="openWhatsAppModal()" class="btn-outline-custom report-corner-action" title="Share by WhatsApp" aria-label="Share by WhatsApp">
               <i class="bi bi-whatsapp" style="color: #25D366;"></i><span class="action-label">WhatsApp</span>
             </button>
-            <button onclick="openEmailModal()" class="btn-outline-custom report-corner-action" title="Send by email" aria-label="Send by email">
+            <button id="btn-open-email" onclick="openEmailModal()" class="btn-outline-custom report-corner-action" title="Send by email" aria-label="Send by email">
               <i class="bi bi-envelope-fill" style="color: #0284c7;"></i><span class="action-label">Email</span>
             </button>
           </div>
@@ -370,6 +383,26 @@
               </tr>
             </tbody>
           </table>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3 style="color: #16a34a; text-align: center; margin-bottom: 1rem;">Monthly Bachat Paid Members</h3>
+            <div class="table-responsive">
+              <table class="data-table compact-report-table">
+                <thead><tr><th>Sr.No.</th><th>Member Name</th><th>Monthly Bachat</th><th>Status</th></tr></thead>
+                <tbody id="monthly-bachat-paid"><tr><td colspan="4" class="text-center text-muted">Load a report to view paid members.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">Monthly Bachat Not Paid Members</h3>
+            <div class="table-responsive">
+              <table class="data-table compact-report-table">
+                <thead><tr><th>Sr.No.</th><th>Member Name</th><th>Monthly Bachat</th><th>Status</th></tr></thead>
+                <tbody id="monthly-bachat-unpaid"><tr><td colspan="4" class="text-center text-muted">Load a report to view unpaid members.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
 
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Members — Savings &amp; Loan Position</h3>
@@ -758,6 +791,7 @@
   <script src="/js/i18n.js"></script>
   <script>
     let activeTabKey = 'monthly';
+    let reportDeliveryStatus = { emailConfigured: false, whatsappConfigured: false };
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
@@ -765,10 +799,29 @@
       document.getElementById('sum-gen-date').textContent = new Date().toLocaleDateString(Common.getLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
       await loadFinancialSummary();
       await populateMemberDropdown();
+      await loadReportDeliveryStatus();
 
       document.getElementById('form-share-whatsapp').addEventListener('submit', handleSendWhatsApp);
       document.getElementById('form-share-email').addEventListener('submit', handleSendEmail);
     });
+
+    async function loadReportDeliveryStatus() {
+      try {
+        const status = await api.getReportDeliveryStatus();
+        const whatsappButton = document.getElementById('btn-open-whatsapp');
+        const emailButton = document.getElementById('btn-open-email');
+        reportDeliveryStatus = status;
+
+        if (!status.whatsappConfigured) {
+          whatsappButton.title = 'Open WhatsApp form; server delivery is not configured yet';
+        }
+        if (!status.emailConfigured) {
+          emailButton.title = 'Open email form; server delivery is not configured yet';
+        }
+      } catch (err) {
+        console.warn('Unable to load report delivery status:', err);
+      }
+    }
 
     function switchReportTab(tabKey) {
       activeTabKey = tabKey;
@@ -886,6 +939,9 @@
     }
 
     function renderMonthlyLedgerTables(data) {
+      renderBachatStatusTable('monthly-bachat-paid', data.paidMonthlyBachat || [], 'No paid members for this month.');
+      renderBachatStatusTable('monthly-bachat-unpaid', data.unpaidMonthlyBachat || [], 'All members have paid for this month.');
+
       const members = data.memberLoanLedger || [];
       document.getElementById('monthly-member-ledger').innerHTML = members.map((m, i) => `
         <tr><td class="serial-number-column">${i + 1}</td><td>${escapeHtml(m.memberName || '-')}</td>
@@ -899,6 +955,19 @@
         <td>${escapeHtml(l.interestRate || 0)}%</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
       `).join('') || '<tr><td colspan="7">No loans recorded.</td></tr>';
 
+    }
+
+    function renderBachatStatusTable(elementId, members, emptyMessage) {
+      const tbody = document.getElementById(elementId);
+      if (!tbody) return;
+      tbody.innerHTML = members.map((member, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${escapeHtml(member.memberName || '-')}</td>
+          <td>${Common.formatIndianCurrency(member.monthlyBachat || 0)}</td>
+          <td>${escapeHtml(member.status || 'NOT PAID')}</td>
+        </tr>
+      `).join('') || `<tr><td colspan="4" class="text-center text-muted">${emptyMessage}</td></tr>`;
     }
 
     async function populateMemberDropdown() {
@@ -1047,6 +1116,9 @@
     // WhatsApp and Email Modals
     function openWhatsAppModal() {
       document.getElementById('modal-whatsapp').classList.add('show');
+      if (!reportDeliveryStatus.whatsappConfigured) {
+        Common.showToast('The WhatsApp form is open, but server delivery needs WhatsApp environment variables.', 'warning');
+      }
     }
     function closeWhatsAppModal() {
       document.getElementById('modal-whatsapp').classList.remove('show');
@@ -1054,6 +1126,9 @@
 
     function openEmailModal() {
       document.getElementById('modal-email').classList.add('show');
+      if (!reportDeliveryStatus.emailConfigured) {
+        Common.showToast('The email form is open, but server delivery needs SMTP environment variables.', 'warning');
+      }
     }
     function closeEmailModal() {
       document.getElementById('modal-email').classList.remove('show');
@@ -1067,13 +1142,14 @@
 
       const payload = {
         reportType: document.getElementById('wa-report-type').value,
-        recipientPhone: document.getElementById('wa-phone').value.trim(),
-        notes: document.getElementById('wa-notes').value.trim()
+        recipient: document.getElementById('wa-phone').value.trim(),
+        channel: 'WHATSAPP',
+        customMessage: document.getElementById('wa-notes').value.trim()
       };
 
       try {
         const res = await api.shareReportWhatsApp(groupId, payload);
-        Common.showToast(res.message || 'WhatsApp report delivery queued successfully!', 'success');
+        Common.showToast(res.message || 'PDF report sent successfully on WhatsApp.', 'success');
         closeWhatsAppModal();
       } catch (err) {
         Common.showToast('WhatsApp dispatch failed: ' + err.message, 'danger');
@@ -1090,14 +1166,14 @@
 
       const payload = {
         reportType: document.getElementById('em-report-type').value,
-        recipientEmail: document.getElementById('em-email').value.trim(),
-        subject: document.getElementById('em-subject').value.trim(),
-        notes: document.getElementById('em-notes').value.trim()
+        recipient: document.getElementById('em-email').value.trim(),
+        channel: 'EMAIL',
+        customMessage: `${document.getElementById('em-subject').value.trim()}\n${document.getElementById('em-notes').value.trim()}`.trim()
       };
 
       try {
         const res = await api.sendReportEmail(groupId, payload);
-        Common.showToast(res.message || 'Report emailed successfully to recipient!', 'success');
+        Common.showToast(res.message || 'PDF report emailed successfully to recipient.', 'success');
         closeEmailModal();
       } catch (err) {
         Common.showToast('Email dispatch failed: ' + err.message, 'danger');

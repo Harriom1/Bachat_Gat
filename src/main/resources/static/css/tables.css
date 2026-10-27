@@ -68,6 +68,63 @@
 .text-danger { color: #dc2626 !important; }
 .text-warning { color: #d97706 !important; }
 
+/* Compact status indicator: status is conveyed by color, with the full
+   translated value still available to screen readers and on hover. */
+.status-dot {
+  display: inline-block;
+  width: 0.65rem;
+  height: 0.65rem;
+  min-width: 0.65rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.status-dot-green { background: #16a34a !important; }
+.status-dot-red { background: #dc2626 !important; }
+
+/* Legacy status markup is also rendered as a compact dot throughout older pages. */
+.badge-status,
+.status-badge {
+  width: 0.65rem !important;
+  height: 0.65rem !important;
+  min-width: 0.65rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  gap: 0 !important;
+  overflow: hidden;
+  vertical-align: middle;
+}
+
+.badge-status::before,
+.status-badge::before {
+  display: none !important;
+}
+
+.badge-paid,
+.badge-active,
+.badge-approved,
+.badge-completed,
+.badge-verified { background: #16a34a !important; }
+
+.badge-pending,
+.badge-due,
+.badge-upcoming,
+.badge-partial,
+.badge-partially_paid,
+.badge-late,
+.badge-overdue,
+.badge-rejected,
+.badge-suspended,
+.badge-failed,
+.badge-inactive,
+.badge-exited,
+.badge-cancelled { background: #dc2626 !important; }
+
 /* Enhanced Modern Status Badges with Pulse/Dot */
 .badge-status {
   display: inline-flex;

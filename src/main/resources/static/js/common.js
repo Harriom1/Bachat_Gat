@@ -144,7 +144,10 @@ const Common = {
     }
 
     const label = window.i18n ? window.i18n.translateStatus(s) : s;
-    return `<span class="badge-status ${badgeClass}">${label}</span>`;
+    const dotClass = ['PAID', 'ACTIVE', 'APPROVED', 'COMPLETED', 'VERIFIED'].includes(s)
+      ? 'status-dot-green'
+      : 'status-dot-red';
+    return `<span class="status-dot ${dotClass}" title="${this.escapeHtml(label)}" aria-label="${this.escapeHtml(label)}"></span>`;
   },
 
   getRoleDisplayName(roleOrUser, lang = null) {
@@ -160,28 +163,28 @@ const Common = {
 
     const key = (designationStr || roleStr).toUpperCase();
     if (key.includes('PRESIDENT') || key === 'ADMIN' || key === 'GROUP_ADMIN') {
-      if (currentLang === 'mr') return 'अध्यक्ष / President';
-      if (currentLang === 'hi') return 'अध्यक्ष / President';
+      if (currentLang === 'mr') return 'अध्यक्ष';
+      if (currentLang === 'hi') return 'अध्यक्ष';
       return 'President';
     }
     if (key.includes('SECRETARY')) {
-      if (currentLang === 'mr') return 'सचिव / Sachiva';
-      if (currentLang === 'hi') return 'सचिव / Sachiva';
-      return 'Secretary / Sachiva';
+      if (currentLang === 'mr') return 'सचिव';
+      if (currentLang === 'hi') return 'सचिव';
+      return 'Secretary';
     }
     if (key.includes('TREASURER')) {
-      if (currentLang === 'mr') return 'खजिनदार / Khajindar';
-      if (currentLang === 'hi') return 'कोषाध्यक्ष / Khajindar';
-      return 'Treasurer / Khajindar';
+      if (currentLang === 'mr') return 'खजिनदार';
+      if (currentLang === 'hi') return 'कोषाध्यक्ष';
+      return 'Treasurer';
     }
     if (key.includes('SUPER_ADMIN')) {
-      if (currentLang === 'mr') return 'सुपर ॲडमिन / Super Admin';
-      if (currentLang === 'hi') return 'सुपर एडमिन / Super Admin';
+      if (currentLang === 'mr') return 'सुपर ॲडमिन';
+      if (currentLang === 'hi') return 'सुपर एडमिन';
       return 'Super Admin';
     }
     if (key.includes('MEMBER') || key.includes('USER')) {
-      if (currentLang === 'mr') return 'सदस्य / Member';
-      if (currentLang === 'hi') return 'सदस्य / Member';
+      if (currentLang === 'mr') return 'सदस्य';
+      if (currentLang === 'hi') return 'सदस्य';
       return 'Member';
     }
     return roleStr || 'Member';

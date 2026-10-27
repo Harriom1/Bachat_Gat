@@ -280,6 +280,8 @@
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
   <script>
+    let masterDataBaseline = null;
+
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
       document.getElementById('md-effective-from').value = nextMonthStart();
@@ -315,6 +317,11 @@
       try {
         const md = await api.getMasterData(groupId);
         if (!md) return;
+
+        masterDataBaseline = {
+          maxLoanAmount: Number(md.maxLoanAmount),
+          maxLoanAmountPerMember: Number(md.maxLoanAmountPerMember || md.maxLoanAmount)
+        };
 
         document.getElementById('lbl-active-version').textContent = `v${md.version || 1}`;
         document.getElementById('md-share-amount').value = md.monthlyBachatAmount || 5000;
@@ -392,6 +399,25 @@
         updateScope: document.getElementById('md-scope').value,
         effectiveFrom: document.getElementById('md-effective-from').value
       };
+
+      if (!Number.isFinite(payload.maxLoanAmount) || !Number.isFinite(payload.maxLoanAmountPerMember)
+          || payload.maxLoanAmount <= 0 || payload.maxLoanAmountPerMember <= 0) {
+        Common.showToast('Enter positive values for both group loan capacity and member loan limit.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-check"></i> <span data-i18n="savePublishRules">Save Rules & Publish Version</span>';
+        return;
+      }
+      const capacityChanged = !masterDataBaseline
+        || payload.maxLoanAmount !== masterDataBaseline.maxLoanAmount;
+      const memberLimitChanged = !masterDataBaseline
+        || payload.maxLoanAmountPerMember !== masterDataBaseline.maxLoanAmountPerMember;
+      if ((capacityChanged || memberLimitChanged)
+          && payload.maxLoanAmountPerMember > payload.maxLoanAmount) {
+        Common.showToast('Maximum Loan Per Member cannot exceed Maximum Group Loan Capacity. Increase the group capacity or reduce the member limit.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-check"></i> <span data-i18n="savePublishRules">Save Rules & Publish Version</span>';
+        return;
+      }
 
       try {
         const updated = await api.updateMasterData(groupId, payload);

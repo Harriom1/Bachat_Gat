@@ -100,7 +100,7 @@
 
         <!-- Filter bar -->
         <div class="card-box" style="padding: 1rem; margin-bottom: 1.25rem;">
-          <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+          <div class="loans-filter-controls" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
             <div style="flex: 1; min-width: 200px;">
               <input type="text" id="loan-search-input" class="form-control" placeholder="Search by borrower name or Loan ID...">
             </div>
@@ -147,7 +147,7 @@
         <!-- Loans Table (All or Monthly) -->
         <div id="card-all-loans" class="card-box">
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table loan-table">
               <thead>
                 <tr>
                   <th>Loan ID</th>
@@ -185,7 +185,7 @@
             </button>
           </div>
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table loan-monthly-status-table">
               <thead>
                 <tr>
                   <th>Borrower</th>
@@ -226,7 +226,7 @@
             </button>
           </div>
           <div class="table-responsive-wrapper">
-            <table class="data-table">
+            <table class="data-table loan-approval-table">
               <thead>
                 <tr>
                   <th>Applicant</th>
@@ -872,20 +872,20 @@
           let actionBtns = '';
           if (a.status === 'PENDING') {
             actionBtns = `
-              <button class="btn-primary-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; background: #059669;" onclick="approveLoanAction('${a.id}', true)">
-                <i class="bi bi-check-circle"></i> Approve & Disburse
+              <button class="btn-primary-custom loan-action-icon" title="Approve and disburse" aria-label="Approve and disburse" style="background: #059669;" onclick="approveLoanAction('${a.id}', true)">
+                <i class="bi bi-check-circle"></i>
               </button>
-              <button class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;" onclick="approveLoanAction('${a.id}', false)">
-                Approve (Disburse Later)
+              <button class="btn-outline-custom loan-action-icon" title="Approve and disburse later" aria-label="Approve and disburse later" onclick="approveLoanAction('${a.id}', false)">
+                <i class="bi bi-check2"></i>
               </button>
-              <button class="btn-outline-custom" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; color: var(--danger); border-color: var(--danger);" onclick="rejectLoanAction('${a.id}')">
-                Reject
+              <button class="btn-outline-custom loan-action-icon" title="Reject loan application" aria-label="Reject loan application" style="color: var(--danger); border-color: var(--danger);" onclick="rejectLoanAction('${a.id}')">
+                <i class="bi bi-x-circle"></i>
               </button>
             `;
           } else if (a.status === 'APPROVED') {
             actionBtns = `
-              <button class="btn-primary-custom" style="padding: 0.25rem 0.65rem; font-size: 0.8rem; background: #2563eb;" onclick="disburseLoanAction('${a.sanctionedLoanId || a.id}')">
-                <i class="bi bi-send-check"></i> Disburse Funds Now
+              <button class="btn-primary-custom loan-action-icon" title="Disburse funds now" aria-label="Disburse funds now" style="background: #2563eb;" onclick="disburseLoanAction('${a.sanctionedLoanId || a.id}')">
+                <i class="bi bi-send-check"></i>
               </button>
             `;
           } else {
@@ -902,7 +902,7 @@
               <td style="text-align: right; font-weight: 600; color: var(--primary);">${Common.formatINR(a.proposedInstallment || 0)}</td>
               <td>${Common.formatDate(a.applicationDate || a.createdAt)}</td>
               <td>${Common.getStatusBadge(a.status)}</td>
-              <td><div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">${actionBtns}</div></td>
+              <td><div class="loan-action-buttons">${actionBtns}</div></td>
             </tr>
           `;
         }).join('');

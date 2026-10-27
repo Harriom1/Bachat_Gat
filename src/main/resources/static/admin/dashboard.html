@@ -311,6 +311,11 @@
               </tbody>
             </table>
           </div>
+          <div id="dashboard-transactions-pagination" class="table-pagination" aria-label="Recent transaction pages" style="display: none;">
+            <button id="dashboard-tx-page-prev" type="button" class="btn-outline-custom" aria-label="Previous transactions">Previous</button>
+            <span id="dashboard-tx-page-info" aria-live="polite">Page 1 of 1</span>
+            <button id="dashboard-tx-page-next" type="button" class="btn-outline-custom" aria-label="Next transactions">Next</button>
+          </div>
         </div>
       </div>
     </main>
@@ -321,6 +326,10 @@
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
   <script>
+    let dashboardTransactions = [];
+    let dashboardTransactionsPage = 1;
+    const DASHBOARD_TRANSACTIONS_PAGE_SIZE = 5;
+
     document.addEventListener('DOMContentLoaded', async () => {
       // 1. Enforce ADMIN authentication
       if (!Auth.requireAuth('ADMIN')) return;
@@ -345,6 +354,20 @@
           await loadDashboardData(currentGroupId);
         } catch (err) {
           Common.showToast(err.message, 'danger');
+        }
+      });
+
+      document.getElementById('dashboard-tx-page-prev').addEventListener('click', () => {
+        if (dashboardTransactionsPage > 1) {
+          dashboardTransactionsPage -= 1;
+          renderRecentTransactionsPage();
+        }
+      });
+      document.getElementById('dashboard-tx-page-next').addEventListener('click', () => {
+        const pageCount = Math.max(1, Math.ceil(dashboardTransactions.length / DASHBOARD_TRANSACTIONS_PAGE_SIZE));
+        if (dashboardTransactionsPage < pageCount) {
+          dashboardTransactionsPage += 1;
+          renderRecentTransactionsPage();
         }
       });
     });
@@ -490,12 +513,28 @@
 
     function renderRecentTransactions(transactions) {
       const tbody = document.getElementById('recent-transactions-tbody');
-      if (!transactions || transactions.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No transaction records found.</td></tr>';
+      dashboardTransactions = Array.isArray(transactions) ? transactions : [];
+      dashboardTransactionsPage = 1;
+      renderRecentTransactionsPage();
+    }
+
+    function renderRecentTransactionsPage() {
+      const tbody = document.getElementById('recent-transactions-tbody');
+      const pagination = document.getElementById('dashboard-transactions-pagination');
+      const previous = document.getElementById('dashboard-tx-page-prev');
+      const next = document.getElementById('dashboard-tx-page-next');
+      const pageInfo = document.getElementById('dashboard-tx-page-info');
+      const pageCount = Math.max(1, Math.ceil(dashboardTransactions.length / DASHBOARD_TRANSACTIONS_PAGE_SIZE));
+
+      if (!dashboardTransactions.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No transaction records found.</td></tr>';
+        pagination.style.display = 'none';
         return;
       }
 
-      tbody.innerHTML = transactions.map(t => `
+      dashboardTransactionsPage = Math.min(dashboardTransactionsPage, pageCount);
+      const start = (dashboardTransactionsPage - 1) * DASHBOARD_TRANSACTIONS_PAGE_SIZE;
+      tbody.innerHTML = dashboardTransactions.slice(start, start + DASHBOARD_TRANSACTIONS_PAGE_SIZE).map(t => `
         <tr>
           <td>${Common.formatDate(t.date)}</td>
           <td><strong>${t.memberName || '-'}</strong></td>
@@ -506,6 +545,10 @@
           <td>${Common.getStatusBadge('PAID')}</td>
         </tr>
       `).join('');
+      pageInfo.textContent = `Page ${dashboardTransactionsPage} of ${pageCount}`;
+      previous.disabled = dashboardTransactionsPage === 1;
+      next.disabled = dashboardTransactionsPage === pageCount;
+      pagination.style.display = pageCount > 1 ? 'flex' : 'none';
     }
   </script>
 </body>

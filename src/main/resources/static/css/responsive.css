@@ -10,6 +10,167 @@ body {
   overflow-x: hidden;
 }
 
+/* Final mobile action sizing: keep four member actions visible without overlap. */
+@media (max-width: 600px) {
+  html body table.members-register-table td:last-child .table-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, 16px) !important;
+    grid-template-rows: repeat(2, 16px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 36px !important;
+    margin: 0 auto !important;
+  }
+  html body table.members-register-table td:last-child .table-actions .btn-action-icon {
+    width: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: .42rem !important;
+    line-height: 1 !important;
+    border-radius: 3px !important;
+  }
+  html body table.members-register-table td:last-child .table-actions .btn-action-icon i {
+    display: inline-block !important;
+    visibility: visible !important;
+    font-size: .42rem !important;
+  }
+}
+
+/* Group profile actions use inline SVGs so icons remain visible when the
+   optional Bootstrap Icons webfont is unavailable (including offline laptop use). */
+html body table.group-members-table .group-members-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: .25rem !important;
+  overflow: visible !important;
+}
+html body table.group-members-table .group-members-actions .btn-action-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: 2rem !important;
+  min-width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  color: var(--primary, #0284c7) !important;
+  line-height: 1 !important;
+}
+html body table.group-members-table .group-members-actions .btn-action-icon.remove-action {
+  color: var(--danger, #dc2626) !important;
+}
+html body table.group-members-table .group-members-actions .action-svg {
+  display: block !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+@media (max-width: 600px) {
+  html body table.group-members-table .group-members-actions { gap: .12rem !important; }
+  html body table.group-members-table .group-members-actions .btn-action-icon {
+    width: 18px !important;
+    min-width: 18px !important;
+    height: 18px !important;
+    border-radius: 4px !important;
+  }
+  html body table.group-members-table .group-members-actions .action-svg {
+    width: 10px !important;
+    height: 10px !important;
+    stroke-width: 2 !important;
+  }
+}
+
+/* Scoped filters and loan actions for the current responsive pass. */
+.members-filter-controls > div:last-child { width: 140px !important; }
+.loan-action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .25rem;
+  flex-wrap: nowrap;
+}
+.loan-action-icon {
+  width: 2rem !important;
+  min-width: 2rem !important;
+  height: 2rem !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+table.loan-applications-table .loan-action-icon i,
+table.loan-approval-table .loan-action-icon i {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+@media (max-width: 600px) {
+  .members-filter-controls { gap: .4rem !important; flex-wrap: nowrap !important; }
+  .members-filter-controls > div:first-child { min-width: 0 !important; flex: 1 1 auto !important; }
+  .members-filter-controls > div:last-child { width: 104px !important; flex: 0 0 104px !important; }
+  .members-filter-controls #status-filter-select { height: 34px !important; padding: .25rem .35rem !important; font-size: .65rem !important; }
+
+  .loans-filter-controls {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .35rem !important;
+  }
+  .loans-filter-controls > div:first-child,
+  .loans-filter-controls > button { grid-column: 1 / -1; width: 100% !important; min-width: 0 !important; }
+  .loans-filter-controls > div:nth-child(2),
+  .loans-filter-controls > div:nth-child(3),
+  .loans-filter-controls > div:nth-child(4) { width: 100% !important; min-width: 0 !important; }
+  .loans-filter-controls select { height: 32px !important; padding: .2rem .3rem !important; font-size: .62rem !important; }
+  .loans-filter-controls > button { padding: .35rem .5rem !important; font-size: .7rem !important; }
+
+  html body table.group-members-table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+  html body table.group-members-table th,
+  html body table.group-members-table td { padding: .3rem .2rem !important; font-size: .58rem !important; line-height: 1.15 !important; }
+  html body table.group-members-table th:nth-child(1),
+  html body table.group-members-table td:nth-child(1) { width: 4% !important; }
+  html body table.group-members-table th:nth-child(2),
+  html body table.group-members-table td:nth-child(2) { width: 18% !important; }
+  html body table.group-members-table th:nth-child(3),
+  html body table.group-members-table td:nth-child(3),
+  html body table.group-members-table th:nth-child(4),
+  html body table.group-members-table td:nth-child(4),
+  html body table.group-members-table th:nth-child(5),
+  html body table.group-members-table td:nth-child(5),
+  html body table.group-members-table th:nth-child(6),
+  html body table.group-members-table td:nth-child(6) { width: 12% !important; }
+  html body table.group-members-table th:nth-child(7),
+  html body table.group-members-table td:nth-child(7) { width: 12% !important; }
+  html body table.group-members-table th:nth-child(8),
+  html body table.group-members-table td:nth-child(8) { width: 8% !important; }
+  html body table.group-members-table th:nth-child(9),
+  html body table.group-members-table td:nth-child(9) { width: 12% !important; }
+  html body table.group-members-table .group-members-actions .btn-action-icon { width: 16px !important; min-width: 16px !important; height: 16px !important; font-size: .48rem !important; }
+
+  .loan-action-buttons { gap: .12rem; }
+  .loan-action-icon { width: 1.7rem !important; min-width: 1.7rem !important; height: 1.7rem !important; font-size: .62rem !important; }
+  html body table.loan-applications-table th,
+  html body table.loan-applications-table td,
+  html body table.loan-approval-table th,
+  html body table.loan-approval-table td { padding: .28rem .2rem !important; font-size: .56rem !important; line-height: 1.15 !important; }
+}
+
 /* Final scoped overrides for the current mobile table pass. These appear
    after legacy responsive rules so the requested layouts are deterministic. */
 @media (max-width: 600px) {
@@ -93,6 +254,45 @@ body {
     display: inline-block !important;
     visibility: visible !important;
   }
+}
+
+/* Final cascade for compact loan filters and visible action symbols. */
+.members-filter-controls > div:last-child { width: 140px !important; }
+.loan-action-buttons { display: flex; align-items: center; justify-content: center; gap: .25rem; flex-wrap: nowrap; }
+.loan-action-icon { width: 2rem !important; min-width: 2rem !important; height: 2rem !important; padding: 0 !important; display: inline-flex !important; align-items: center; justify-content: center; }
+table.loan-applications-table .loan-action-icon i,
+table.loan-approval-table .loan-action-icon i { display: inline-block !important; visibility: visible !important; }
+
+@media (max-width: 600px) {
+  .members-filter-controls { gap: .4rem !important; flex-wrap: nowrap !important; }
+  .members-filter-controls > div:first-child { min-width: 0 !important; flex: 1 1 auto !important; }
+  .members-filter-controls > div:last-child { width: 104px !important; flex: 0 0 104px !important; }
+  .members-filter-controls #status-filter-select { height: 34px !important; padding: .25rem .35rem !important; font-size: .65rem !important; }
+  .loans-filter-controls { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem !important; }
+  .loans-filter-controls > div:first-child,
+  .loans-filter-controls > button { grid-column: 1 / -1; width: 100% !important; min-width: 0 !important; }
+  .loans-filter-controls > div:nth-child(2),
+  .loans-filter-controls > div:nth-child(3),
+  .loans-filter-controls > div:nth-child(4) { width: 100% !important; min-width: 0 !important; }
+  .loans-filter-controls select { height: 32px !important; padding: .2rem .3rem !important; font-size: .62rem !important; }
+  .loans-filter-controls > button { padding: .35rem .5rem !important; font-size: .7rem !important; }
+  html body table.group-members-table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
+  html body table.group-members-table th,
+  html body table.group-members-table td { padding: .3rem .2rem !important; font-size: .58rem !important; line-height: 1.15 !important; }
+  html body table.group-members-table th:nth-child(1), html body table.group-members-table td:nth-child(1) { width: 4% !important; }
+  html body table.group-members-table th:nth-child(2), html body table.group-members-table td:nth-child(2) { width: 18% !important; }
+  html body table.group-members-table th:nth-child(3), html body table.group-members-table td:nth-child(3),
+  html body table.group-members-table th:nth-child(4), html body table.group-members-table td:nth-child(4),
+  html body table.group-members-table th:nth-child(5), html body table.group-members-table td:nth-child(5),
+  html body table.group-members-table th:nth-child(6), html body table.group-members-table td:nth-child(6),
+  html body table.group-members-table th:nth-child(7), html body table.group-members-table td:nth-child(7) { width: 12% !important; }
+  html body table.group-members-table th:nth-child(8), html body table.group-members-table td:nth-child(8) { width: 8% !important; }
+  html body table.group-members-table th:nth-child(9), html body table.group-members-table td:nth-child(9) { width: 12% !important; }
+  html body table.group-members-table .group-members-actions .btn-action-icon { width: 16px !important; min-width: 16px !important; height: 16px !important; font-size: .48rem !important; }
+  .loan-action-buttons { gap: .12rem; }
+  .loan-action-icon { width: 1.7rem !important; min-width: 1.7rem !important; height: 1.7rem !important; font-size: .62rem !important; }
+  html body table.loan-applications-table th, html body table.loan-applications-table td,
+  html body table.loan-approval-table th, html body table.loan-approval-table td { padding: .28rem .2rem !important; font-size: .56rem !important; line-height: 1.15 !important; }
 }
 
 /* Final scoped overrides for the current mobile table pass. These appear
@@ -1845,5 +2045,105 @@ table.members-register-table .table-actions i { display: inline-block !important
     height: 18px !important;
     padding: 0 !important;
     font-size: .52rem !important;
+  }
+}
+
+/* Final mobile status sizing for Members, Collections, and Loans tables. */
+@media (max-width: 600px) {
+  html body table.group-members-table .group-members-actions .btn-action-icon,
+  html body table.members-register-table td:last-child .btn-action-icon {
+    width: 16px !important;
+    min-width: 16px !important;
+    height: 16px !important;
+    padding: 0 !important;
+    font-size: .48rem !important;
+    border-radius: 4px !important;
+  }
+
+  html body table.members-register-table td:nth-child(7) .badge-status,
+  html body table.members-register-table td:nth-child(7) .status-badge,
+  html body table.collection-history-table td:nth-child(8) .badge-status,
+  html body table.collection-history-table td:nth-child(8) .status-badge,
+  html body table.loan-table td:nth-child(10) .badge-status,
+  html body table.loan-table td:nth-child(10) .status-badge,
+  html body table.collection-pending-table td:nth-child(9) .badge-status,
+  html body table.collection-pending-table td:nth-child(9) .status-badge,
+  html body table.loan-approval-table td:nth-child(8) .badge-status,
+  html body table.loan-approval-table td:nth-child(8) .status-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: .08rem .2rem !important;
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
+  html body table.members-register-table th:nth-child(7),
+  html body table.members-register-table td:nth-child(7),
+  html body table.collection-history-table th:nth-child(8),
+  html body table.collection-history-table td:nth-child(8),
+  html body table.loan-table th:nth-child(10),
+  html body table.loan-table td:nth-child(10),
+  html body table.collection-pending-table th:nth-child(9),
+  html body table.collection-pending-table td:nth-child(9),
+  html body table.loan-approval-table th:nth-child(8),
+  html body table.loan-approval-table td:nth-child(8) {
+    width: 9% !important;
+    max-width: 9% !important;
+    padding-left: .1rem !important;
+    padding-right: .1rem !important;
+  }
+  html body table.collection-history-table .collection-row-action,
+  html body table.loan-monthly-status-table td:last-child .btn-primary-custom,
+  html body table.loan-approval-table td:last-child .loan-action-icon {
+    width: 20px !important;
+    min-width: 20px !important;
+    height: 20px !important;
+    padding: 0 !important;
+    font-size: .45rem !important;
+    overflow: hidden !important;
+  }
+  html body table.loan-monthly-status-table th:nth-child(12),
+  html body table.loan-monthly-status-table td:nth-child(12),
+  html body table.loan-monthly-status-table td:nth-child(12) .badge-status,
+  html body table.loan-monthly-status-table td:nth-child(12) .status-badge {
+    width: 9% !important;
+    max-width: 9% !important;
+    min-width: 0 !important;
+    padding: .08rem .15rem !important;
+    font-size: .48rem !important;
+    line-height: 1.05 !important;
+    white-space: normal !important;
+  }
+}
+
+/* Highest-priority mobile action sizing for the Members register. */
+@media (max-width: 600px) {
+  html body table.members-register-table td:last-child .table-actions,
+  html body table.members-register-table td:last-child .table-actions[style] {
+    display: grid !important;
+    grid-template-columns: repeat(2, 16px) !important;
+    grid-template-rows: repeat(2, 16px) !important;
+    gap: .12rem !important;
+    justify-content: center !important;
+    align-items: center !important;
+    width: 36px !important;
+    margin: 0 auto !important;
+  }
+  html body table.members-register-table td:last-child .table-actions .btn-action-icon {
+    width: 16px !important;
+    min-width: 16px !important;
+    max-width: 16px !important;
+    height: 16px !important;
+    min-height: 16px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: .42rem !important;
+    line-height: 1 !important;
+    border-radius: 3px !important;
   }
 }

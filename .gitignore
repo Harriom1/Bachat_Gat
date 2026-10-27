@@ -43,3 +43,12 @@ ehthumbs_vista.db
 # Scratch / Local test artifacts
 admin-login.json
 scratch/
+
+# Local uploads and secrets
+uploads/
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*service-account*.json

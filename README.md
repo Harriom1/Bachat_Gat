@@ -17,6 +17,7 @@
 - [Project Directory Structure](#project-directory-structure)
 - [Prerequisites](#prerequisites)
 - [Getting Started & Local Setup](#getting-started--local-setup)
+- [Deployment Guides](#deployment-guides)
 - [Configuration & Environment Variables](#configuration--environment-variables)
 - [API Endpoints Overview](#api-endpoints-overview)
   - [Multilingual Support](#multilingual-support)
@@ -207,6 +208,16 @@ mvn spring-boot:run
 
 The application will launch on `http://localhost:8080`.
 
+## 🚢 Deployment Guides
+
+Detailed procedures are separated by environment:
+
+- [Local development with the Firestore Emulator](docs/DEPLOYMENT-LOCAL.md)
+- [Deploying to the existing Bachat Gat GCP project](docs/DEPLOYMENT-EXISTING-GCP.md)
+- [Creating and deploying to a new GCP project](docs/DEPLOYMENT-NEW-GCP.md)
+
+The current production project is `bachat-gat-development`, using the private bucket `bachat-gat-development-docs-2026` in `asia-south1`. Production starts with demo-data resets disabled. Keep JWT, payment HMAC, SMTP, and recovery values out of source control.
+
 ---
 
 ## 🔐 Security and Cost Controls
@@ -230,9 +241,14 @@ Key properties can be customized via environment variables:
 | `GCP_PROJECT_ID` | Google Cloud Project ID | *(set in deployment environment)* |
 | `FIRESTORE_DATABASE` | Firestore Database ID | `(default)` |
 | `FIRESTORE_EMULATOR_ENABLED` | Set `true` to use local Firestore emulator | `false` |
-| `STORAGE_BUCKET` | Cloud Storage bucket for uploads | `midc-doc-uploader-revamp-bachatgat-docs` |
+| `STORAGE_BUCKET` | Cloud Storage bucket for uploads | `bachat-gat-development-docs-2026` |
 | `JWT_SECRET` | Secret key used for signing JWT tokens | *(required; use Secret Manager in production)* |
-| `JWT_EXPIRATION_MS` | JWT token expiration in milliseconds | `86400000` (24 hours) |
+| `JWT_EXPIRATION_MS` | JWT token expiration in milliseconds | `900000` (15 minutes) |
+| `APP_DEMO_DATA_ENABLED` | Allows development seed data only when explicitly enabled | `false` |
+| `CORS_ALLOWED_ORIGINS` | Exact browser origins allowed to call the API | deployment URL |
+| `PAYMENT_HMAC_SECRET` | Secret used to verify payment webhook signatures | *(required for webhooks)* |
+| `BOOTSTRAP_ADMIN_TOKEN` | Temporary token for first-admin creation; remove after use | *(empty)* |
+| `ADMIN_PASSWORD_RESET_TOKEN` | Temporary token for controlled existing-admin recovery; remove immediately | *(empty)* |
 
 ---
 
@@ -241,6 +257,8 @@ Key properties can be customized via environment variables:
 | Area | Method | Endpoint | Description | Access |
 |------|--------|----------|-------------|--------|
 | **Auth** | `POST` | `/api/auth/login` | Authenticate user & issue JWT | Public |
+| **Auth** | `POST` | `/api/auth/bootstrap-admin` | One-time token-protected initial admin creation; disabled by default | Temporary |
+| **Auth** | `POST` | `/api/auth/reset-superadmin-password` | Token-protected super-admin recovery; remove the token immediately after use | Temporary |
 | **Auth** | `POST` | `/api/auth/first-time-setup` | Set password for new members | Public |
 | **User** | `GET` | `/api/user/profile` | Fetch logged-in user profile | Member/Admin |
 | **User** | `GET` | `/api/user/passbook` | Member personal passbook & history | Member |

@@ -3,6 +3,7 @@ package com.bachatgat.repository;
 import com.bachatgat.model.*;
 import com.bachatgat.util.FinancialCalculator;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 @Service
@@ -27,6 +29,7 @@ public class FirestoreDataService {
     private final Firestore firestore;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final boolean demoDataEnabled;
 
     // In-memory synchronized stores ensuring zero downtime and offline/local compatibility
     private final Map<String, User> users = new ConcurrentHashMap<>();
@@ -52,19 +55,121 @@ public class FirestoreDataService {
 
     public FirestoreDataService(@Autowired(required = false) Firestore firestore,
                                 PasswordEncoder passwordEncoder,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                @org.springframework.beans.factory.annotation.Value("${app.demo-data.enabled:false}") boolean demoDataEnabled) {
         this.firestore = firestore;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.demoDataEnabled = demoDataEnabled;
+    }
+
+    /** Compatibility constructor used by focused unit tests. */
+    public FirestoreDataService(Firestore firestore, PasswordEncoder passwordEncoder, ObjectMapper objectMapper) {
+        this(firestore, passwordEncoder, objectMapper, false);
     }
 
     @PostConstruct
     public void init() {
-        log.info("Initializing Bachat Gat repository and seed data...");
-        seedInitialDemoData();
+        log.info("Initializing Bachat Gat repository...");
+        if (firestore != null) {
+            loadPersistedData();
+            if (demoDataEnabled && groups.isEmpty()) {
+                log.info("No Firestore groups found and demo data is enabled; creating development seed data.");
+                seedInitialDemoData();
+                persistAllToFirestore();
+            }
+        } else {
+            // Unit tests and explicitly offline development may use the in-memory fixture.
+            seedInitialDemoData();
+        }
         normalizeLegacyRegistrationIds();
-        log.info("Repository initialized successfully. Total groups: {}, Total members: {}, Total users: {}",
+        log.info("Repository initialized. Total groups: {}, Total members: {}, Total users: {}",
                 groups.size(), members.size(), users.size());
+    }
+
+    /**
+     * Loads the persisted application state into the cache once at startup.
+     * Firestore remains the durable source of truth; the maps only avoid
+     * repeating the same read for every service call during this migration.
+     */
+    private void loadPersistedData() {
+        loadCollection("users", User.class, users, User::setId);
+        loadCollection("groups", Group.class, groups, Group::setId);
+        loadCollection("members", Member.class, members, Member::setId);
+        loadCollection("collections", CollectionRecord.class, collections, CollectionRecord::setId);
+        loadCollection("loanApplications", LoanApplication.class, loanApplications, LoanApplication::setId);
+        loadCollection("loans", Loan.class, loans, Loan::setId);
+        loadCollection("transactions", Transaction.class, transactions, Transaction::setId);
+        loadCollection("auditLogs", AuditLog.class, auditLogs, AuditLog::setId);
+        loadCollection("notifications", SystemNotification.class, notifications, SystemNotification::setId);
+        loadCollection("documents", DocumentRecord.class, documents, DocumentRecord::setId);
+        loadCollection("expenses", GroupExpense.class, expenses, GroupExpense::setId);
+        loadCollection("meetings", MeetingRecord.class, meetings, MeetingRecord::setId);
+        loadCollection("incomes", GroupIncome.class, incomes, GroupIncome::setId);
+        loadCollection("adjustments", MemberAdjustment.class, adjustments, MemberAdjustment::setId);
+        loadCollection("memberRefunds", MemberRefund.class, memberRefunds, MemberRefund::setId);
+        loadCollection("groupMasterData", GroupMasterData.class, masterDataMap, GroupMasterData::setId);
+        loadCollection("paymentOrders", PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
+        loadLoanSchedules();
+    }
+
+    private <T> void loadCollection(String collectionName, Class<T> type,
+                                    Map<String, T> target, BiConsumer<T, String> idSetter) {
+        try {
+            for (DocumentSnapshot snapshot : firestore.collection(collectionName).get().get().getDocuments()) {
+                if (!snapshot.exists() || snapshot.getData() == null) continue;
+                T value = objectMapper.convertValue(snapshot.getData(), type);
+                idSetter.accept(value, snapshot.getId());
+                target.put(snapshot.getId(), value);
+            }
+            log.info("Loaded {} persisted {} record(s).", target.size(), collectionName);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not load Firestore collection '" + collectionName + "'.", ex);
+        }
+    }
+
+    private void loadLoanSchedules() {
+        try {
+            for (DocumentSnapshot snapshot : firestore.collection("loanSchedules").get().get().getDocuments()) {
+                if (!snapshot.exists()) continue;
+                Object rawSchedule = snapshot.get("schedule");
+                if (rawSchedule == null) continue;
+                List<LoanRepaymentSchedule> schedule = objectMapper.convertValue(
+                        rawSchedule, new TypeReference<List<LoanRepaymentSchedule>>() {});
+                loanSchedules.put(snapshot.getId(), schedule);
+                findLoanById(snapshot.getId()).ifPresent(loan -> {
+                    loanSchedules.put(loan.getId(), schedule);
+                    if (loan.getLoanId() != null) loanSchedules.put(loan.getLoanId(), schedule);
+                });
+            }
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not load Firestore loanSchedules collection.", ex);
+        }
+    }
+
+    private void persistAllToFirestore() {
+        users.forEach((id, value) -> persistToFirestore("users", id, value));
+        groups.forEach((id, value) -> persistToFirestore("groups", id, value));
+        members.forEach((id, value) -> persistToFirestore("members", id, value));
+        collections.forEach((id, value) -> persistToFirestore("collections", id, value));
+        loanApplications.forEach((id, value) -> persistToFirestore("loanApplications", id, value));
+        uniqueLoans().forEach(value -> persistToFirestore("loans", value.getId(), value));
+        transactions.forEach((id, value) -> persistToFirestore("transactions", id, value));
+        auditLogs.forEach((id, value) -> persistToFirestore("auditLogs", id, value));
+        notifications.forEach((id, value) -> persistToFirestore("notifications", id, value));
+        documents.forEach((id, value) -> persistToFirestore("documents", id, value));
+        expenses.forEach((id, value) -> persistToFirestore("expenses", id, value));
+        meetings.forEach((id, value) -> persistToFirestore("meetings", id, value));
+        incomes.forEach((id, value) -> persistToFirestore("incomes", id, value));
+        adjustments.forEach((id, value) -> persistToFirestore("adjustments", id, value));
+        memberRefunds.forEach((id, value) -> persistToFirestore("memberRefunds", id, value));
+        masterDataMap.forEach((id, value) -> persistToFirestore("groupMasterData", id, value));
+        paymentOrders.forEach((id, value) -> persistToFirestore("paymentOrders", id, value));
+        loanSchedules.forEach((loanId, schedule) -> {
+            if (findLoanById(loanId).map(Loan::getId).orElse(loanId).equals(loanId)) {
+                persistLoanSchedule(loanId, schedule);
+            }
+        });
     }
 
     /** One-time-safe migration: make legacy registration numbers group-local. */
@@ -79,7 +184,7 @@ public class FirestoreDataService {
                 if (!expected.equals(member.getRegistrationId())) {
                     member.setRegistrationId(expected);
                     members.put(member.getId(), member);
-                    persistToFirestoreAsync("members", member.getId(), member);
+                    persistToFirestore("members", member.getId(), member);
                 }
             }
         }
@@ -134,8 +239,50 @@ public class FirestoreDataService {
         }
         user.setUpdatedAt(LocalDateTime.now());
         users.put(user.getId(), user);
-        persistToFirestoreAsync("users", user.getId(), user);
+        persistToFirestore("users", user.getId(), user);
         return user;
+    }
+
+    /**
+     * Creates the first production super administrator using a fixed document
+     * id and a Firestore transaction so concurrent bootstrap requests cannot
+     * create duplicate administrators. The caller must verify the bootstrap
+     * token; this method never receives or stores a plain-text password.
+     */
+    public User createInitialSuperAdmin(User user) {
+        final String bootstrapId = "usr-superadmin-primary";
+        user.setId(bootstrapId);
+
+        if (firestore == null) {
+            synchronized (users) {
+                if (users.values().stream().anyMatch(existing -> existing.getRole() == Role.SUPER_ADMIN)) {
+                    throw new IllegalStateException("A super administrator already exists.");
+                }
+                if (users.containsKey(bootstrapId)) {
+                    throw new IllegalStateException("The initial super administrator has already been created.");
+                }
+                users.put(bootstrapId, user);
+                return user;
+            }
+        }
+
+        try {
+            com.google.cloud.firestore.DocumentReference reference = firestore.collection("users").document(bootstrapId);
+            firestore.runTransaction(transaction -> {
+                DocumentSnapshot snapshot = transaction.get(reference).get();
+                if (snapshot.exists()) {
+                    throw new IllegalStateException("The initial super administrator has already been created.");
+                }
+                transaction.create(reference, user);
+                return null;
+            }).get();
+            users.put(bootstrapId, user);
+            return user;
+        } catch (IllegalStateException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not create the initial super administrator.", ex);
+        }
     }
 
     // ==========================================
@@ -163,7 +310,7 @@ public class FirestoreDataService {
         }
         group.setUpdatedAt(LocalDateTime.now());
         groups.put(group.getId(), group);
-        persistToFirestoreAsync("groups", group.getId(), group);
+        persistToFirestore("groups", group.getId(), group);
         return group;
     }
 
@@ -336,7 +483,7 @@ public class FirestoreDataService {
         if (refund.getRefundId() == null) refund.setRefundId("REF-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         refund.setUpdatedAt(LocalDateTime.now());
         memberRefunds.put(refund.getId(), refund);
-        persistToFirestoreAsync("memberRefunds", refund.getId(), refund);
+        persistToFirestore("memberRefunds", refund.getId(), refund);
         return refund;
     }
 
@@ -346,7 +493,7 @@ public class FirestoreDataService {
         }
         member.setUpdatedAt(LocalDateTime.now());
         members.put(member.getId(), member);
-        persistToFirestoreAsync("members", member.getId(), member);
+        persistToFirestore("members", member.getId(), member);
 
         // Update group active member count
         Group group = groups.get(member.getGroupId());
@@ -389,7 +536,7 @@ public class FirestoreDataService {
         }
         record.setUpdatedAt(LocalDateTime.now());
         collections.put(record.getId(), record);
-        persistToFirestoreAsync("collections", record.getId(), record);
+        persistToFirestore("collections", record.getId(), record);
         return record;
     }
 
@@ -420,7 +567,7 @@ public class FirestoreDataService {
         }
         app.setUpdatedAt(LocalDateTime.now());
         loanApplications.put(app.getId(), app);
-        persistToFirestoreAsync("loanApplications", app.getId(), app);
+        persistToFirestore("loanApplications", app.getId(), app);
         return app;
     }
 
@@ -428,7 +575,7 @@ public class FirestoreDataService {
     // LOAN OPERATIONS
     // ==========================================
     public List<Loan> getLoansByGroupId(String groupId) {
-        return loans.values().stream()
+        return uniqueLoans().stream()
                 .filter(l -> groupId == null || l.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(Loan::getCreatedAt).reversed())
                 .collect(Collectors.toList());
@@ -448,17 +595,33 @@ public class FirestoreDataService {
     }
 
     public Optional<Loan> findActiveLoanByMemberId(String memberId) {
-        return loans.values().stream()
+        return uniqueLoans().stream()
                 .filter(l -> l.getMemberId().equalsIgnoreCase(memberId) && 
                         (l.getStatus() == LoanStatus.ACTIVE || l.getStatus() == LoanStatus.PARTIALLY_PAID || l.getStatus() == LoanStatus.OVERDUE))
                 .findFirst();
     }
 
     public List<Loan> getLoansByMemberId(String memberId) {
-        return loans.values().stream()
+        return uniqueLoans().stream()
                 .filter(l -> l.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(Loan::getCreatedAt).reversed())
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * A loan is indexed by both its Firestore/internal id and its human-facing
+     * loan number.  List queries must collapse those aliases or summaries and
+     * tables will double-count one disbursement.
+     */
+    private Collection<Loan> uniqueLoans() {
+        return loans.values().stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        loan -> loan.getId() != null ? loan.getId() : loan.getLoanId(),
+                        loan -> loan,
+                        (first, duplicate) -> first,
+                        LinkedHashMap::new))
+                .values();
     }
 
     public Loan saveLoan(Loan loan) {
@@ -470,14 +633,30 @@ public class FirestoreDataService {
         if (loan.getLoanId() != null) {
             loans.put(loan.getLoanId(), loan);
         }
-        persistToFirestoreAsync("loans", loan.getId(), loan);
+        persistToFirestore("loans", loan.getId(), loan);
         return loan;
     }
 
     public List<LoanRepaymentSchedule> getLoanSchedule(String loanId) {
         if (loanId == null) return new ArrayList<>();
         List<LoanRepaymentSchedule> s = loanSchedules.get(loanId);
-        if (s != null && !s.isEmpty()) return s;
+        if (s != null && !s.isEmpty()) {
+            Optional<Loan> storedLoan = findLoanById(loanId);
+            if (storedLoan.isPresent() && !"FLAT".equalsIgnoreCase(storedLoan.get().getInterestType())) {
+                Loan l = storedLoan.get();
+                List<LoanRepaymentSchedule> recalculated = com.bachatgat.util.FinancialCalculator.generateReducingScheduleWithPayments(
+                        l.getPrincipalAmount(), l.getInterestRate(),
+                        l.getInterestRate() != null && l.getInterestRate().compareTo(BigDecimal.valueOf(5.0)) <= 0,
+                        l.getDurationMonths() > 0 ? l.getDurationMonths() : 12,
+                        l.getDisbursementDate() != null ? l.getDisbursementDate() : LocalDate.now(), s);
+                reconcileReducingLoanSummary(l, recalculated);
+                loanSchedules.put(l.getId(), recalculated);
+                if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), recalculated);
+                saveLoan(l);
+                return recalculated;
+            }
+            return s;
+        }
         Optional<Loan> loanOpt = findLoanById(loanId);
         if (loanOpt.isPresent()) {
             Loan l = loanOpt.get();
@@ -499,7 +678,16 @@ public class FirestoreDataService {
             boolean flatInterest = "FLAT".equalsIgnoreCase(l.getInterestType());
             List<LoanRepaymentSchedule> generated = flatInterest
                     ? generateFlatSchedule(principal, rate, duration, startDate, l.getTotalInterest(), l.getMonthlyInstallment())
-                    : com.bachatgat.util.FinancialCalculator.generateBachatGatReducingSchedule(principal, rate, duration, startDate);
+                    : com.bachatgat.util.FinancialCalculator.generateReducingScheduleWithPayments(principal, rate,
+                            rate.compareTo(BigDecimal.valueOf(5.0)) <= 0, duration, startDate, new ArrayList<>());
+
+            if (!flatInterest) {
+                reconcileReducingLoanSummary(l, generated);
+                loanSchedules.put(l.getId(), generated);
+                if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), generated);
+                saveLoan(l);
+                return generated;
+            }
 
             // Reconcile status and reducing balances strictly based on actual payments
             BigDecimal runningPrincipal = principal.setScale(0, java.math.RoundingMode.HALF_UP);
@@ -573,6 +761,43 @@ public class FirestoreDataService {
         return new ArrayList<>();
     }
 
+    private void reconcileReducingLoanSummary(Loan loan, List<LoanRepaymentSchedule> schedule) {
+        if (loan == null || schedule == null || schedule.isEmpty()) return;
+        BigDecimal principal = loan.getPrincipalAmount() != null ? loan.getPrincipalAmount() : BigDecimal.ZERO;
+        boolean monthlyRate = loan.getInterestRate() != null
+                && loan.getInterestRate().compareTo(BigDecimal.valueOf(5.0)) <= 0;
+        List<LoanRepaymentSchedule> contractualSchedule = FinancialCalculator.generateAmortizationSchedule(
+                principal,
+                loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO,
+                monthlyRate,
+                loan.getDurationMonths() > 0 ? loan.getDurationMonths() : schedule.size(),
+                loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now());
+        BigDecimal totalInterest = contractualSchedule.stream()
+                .map(LoanRepaymentSchedule::getInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal paidPrincipal = schedule.stream()
+                .map(LoanRepaymentSchedule::getPaidPrincipalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal paidInterest = schedule.stream()
+                .map(LoanRepaymentSchedule::getPaidInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal remainingPrincipal = principal.subtract(paidPrincipal).max(BigDecimal.ZERO);
+        BigDecimal remainingInterest = totalInterest.subtract(paidInterest).max(BigDecimal.ZERO);
+        loan.setTotalInterest(totalInterest);
+        loan.setInterestPaid(paidInterest);
+        loan.setOutstandingInterest(remainingInterest);
+        loan.setPrincipalPaid(paidPrincipal);
+        loan.setOutstandingPrincipal(remainingPrincipal);
+        loan.setTotalOutstanding(remainingPrincipal.add(remainingInterest));
+        loan.setTotalPayable(principal.add(totalInterest));
+        loan.setMonthlyInstallment(contractualSchedule.isEmpty()
+                ? schedule.get(0).getEmiAmount()
+                : contractualSchedule.get(0).getEmiAmount());
+        schedule.stream().filter(item -> item.getOutstandingAmount() != null
+                        && item.getOutstandingAmount().signum() > 0)
+                .findFirst().ifPresent(item -> loan.setNextDueDate(item.getDueDate()));
+    }
+
     private List<LoanRepaymentSchedule> generateFlatSchedule(
             BigDecimal principal,
             BigDecimal rate,
@@ -622,7 +847,11 @@ public class FirestoreDataService {
         findLoanById(loanId).ifPresent(l -> {
             loanSchedules.put(l.getId(), schedule);
             if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), schedule);
+            persistLoanSchedule(l.getId(), schedule);
         });
+        if (findLoanById(loanId).isEmpty()) {
+            persistLoanSchedule(loanId, schedule);
+        }
     }
 
     // ==========================================
@@ -647,7 +876,7 @@ public class FirestoreDataService {
             txn.setId("TXN-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 4));
         }
         transactions.put(txn.getId(), txn);
-        persistToFirestoreAsync("transactions", txn.getId(), txn);
+        persistToFirestore("transactions", txn.getId(), txn);
         return txn;
     }
 
@@ -681,7 +910,7 @@ public class FirestoreDataService {
             logRecord.setId(UUID.randomUUID().toString());
         }
         auditLogs.put(logRecord.getId(), logRecord);
-        persistToFirestoreAsync("auditLogs", logRecord.getId(), logRecord);
+        persistToFirestore("auditLogs", logRecord.getId(), logRecord);
     }
 
     // ==========================================
@@ -700,7 +929,7 @@ public class FirestoreDataService {
             notification.setId(UUID.randomUUID().toString());
         }
         notifications.put(notification.getId(), notification);
-        persistToFirestoreAsync("notifications", notification.getId(), notification);
+        persistToFirestore("notifications", notification.getId(), notification);
         return notification;
     }
 
@@ -728,7 +957,7 @@ public class FirestoreDataService {
             doc.setId("DOC-" + UUID.randomUUID().toString().substring(0, 8));
         }
         documents.put(doc.getId(), doc);
-        persistToFirestoreAsync("documents", doc.getId(), doc);
+        persistToFirestore("documents", doc.getId(), doc);
         return doc;
     }
 
@@ -747,7 +976,7 @@ public class FirestoreDataService {
             expense.setId("EXP-" + UUID.randomUUID().toString().substring(0, 8));
         }
         expenses.put(expense.getId(), expense);
-        persistToFirestoreAsync("expenses", expense.getId(), expense);
+        persistToFirestore("expenses", expense.getId(), expense);
         return expense;
     }
 
@@ -763,7 +992,7 @@ public class FirestoreDataService {
             meeting.setId("MTG-" + UUID.randomUUID().toString().substring(0, 8));
         }
         meetings.put(meeting.getId(), meeting);
-        persistToFirestoreAsync("meetings", meeting.getId(), meeting);
+        persistToFirestore("meetings", meeting.getId(), meeting);
         return meeting;
     }
 
@@ -786,7 +1015,7 @@ public class FirestoreDataService {
             income.setId("INC-" + UUID.randomUUID().toString().substring(0, 8));
         }
         incomes.put(income.getId(), income);
-        persistToFirestoreAsync("incomes", income.getId(), income);
+        persistToFirestore("incomes", income.getId(), income);
         return income;
     }
 
@@ -812,7 +1041,7 @@ public class FirestoreDataService {
             adjustment.setId("ADJ-" + UUID.randomUUID().toString().substring(0, 8));
         }
         adjustments.put(adjustment.getId(), adjustment);
-        persistToFirestoreAsync("adjustments", adjustment.getId(), adjustment);
+        persistToFirestore("adjustments", adjustment.getId(), adjustment);
         return adjustment;
     }
 
@@ -847,7 +1076,7 @@ public class FirestoreDataService {
             md.setId(md.getGroupId() + "_v" + md.getVersion());
         }
         masterDataMap.put(md.getId(), md);
-        persistToFirestoreAsync("groupMasterData", md.getId(), md);
+        persistToFirestore("groupMasterData", md.getId(), md);
         return md;
     }
 
@@ -886,23 +1115,42 @@ public class FirestoreDataService {
         }
         order.setUpdatedAt(LocalDateTime.now());
         paymentOrders.put(order.getOrderId(), order);
-        persistToFirestoreAsync("paymentOrders", order.getOrderId(), order);
+        persistToFirestore("paymentOrders", order.getOrderId(), order);
         return order;
     }
 
 
     // ==========================================
-    // FIRESTORE ASYNC WRITER
+    // FIRESTORE DURABLE WRITER
     // ==========================================
-    private void persistToFirestoreAsync(String collectionName, String documentId, Object object) {
-        if (firestore != null) {
-            try {
-                Map<String, Object> firestoreData = objectMapper.convertValue(
-                        object, new TypeReference<Map<String, Object>>() {});
-                firestore.collection(collectionName).document(documentId).set(firestoreData);
-            } catch (Exception ex) {
-                log.debug("Async write to Firestore skipped/failed: {}", ex.getMessage());
-            }
+    private void persistToFirestore(String collectionName, String documentId, Object object) {
+        if (firestore == null) return;
+        if (documentId == null || documentId.isBlank()) {
+            throw new IllegalArgumentException("Firestore document ID is required for " + collectionName);
+        }
+        try {
+            Map<String, Object> firestoreData = objectMapper.convertValue(
+                    object, new TypeReference<Map<String, Object>>() {});
+            firestore.collection(collectionName).document(documentId).set(firestoreData).get();
+        } catch (Exception ex) {
+            throw new IllegalStateException(
+                    "Could not persist document '" + documentId + "' in Firestore collection '" + collectionName + "'.", ex);
+        }
+    }
+
+    private void persistLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {
+        if (firestore == null) return;
+        if (loanId == null || loanId.isBlank()) {
+            throw new IllegalArgumentException("Loan ID is required for a repayment schedule");
+        }
+        try {
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("loanId", loanId);
+            payload.put("schedule", objectMapper.convertValue(schedule,
+                    new TypeReference<List<Map<String, Object>>>() {}));
+            firestore.collection("loanSchedules").document(loanId).set(payload).get();
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not persist repayment schedule for loan '" + loanId + "'.", ex);
         }
     }
 
@@ -1331,7 +1579,7 @@ public class FirestoreDataService {
         loan2.setCreatedBy("admin");
         loans.put(loan2.getId(), loan2);
 
-        List<LoanRepaymentSchedule> schedule2 = com.bachatgat.util.FinancialCalculator.generateBachatGatReducingSchedule(
+        List<LoanRepaymentSchedule> schedule2 = com.bachatgat.util.FinancialCalculator.generateAmortizationSchedule(
                 loan2.getPrincipalAmount(),
                 loan2.getInterestRate(),
                 loan2.getDurationMonths(),
@@ -1572,6 +1820,18 @@ public class FirestoreDataService {
                 collections.put(col.getId(), col);
             }
         }
+
+        // Dedicated Secretary Login for Group 2, matching the President demo profile.
+        User group2Secretary = new User("secretary2", passwordEncoder.encode("admin123"),
+                "secretary2@bachatgat.org", "Priyanka Suresh Gholap", Role.SECRETARY,
+                group2.getId(), "SPBG-M002");
+        group2Secretary.setId("usr-secretary-02");
+        group2Secretary.setFullNameMr("प्रियंका सुरेश घोलप");
+        group2Secretary.setFullNameHi("प्रियंका सुरेश घोलप");
+        group2Secretary.setMobileNumber("9823322222");
+        group2Secretary.setDesignation("SECRETARY");
+        group2Secretary.setFirstLogin(false);
+        users.put(group2Secretary.getId(), group2Secretary);
 
         // Group 2 Loans:
         // Loan 4: Meenakshi Shinde (SPBG-M001)
@@ -1830,6 +2090,18 @@ public class FirestoreDataService {
         // created. Only paid monthly bachat is included; pending amounts are
         // deliberately excluded from accumulated savings.
         reconcileSeededSavingsFromCollections();
+
+        // Dedicated Secretary Login for Group 3, matching the President demo profile.
+        User group3Secretary = new User("secretary3", passwordEncoder.encode("admin123"),
+                "secretary3@bachatgat.org", "Surekha Maruti Jagtap", Role.SECRETARY,
+                group3.getId(), "LSBG-M002");
+        group3Secretary.setId("usr-secretary-03");
+        group3Secretary.setFullNameMr("सुरेखा मारुती जगताप");
+        group3Secretary.setFullNameHi("सुरेखा मारुती जगताप");
+        group3Secretary.setMobileNumber("9823422222");
+        group3Secretary.setDesignation("SECRETARY");
+        group3Secretary.setFirstLogin(false);
+        users.put(group3Secretary.getId(), group3Secretary);
 
         // Group 3 Loans:
         // Loan 7: Suman Gaikwad (LSBG-M001)

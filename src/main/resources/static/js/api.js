@@ -498,6 +498,13 @@ class ApiClient {
     });
   }
 
+  recordLoanPartialPayment(loanId, paymentData) {
+    return this.request(`/admin/loans/${loanId}/partial-payment`, {
+      method: 'POST',
+      body: paymentData
+    });
+  }
+
   recordLoanExtraPayment(loanId, extraPaymentData) {
     return this.request(`/admin/loans/${loanId}/extra-payment`, {
       method: 'POST',

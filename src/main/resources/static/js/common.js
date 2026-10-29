@@ -611,6 +611,32 @@ const Common = {
     const observer = new MutationObserver(markTables);
     observer.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('beforeunload', () => observer.disconnect(), { once: true });
+  },
+
+  /**
+   * Exports each supplied HTML table as its own UTF-8 XLSX workbook.
+   * CSV is intentionally not used here because CSV has no sheet/tab concept.
+   */
+  async downloadTableWorkbooks(tables, filePrefix = 'bachatgat-table') {
+    const list = (tables || []).filter(Boolean);
+    if (!list.length) throw new Error('No table data to export.');
+    if (!window.XLSX) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Excel export library could not be loaded.'));
+        document.head.appendChild(script);
+      });
+    }
+    const date = new Date().toISOString().slice(0, 10);
+    list.forEach((table, index) => {
+      const sheet = XLSX.utils.table_to_sheet(table, { raw: false });
+      const book = XLSX.utils.book_new();
+      const title = (table.getAttribute('data-export-name') || `Table-${index + 1}`).slice(0, 31);
+      XLSX.utils.book_append_sheet(book, sheet, title);
+      XLSX.writeFile(book, `${filePrefix}-${title.replace(/[^a-z0-9_-]+/gi, '_')}-${date}.xlsx`);
+    });
   }
 };
 

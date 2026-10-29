@@ -3,6 +3,7 @@ package com.bachatgat.controller;
 import com.bachatgat.dto.ApiResponse;
 import com.bachatgat.dto.LoanExtraPaymentRequest;
 import com.bachatgat.dto.LoanRepaymentRequest;
+import com.bachatgat.dto.LoanPartialPaymentRequest;
 import com.bachatgat.model.*;
 import com.bachatgat.security.GroupSecurityService;
 import com.bachatgat.security.UserPrincipal;
@@ -176,6 +177,17 @@ public class AdminLoanController {
         groupSecurityService.validateGroupAccess(principal, loan.getGroupId());
         Loan updated = loanService.recordRepayment(id, request, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("Repayment recorded successfully", updated));
+    }
+
+    @PostMapping("/{id}/partial-payment")
+    public ResponseEntity<ApiResponse<Loan>> recordPartialPayment(
+            @PathVariable String id,
+            @Valid @RequestBody LoanPartialPaymentRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Loan loan = loanService.getLoanById(id);
+        groupSecurityService.validateGroupAccess(principal, loan.getGroupId());
+        Loan updated = loanService.recordPartialPayment(id, request, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("Partial payment recorded successfully", updated));
     }
 
     @PostMapping("/{id}/extra-payment")

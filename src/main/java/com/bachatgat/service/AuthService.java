@@ -14,10 +14,15 @@ import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Role;
 import com.bachatgat.model.User;
 import com.bachatgat.repository.FirestoreDataService;
+import com.bachatgat.repository.GroupRepository;
+import com.bachatgat.repository.UserRepository;
 import com.bachatgat.security.JwtTokenProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,19 +32,71 @@ import java.util.stream.Collectors;
 public class AuthService {
 
     private final FirestoreDataService dataService;
+    private final UserRepository userRepository;
+    private final GroupRepository groupRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final AuditService auditService;
+    private final String bootstrapAdminToken;
+    private final String adminPasswordResetToken;
 
-    public AuthService(FirestoreDataService dataService, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, AuditService auditService) {
+    public AuthService(FirestoreDataService dataService, UserRepository userRepository, GroupRepository groupRepository, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider, AuditService auditService,
+                       @Value("${app.bootstrap.admin-token:}") String bootstrapAdminToken,
+                       @Value("${app.admin.password-reset-token:}") String adminPasswordResetToken) {
         this.dataService = dataService;
+        this.userRepository = userRepository;
+        this.groupRepository = groupRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenProvider = tokenProvider;
         this.auditService = auditService;
+        this.bootstrapAdminToken = bootstrapAdminToken;
+        this.adminPasswordResetToken = adminPasswordResetToken;
+    }
+
+    /**
+     * Temporary break-glass recovery for the already-existing production
+     * superadmin. The token must be supplied through an environment variable;
+     * it is never stored in Firestore and the password is stored only as a
+     * BCrypt hash.
+     */
+    public void resetExistingSuperAdminPassword(String suppliedToken,
+                                                com.bachatgat.dto.ResetSuperAdminPasswordRequest request) {
+        if (adminPasswordResetToken == null || adminPasswordResetToken.isBlank()
+                || suppliedToken == null
+                || !MessageDigest.isEqual(adminPasswordResetToken.getBytes(StandardCharsets.UTF_8), suppliedToken.getBytes(StandardCharsets.UTF_8))) {
+            throw new UnauthorizedException("Administrator password recovery is not enabled.");
+        }
+
+        User superAdmin = userRepository.findByUsername("superadmin")
+                .filter(user -> user.getRole() == Role.SUPER_ADMIN)
+                .orElseThrow(() -> new ResourceNotFoundException("Existing super administrator was not found."));
+
+        superAdmin.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        superAdmin.setFirstLogin(false);
+        superAdmin.setActive(true);
+        userRepository.save(superAdmin);
+    }
+
+    public void bootstrapInitialSuperAdmin(String suppliedToken, com.bachatgat.dto.BootstrapAdminRequest request) {
+        if (bootstrapAdminToken == null || bootstrapAdminToken.isBlank()
+                || suppliedToken == null
+                || !MessageDigest.isEqual(bootstrapAdminToken.getBytes(StandardCharsets.UTF_8), suppliedToken.getBytes(StandardCharsets.UTF_8))) {
+            throw new UnauthorizedException("Initial administrator bootstrap is not enabled.");
+        }
+        if (userRepository.findByRole(Role.SUPER_ADMIN).stream().findAny().isPresent()) {
+            throw new InvalidFinancialOperationException("A super administrator already exists.");
+        }
+
+        User user = new User(request.getUsername().trim(), passwordEncoder.encode(request.getPassword()),
+                request.getEmail().trim(), request.getFullName().trim(), Role.SUPER_ADMIN, null, null);
+        user.setDesignation("SUPER_ADMIN");
+        user.setFirstLogin(false);
+        user.setActive(true);
+        dataService.createInitialSuperAdmin(user);
     }
 
     public List<GroupDropdownDTO> getPublicGroups() {
-        return dataService.getAllGroups().stream()
+        return groupRepository.findAll().stream()
                 .filter(g -> "ACTIVE".equalsIgnoreCase(g.getStatus()))
                 .map(g -> new GroupDropdownDTO(
                         g.getId(),
@@ -59,7 +116,7 @@ public class AuthService {
         String normalized = query == null ? "" : query.trim().toLowerCase();
         if (normalized.isBlank()) return List.of();
 
-        return dataService.getAllGroups().stream()
+        return groupRepository.findAll().stream()
                 .filter(g -> "ACTIVE".equalsIgnoreCase(g.getStatus()))
                 .filter(g -> contains(g.getGroupName(), normalized)
                         || contains(g.getGroupCode(), normalized)
@@ -83,11 +140,11 @@ public class AuthService {
 
     public List<MemberDropdownDTO> getPublicGroupMembers(String groupId) {
         List<MemberDropdownDTO> list = new ArrayList<>();
-        Group group = dataService.findGroupById(groupId).orElse(null);
+        Group group = groupRepository.findById(groupId).orElse(null);
 
         // 1. Include President / Group Admin user if not in members list
         if (group != null) {
-            List<User> groupUsers = dataService.getAllUsers().stream()
+            List<User> groupUsers = userRepository.findAll().stream()
                     .filter(u -> groupId.equals(u.getGroupId()))
                     .collect(Collectors.toList());
 
@@ -139,25 +196,25 @@ public class AuthService {
             }
 
             // Look for Secretary or Treasurer accounts first
-            Optional<User> uOpt = dataService.getAllUsers().stream()
+            Optional<User> uOpt = userRepository.findAll().stream()
                     .filter(u -> groupId.equals(u.getGroupId())
                             && u.getRole() == Role.SECRETARY
                             && (m.getMemberId().equalsIgnoreCase(u.getMemberId()) || m.getFullName().equalsIgnoreCase(u.getFullName())))
                     .findFirst()
-                    .or(() -> dataService.getAllUsers().stream()
+                    .or(() -> userRepository.findAll().stream()
                             .filter(u -> groupId.equals(u.getGroupId())
                                     && u.getRole() == Role.TREASURER
                                     && (m.getMemberId().equalsIgnoreCase(u.getMemberId()) || m.getFullName().equalsIgnoreCase(u.getFullName())))
                             .findFirst())
-                    .or(() -> dataService.getAllUsers().stream()
+                    .or(() -> userRepository.findAll().stream()
                             .filter(u -> groupId.equals(u.getGroupId())
                                     && "member".equalsIgnoreCase(u.getUsername())
                                     && m.getMemberId().equalsIgnoreCase(u.getMemberId()))
                             .findFirst())
-                    .or(() -> dataService.findUserByMemberId(m.getMemberId()))
-                    .or(() -> dataService.findUserByUsername(m.getMobileNumber()))
+                    .or(() -> userRepository.findByMemberId(m.getMemberId()))
+                    .or(() -> userRepository.findByUsername(m.getMobileNumber()))
                     .or(() -> (m.getLoginUsername() != null && !m.getLoginUsername().isBlank())
-                            ? dataService.findUserByUsername(m.getLoginUsername())
+                            ? userRepository.findByUsername(m.getLoginUsername())
                             : Optional.empty());
 
             MemberDropdownDTO dto = new MemberDropdownDTO();
@@ -217,7 +274,7 @@ public class AuthService {
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             // Direct Username / Mobile / Email Login (Super Admin, President, or Direct User)
             String ident = request.getUsername().trim();
-            List<User> candidates = dataService.findUsersByIdentifier(ident);
+            List<User> candidates = userRepository.findByIdentifier(ident);
             if (candidates.isEmpty()) {
                 throw new UnauthorizedException("Invalid username or password");
             }
@@ -227,8 +284,8 @@ public class AuthService {
                     .orElse(candidates.get(0));
         } else if (request.getMemberId() != null && !request.getMemberId().isBlank()) {
             // Support Member Login via Group + Member Selection
-            user = dataService.findUserById(request.getMemberId())
-                    .or(() -> dataService.findUserByUsername(request.getMemberId()))
+            user = userRepository.findById(request.getMemberId())
+                    .or(() -> userRepository.findByUsername(request.getMemberId()))
                     .orElse(null);
 
             if (user == null) {
@@ -241,10 +298,10 @@ public class AuthService {
                     throw new UnauthorizedException("Selected member does not belong to this Bachat Gat");
                 }
 
-                user = dataService.findUserByMemberId(member.getMemberId())
-                        .or(() -> dataService.findUserByUsername(member.getMobileNumber()))
+                user = userRepository.findByMemberId(member.getMemberId())
+                        .or(() -> userRepository.findByUsername(member.getMobileNumber()))
                         .or(() -> (member.getLoginUsername() != null && !member.getLoginUsername().isBlank())
-                                ? dataService.findUserByUsername(member.getLoginUsername())
+                                ? userRepository.findByUsername(member.getLoginUsername())
                                 : Optional.empty())
                         .orElseThrow(() -> new UnauthorizedException("Member login account has not been configured by the Group President. Please contact your administrator."));
             }
@@ -275,7 +332,7 @@ public class AuthService {
         String groupNameMr = "";
         String groupNameHi = "";
         if (user.getGroupId() != null) {
-            Optional<Group> groupOpt = dataService.findGroupById(user.getGroupId());
+            Optional<Group> groupOpt = groupRepository.findById(user.getGroupId());
             if (groupOpt.isPresent()) {
                 Group g = groupOpt.get();
                 groupCode = g.getGroupCode() != null ? g.getGroupCode() : g.getId();
@@ -329,16 +386,16 @@ public class AuthService {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new InvalidFinancialOperationException("New password and confirm password do not match");
         }
-        User user = dataService.findUserByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setFirstLogin(false);
-        dataService.saveUser(user);
+        userRepository.save(user);
     }
 
     public void changePassword(String username, ChangePasswordRequest request) {
-        User user = dataService.findUserByUsername(username)
+        User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
@@ -347,27 +404,27 @@ public class AuthService {
 
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         user.setFirstLogin(false);
-        dataService.saveUser(user);
+        userRepository.save(user);
     }
 
     public void changeUsername(String currentUsername, com.bachatgat.dto.ChangeUsernameRequest request) {
         if (!request.getNewUsername().equals(request.getConfirmUsername())) {
             throw new InvalidFinancialOperationException("New username and confirmation do not match");
         }
-        User user = dataService.findUserByUsername(currentUsername)
+        User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         String newUsername = request.getNewUsername().trim();
-        dataService.findUserByUsername(newUsername).ifPresent(existing -> {
+        userRepository.findByUsername(newUsername).ifPresent(existing -> {
             if (!existing.getId().equals(user.getId())) {
                 throw new InvalidFinancialOperationException("Username already exists");
             }
         });
         user.setUsername(newUsername);
-        dataService.saveUser(user);
+        userRepository.save(user);
     }
 
     public User getCurrentUser(String username) {
-        return dataService.findUserByUsername(username)
+        return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
@@ -398,8 +455,8 @@ public class AuthService {
         }
 
         // Look up existing user account or create if none exists
-        User user = dataService.findUserByMemberId(member.getMemberId())
-                .or(() -> dataService.findUserByUsername(member.getMobileNumber()))
+        User user = userRepository.findByMemberId(member.getMemberId())
+                .or(() -> userRepository.findByUsername(member.getMobileNumber()))
                 .orElseGet(() -> {
                     User newUser = new User(member.getMobileNumber(),
                             passwordEncoder.encode(request.getPassword()),
@@ -424,7 +481,7 @@ public class AuthService {
         user.setActive(true);
         user.setGroupId(member.getGroupId());
         user.setMemberId(member.getMemberId());
-        dataService.saveUser(user);
+        userRepository.save(user);
 
         member.setHasLoginAccount(true);
         member.setLoginUsername(user.getUsername());
@@ -443,7 +500,7 @@ public class AuthService {
         );
 
         String token = tokenProvider.generateToken(user);
-        Optional<Group> groupOpt = dataService.findGroupById(user.getGroupId());
+        Optional<Group> groupOpt = groupRepository.findById(user.getGroupId());
         String groupName = groupOpt.map(Group::getGroupName).orElse("");
         String groupCode = groupOpt.map(Group::getGroupCode).orElse("");
 

@@ -4,6 +4,7 @@ import com.bachatgat.dto.LoanApplicationRequest;
 import com.bachatgat.dto.LoanApprovalRequest;
 import com.bachatgat.dto.LoanExtraPaymentRequest;
 import com.bachatgat.dto.LoanRepaymentRequest;
+import com.bachatgat.dto.LoanPartialPaymentRequest;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
 import org.junit.jupiter.api.DisplayName;
@@ -78,6 +79,14 @@ class LoanApprovalAndRepaymentTest {
         assertEquals(new BigDecimal("4400.00"), afterRepay.getTotalPaid());
         assertEquals(new BigDecimal("39600.00"), afterRepay.getTotalOutstanding());
 
+        // The repayment was recorded before the first due date in this test.
+        // The schedule must still persist the actual principal component and
+        // reduce closing principal; future-row pending visibility must not
+        // prevent balance allocation.
+        List<LoanRepaymentSchedule> afterRepaySchedule = loanService.getLoanSchedule(loan.getId());
+        assertEquals(new BigDecimal("36000.00"), afterRepaySchedule.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("36000.00"), afterRepaySchedule.get(1).getOpeningPrincipal());
+
         // 4. Admin records extra principal prepayment of ₹10,000
         LoanExtraPaymentRequest extraReq = new LoanExtraPaymentRequest();
         extraReq.setAmount(BigDecimal.valueOf(10000));
@@ -88,5 +97,30 @@ class LoanApprovalAndRepaymentTest {
         Loan afterExtra = loanService.recordExtraPayment(loan.getId(), extraReq, "admin");
         assertEquals(new BigDecimal("14000.00"), afterExtra.getPrincipalPaid());
         assertEquals(new BigDecimal("29600.00"), afterExtra.getTotalOutstanding());
+    }
+
+    @Test
+    @DisplayName("Partial interest-only payment leaves principal unchanged for the next month")
+    void testInterestOnlyPartialPaymentDoesNotReducePrincipal() {
+        Loan before = loanService.getLoanById("LN-2026-002");
+        BigDecimal principalBefore = before.getOutstandingPrincipal();
+        BigDecimal interestBefore = before.getOutstandingInterest();
+        BigDecimal interestPaidBefore = before.getInterestPaid();
+        BigDecimal principalPaidBefore = before.getPrincipalPaid();
+
+        LoanPartialPaymentRequest request = new LoanPartialPaymentRequest();
+        request.setAmount(new BigDecimal("500.00"));
+        request.setLoanInterestAmount(new BigDecimal("500.00"));
+        request.setPaymentDate(LocalDate.now());
+        request.setPaymentMethod("CASH");
+        request.setReferenceNumber("PARTIAL-INTEREST-" + System.nanoTime());
+
+        Loan after = loanService.recordPartialPayment(before.getId(), request, "admin");
+
+        assertEquals(0, principalBefore.compareTo(after.getOutstandingPrincipal()));
+        assertEquals(0, interestBefore.subtract(new BigDecimal("500.00")).compareTo(after.getOutstandingInterest()));
+        assertEquals(0, after.getPrincipalPaid().compareTo(principalPaidBefore));
+        assertEquals(0, after.getInterestPaid().subtract(interestPaidBefore).compareTo(new BigDecimal("500.00")));
+        assertTrue(dataService.getLoanSchedule(after.getId()).stream().anyMatch(item -> item.getStatus() == RepaymentStatus.PARTIAL));
     }
 }

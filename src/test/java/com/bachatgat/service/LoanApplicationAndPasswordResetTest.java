@@ -33,6 +33,9 @@ class LoanApplicationAndPasswordResetTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private GroupFundService groupFundService;
+
     private String adminToken;
     private String userToken;
     private String group2AdminToken;
@@ -63,7 +66,10 @@ class LoanApplicationAndPasswordResetTest {
 
         // Step 1: Member submits loan application
         LoanApplicationRequest appReq = new LoanApplicationRequest();
-        appReq.setRequestedAmount(BigDecimal.valueOf(35000));
+        // Use one rupee above the current seeded lending capacity so this test remains
+        // valid if demo ledger amounts change.
+        BigDecimal requestedAmount = groupFundService.getLendingCapacity("bg-001").add(BigDecimal.ONE);
+        appReq.setRequestedAmount(requestedAmount);
         appReq.setPurpose("Education");
         appReq.setPreferredDurationMonths(12);
         appReq.setRepaymentPeriodMonths(12);

@@ -104,6 +104,7 @@ class MultiCategoryPaymentTest {
         req.setPaymentMethod("CASH");
         req.setIdempotencyKey("IDEMP-TEST-MISMATCH-" + System.currentTimeMillis());
         req.setPaymentStatus("SUCCESS");
+        req.setPaymentDate(LocalDate.of(2026, 8, 5)); // Keep this validation test on time; allocation mismatch is the intended failure.
 
         com.bachatgat.exception.InvalidFinancialOperationException ex = assertThrows(
                 com.bachatgat.exception.InvalidFinancialOperationException.class, () ->
@@ -127,6 +128,7 @@ class MultiCategoryPaymentTest {
         req1.setIdempotencyKey(idempotencyKey);
         req1.setPaymentMethod("UPI");
         req1.setPaymentStatus("SUCCESS");
+        req1.setPaymentDate(LocalDate.of(2026, 9, 5)); // Avoid late-penalty validation masking the idempotency assertion.
 
         collectionService.recordPayment(groupId, req1, "admin");
 
@@ -140,6 +142,7 @@ class MultiCategoryPaymentTest {
         req2.setIdempotencyKey(idempotencyKey);
         req2.setPaymentMethod("UPI");
         req2.setPaymentStatus("SUCCESS");
+        req2.setPaymentDate(LocalDate.of(2026, 9, 5));
 
         com.bachatgat.exception.DuplicateRecordException ex = assertThrows(
                 com.bachatgat.exception.DuplicateRecordException.class, () ->

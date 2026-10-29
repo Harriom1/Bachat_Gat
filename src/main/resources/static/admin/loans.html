@@ -1042,22 +1042,14 @@
       }
     }
 
-    function exportLoansCSV() {
+    async function exportLoansCSV() {
       if (!groupLoans || groupLoans.length === 0) {
         Common.showToast('No loans to export', 'info');
         return;
       }
-      let csv = 'Loan ID,Member ID,Borrower Name,Principal,Interest Rate,Tenure Months,Monthly EMI,Total Paid,Total Outstanding,Next Due Date,Status\\n';
-      groupLoans.forEach(l => {
-        csv += `"${l.loanId}","${l.memberId}","${l.memberName}",${l.principalAmount},${l.interestRate},${l.durationMonths || 12},${l.monthlyInstallment},${l.totalPaid},${l.totalOutstanding},"${l.nextDueDate || ''}","${l.status}"\\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `BachatGat_Loans_Report_${new Date().toISOString().split('T')[0]}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const tables = Array.from(document.querySelectorAll('table.data-table'));
+      await Common.downloadTableWorkbooks(tables, 'BachatGat-loans');
+      Common.showToast('Each loan table was downloaded as a separate Excel workbook.', 'success');
     }
   </script>
 </body>

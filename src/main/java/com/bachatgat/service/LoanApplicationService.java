@@ -215,7 +215,10 @@ public class LoanApplicationService {
 
         if ("REDUCING".equalsIgnoreCase(interestType) || "REDUCING_BALANCE".equalsIgnoreCase(interestType)) {
             interestType = "REDUCING";
-            schedules = FinancialCalculator.generateBachatGatReducingSchedule(approvedPrincipal, rate, isMonthlyRate, durationMonths, LocalDate.now());
+            // Use the standard reducing-balance EMI schedule. Interest is
+            // calculated on the opening principal each month and the final
+            // installment absorbs any rounding remainder.
+            schedules = FinancialCalculator.generateAmortizationSchedule(approvedPrincipal, rate, isMonthlyRate, durationMonths, LocalDate.now());
             monthlyInstallment = !schedules.isEmpty() ? schedules.get(0).getEmiAmount() : approvedPrincipal.divide(BigDecimal.valueOf(durationMonths), 0, RoundingMode.HALF_UP);
             totalInterest = schedules.stream()
                     .map(LoanRepaymentSchedule::getInterestAmount)

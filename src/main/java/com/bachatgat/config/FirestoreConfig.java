@@ -13,7 +13,7 @@ public class FirestoreConfig {
 
     private static final Logger log = LoggerFactory.getLogger(FirestoreConfig.class);
 
-    @Value("${gcp.project-id:midc-doc-uploader-revamp}")
+    @Value("${gcp.project-id:bachat-gat-development}")
     private String projectId;
 
     @Value("${gcp.firestore.database:(default)}")

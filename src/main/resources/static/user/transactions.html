@@ -282,24 +282,13 @@
       }).join('');
     }
 
-    function exportToCsv() {
+    async function exportToCsv() {
       if (!filteredTransactions || filteredTransactions.length === 0) {
         Common.showToast('No transactions to export', 'warning');
         return;
       }
-      let csv = 'Transaction ID,Date,Type,Loan Ref,Principal,Interest,Total Amount,Description\n';
-      filteredTransactions.forEach(t => {
-        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `my_transactions_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      await Common.downloadTableWorkbooks([document.querySelector('table.data-table')], 'my-transactions');
+      Common.showToast('Transactions Excel workbook downloaded.', 'success');
     }
 
     function escapeHtml(str) {

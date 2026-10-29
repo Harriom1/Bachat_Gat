@@ -4,6 +4,9 @@ import com.bachatgat.dto.*;
 import com.bachatgat.model.PaymentOrder;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.PaymentService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +21,11 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final ObjectMapper objectMapper;
 
-    public PaymentController(PaymentService paymentService) {
+    public PaymentController(PaymentService paymentService, ObjectMapper objectMapper) {
         this.paymentService = paymentService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -66,9 +71,15 @@ public class PaymentController {
      */
     @PostMapping("/webhook")
     public ResponseEntity<ApiResponse<PaymentReceiptDTO>> handleWebhook(
-            @RequestBody Map<String, Object> payload,
+            @RequestBody String rawPayload,
             @RequestHeader(value = "X-Razorpay-Signature", required = false) String signature) {
-        PaymentReceiptDTO receipt = paymentService.processWebhook(payload, signature);
+        final Map<String, Object> payload;
+        try {
+            payload = objectMapper.readValue(rawPayload, new TypeReference<>() {});
+        } catch (JsonProcessingException ex) {
+            throw new com.bachatgat.exception.InvalidFinancialOperationException("Invalid webhook JSON payload");
+        }
+        PaymentReceiptDTO receipt = paymentService.processWebhook(payload, signature, rawPayload);
         return ResponseEntity.ok(ApiResponse.ok("Webhook processed successfully", receipt));
     }
 

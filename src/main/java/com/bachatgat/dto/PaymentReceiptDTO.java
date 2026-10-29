@@ -25,6 +25,7 @@ public class PaymentReceiptDTO {
     private String status;
     private boolean verified;
     private String message;
+    private String receivedBy;
 
     public PaymentReceiptDTO() {}
 
@@ -89,4 +90,7 @@ public class PaymentReceiptDTO {
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public String getReceivedBy() { return receivedBy; }
+    public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
 }

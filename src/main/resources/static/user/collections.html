@@ -345,12 +345,20 @@
           <span id="rec-order-id" style="font-family:monospace;">-</span>
         </div>
         <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Bachat Gat:</span>
+          <strong id="rec-group-name">-</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
           <span class="text-muted">Amount Paid:</span>
           <strong id="rec-amount" style="color:#15803d;">-</strong>
         </div>
         <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
           <span class="text-muted">Payment Mode:</span>
           <span id="rec-method">-</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.35rem;">
+          <span class="text-muted">Received By:</span>
+          <span id="rec-received-by">-</span>
         </div>
         <div style="display:flex; justify-content:space-between;">
           <span class="text-muted">Date & Time:</span>
@@ -608,6 +616,8 @@
       }
     }
 
+    const collectionReceiptCache = {};
+
     function renderCollections(list) {
       const tbody = document.getElementById('user-collections-tbody');
       if (!list || list.length === 0) {
@@ -630,8 +640,10 @@
 
         let actionHtml = '';
         if (isPaid) {
+          const receiptKey = `collection-receipt-${c.id || c.referenceNumber || Math.random().toString(36).slice(2)}`;
+          collectionReceiptCache[receiptKey] = c;
           actionHtml = `
-            <button type="button" class="btn btn-sm btn-outline-custom collection-row-action" title="View receipt" aria-label="View receipt" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="viewReceiptForCollection('${escapeHtml(c.referenceNumber || c.id)}')">
+            <button type="button" class="btn btn-sm btn-outline-custom collection-row-action" title="View receipt" aria-label="View receipt" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="viewReceiptForCollection('${receiptKey}')">
               <svg class="action-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 3h14v18l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21V3Z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg><span class="action-label">${receiptTxt}</span>
             </button>
           `;
@@ -784,9 +796,11 @@
     function showPaymentReceiptModal(receipt, orderId) {
       document.getElementById('rec-number').textContent = receipt.receiptNumber || 'REC-' + Date.now();
       document.getElementById('rec-order-id').textContent = receipt.orderId || orderId || '-';
-      document.getElementById('rec-amount').textContent = Common.formatIndianCurrency(receipt.totalAmount || (activePaymentContext ? activePaymentContext.totalAmount : 0));
+      document.getElementById('rec-group-name').textContent = receipt.groupName || 'Bachat Gat';
+      document.getElementById('rec-amount').textContent = Common.formatIndianCurrency(receipt.amount || (activePaymentContext ? activePaymentContext.totalAmount : 0));
       document.getElementById('rec-method').textContent = receipt.paymentMethod || selectedPaymentMode;
-      document.getElementById('rec-timestamp').textContent = receipt.transactionTimestamp ? Common.formatDateTime(receipt.transactionTimestamp) : Common.formatDateTime(new Date());
+      document.getElementById('rec-received-by').textContent = receipt.receivedBy || 'SYSTEM / GATEWAY';
+      document.getElementById('rec-timestamp').textContent = receipt.paymentDate ? Common.formatDateTime(receipt.paymentDate) : Common.formatDateTime(new Date());
 
       Common.openModal('modal-payment-receipt');
     }
@@ -796,11 +810,16 @@
     }
 
     function viewReceiptForCollection(ref) {
-      document.getElementById('rec-number').textContent = ref;
-      document.getElementById('rec-order-id').textContent = 'ORD-VERIFIED';
-      document.getElementById('rec-amount').textContent = 'Verified Deposit';
-      document.getElementById('rec-method').textContent = 'ONLINE / BANK';
-      document.getElementById('rec-timestamp').textContent = 'Audited & Confirmed';
+      const collection = collectionReceiptCache[ref] || {};
+      document.getElementById('rec-number').textContent = collection.referenceNumber || ref;
+      document.getElementById('rec-order-id').textContent = collection.orderId || collection.id || '-';
+      document.getElementById('rec-group-name').textContent = collection.groupName || 'Bachat Gat';
+      document.getElementById('rec-amount').textContent = Common.formatIndianCurrency(
+        parseFloat(collection.paidAmount || 0) + parseFloat(collection.paidLateFee || 0));
+      document.getElementById('rec-method').textContent = collection.paymentMethod || '-';
+      document.getElementById('rec-received-by').textContent = collection.receivedBy || 'SYSTEM / GATEWAY';
+      document.getElementById('rec-timestamp').textContent = collection.paymentDate
+        ? Common.formatDateTime(collection.paymentDate) : '-';
 
       Common.openModal('modal-payment-receipt');
     }

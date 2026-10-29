@@ -2,6 +2,8 @@ package com.bachatgat.service;
 
 import com.bachatgat.dto.LoanExtraPaymentRequest;
 import com.bachatgat.dto.LoanRepaymentRequest;
+import com.bachatgat.dto.LoanPartialPaymentRequest;
+import com.bachatgat.dto.CollectionPaymentRequest;
 import com.bachatgat.exception.InvalidFinancialOperationException;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.*;
@@ -22,15 +24,18 @@ public class LoanService {
     private final NotificationService notificationService;
     private final AuditService auditService;
     private final DistributionService distributionService;
+    private final CollectionService collectionService;
 
     public LoanService(FirestoreDataService dataService, TransactionService transactionService,
                        NotificationService notificationService, AuditService auditService,
-                       @org.springframework.context.annotation.Lazy DistributionService distributionService) {
+                       @org.springframework.context.annotation.Lazy DistributionService distributionService,
+                       @org.springframework.context.annotation.Lazy CollectionService collectionService) {
         this.dataService = dataService;
         this.transactionService = transactionService;
         this.notificationService = notificationService;
         this.auditService = auditService;
         this.distributionService = distributionService;
+        this.collectionService = collectionService;
     }
 
     public List<Loan> getLoansByGroupId(String groupId) {
@@ -49,6 +54,155 @@ public class LoanService {
 
     public List<LoanRepaymentSchedule> getLoanSchedule(String loanId) {
         return dataService.getLoanSchedule(loanId);
+    }
+
+    /**
+     * Records an internal, administrator-approved partial payment. Each
+     * component is explicit so paying interest alone never reduces principal.
+     */
+    public Loan recordPartialPayment(String loanId, LoanPartialPaymentRequest request, String adminUsername) {
+        Loan loan = getLoanById(loanId);
+        BigDecimal penalty = money(request.getPenaltyAmount());
+        BigDecimal bachat = money(request.getMonthlyBachatAmount());
+        BigDecimal principal = money(request.getLoanPrincipalAmount());
+        BigDecimal interest = money(request.getLoanInterestAmount());
+        BigDecimal total = money(request.getAmount());
+        BigDecimal calculated = penalty.add(bachat).add(principal).add(interest);
+
+        if (request.isPayBachatOnly() && (penalty.signum() > 0 || principal.signum() > 0 || interest.signum() > 0)) {
+            throw new InvalidFinancialOperationException("Bachat-only payment cannot include penalty or loan components.");
+        }
+        if (calculated.compareTo(total) != 0) {
+            throw new InvalidFinancialOperationException("Selected payment components must equal the amount received.");
+        }
+        if (principal.compareTo(loan.getOutstandingPrincipal()) > 0) {
+            throw new InvalidFinancialOperationException("Principal payment exceeds the outstanding principal.");
+        }
+        if (interest.compareTo(loan.getOutstandingInterest()) > 0) {
+            throw new InvalidFinancialOperationException("Interest payment exceeds the outstanding interest.");
+        }
+        if (request.getReferenceNumber() != null && !request.getReferenceNumber().isBlank()
+                && dataService.findTransactionByReference(request.getReferenceNumber()).isPresent()) {
+            throw new InvalidFinancialOperationException("A payment with this reference already exists.");
+        }
+
+        LocalDate paymentDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
+        if (penalty.add(bachat).signum() > 0) {
+            CollectionPaymentRequest collection = new CollectionPaymentRequest();
+            collection.setMemberId(loan.getMemberId());
+            collection.setMonth(paymentDate.getMonthValue());
+            collection.setYear(paymentDate.getYear());
+            collection.setAmount(penalty.add(bachat));
+            collection.setShareAmount(bachat);
+            collection.setLateFeeAmount(penalty);
+            collection.setWaivedLateFee(BigDecimal.ZERO);
+            collection.setPaymentDate(paymentDate);
+            collection.setPaymentMethod(request.getPaymentMethod());
+            collection.setReferenceNumber(request.getReferenceNumber());
+            collection.setIdempotencyKey("PARTIAL-" + loan.getLoanId() + "-" + (request.getReferenceNumber() != null ? request.getReferenceNumber() : System.nanoTime()));
+            collection.setPaymentStatus("SUCCESS");
+            collection.setNotes(request.getNotes());
+            collectionService.recordPayment(loan.getGroupId(), collection, adminUsername);
+        }
+
+        BigDecimal loanPayment = principal.add(interest);
+        if (loanPayment.signum() > 0) {
+            List<LoanRepaymentSchedule> schedule = dataService.getLoanSchedule(loan.getId());
+            applyPartialSchedulePayment(schedule, principal, interest, paymentDate);
+            dataService.saveLoanSchedule(loan.getId(), schedule);
+            // Rebuild all future rows from the updated payment history. This
+            // is what makes interest-only payment and no-payment arrears
+            // behave differently in the next month.
+            schedule = dataService.getLoanSchedule(loan.getId());
+
+            loan.setPrincipalPaid(loan.getPrincipalPaid().add(principal));
+            loan.setInterestPaid(loan.getInterestPaid().add(interest));
+            loan.setTotalPaid(loan.getTotalPaid().add(loanPayment));
+            BigDecimal originalPrincipal = money(loan.getPrincipalAmount());
+            loan.setOutstandingPrincipal(originalPrincipal.subtract(loan.getPrincipalPaid()).max(BigDecimal.ZERO));
+            loan.setOutstandingInterest(calculateProjectedInterest(loan, schedule)
+                    .subtract(loan.getInterestPaid()).max(BigDecimal.ZERO));
+            loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(loan.getOutstandingInterest()));
+            loan.setStatus(loan.getTotalOutstanding().signum() <= 0 ? LoanStatus.COMPLETED : LoanStatus.PARTIALLY_PAID);
+            schedule.stream().filter(s -> s.getStatus() != RepaymentStatus.PAID).findFirst()
+                    .ifPresent(next -> loan.setNextDueDate(next.getDueDate()));
+
+            Loan savedLoan = dataService.saveLoan(loan);
+            dataService.findMemberByMemberId(loan.getMemberId()).ifPresent(member -> {
+                member.setCurrentLoanOutstanding(savedLoan.getTotalOutstanding());
+                member.setTotalLoanInterestPaid(savedLoan.getInterestPaid());
+                if (savedLoan.getStatus() == LoanStatus.COMPLETED) member.setActiveLoanId(null);
+                dataService.saveMember(member);
+            });
+            dataService.findGroupById(loan.getGroupId()).ifPresent(group -> {
+                group.setTotalLoanOutstanding((group.getTotalLoanOutstanding() != null ? group.getTotalLoanOutstanding() : BigDecimal.ZERO)
+                        .subtract(loanPayment).max(BigDecimal.ZERO));
+                dataService.saveGroup(group);
+            });
+            transactionService.recordTransaction(loan.getGroupId(), loan.getMemberId(), loan.getMemberName(), loan.getLoanId(),
+                    TransactionType.LOAN_REPAYMENT, loanPayment, principal, interest, paymentDate,
+                    request.getReferenceNumber(), "Partial loan payment (Principal: ₹" + principal + ", Interest: ₹" + interest + ")",
+                    request.getPaymentMethod(), adminUsername);
+            if (interest.signum() > 0 && distributionService != null) {
+                distributionService.distributeLoanInterest(loan.getGroupId(), loan.getLoanId(), loan.getMemberId(), interest, paymentDate, adminUsername);
+            }
+            auditService.log(loan.getGroupId(), adminUsername, adminUsername, "PARTIAL_LOAN_PAYMENT", "LOAN", loan.getLoanId(), null,
+                    "Partial payment recorded: ₹" + total, "127.0.0.1");
+            return savedLoan;
+        }
+
+        auditService.log(loan.getGroupId(), adminUsername, adminUsername, "PARTIAL_COLLECTION_PAYMENT", "LOAN", loan.getLoanId(), null,
+                "Bachat/penalty-only payment recorded: ₹" + total, "127.0.0.1");
+        return loan;
+    }
+
+    private void applyPartialSchedulePayment(List<LoanRepaymentSchedule> schedule, BigDecimal principal, BigDecimal interest, LocalDate paymentDate) {
+        BigDecimal remainingInterest = interest;
+        BigDecimal remainingPrincipal = principal;
+        for (LoanRepaymentSchedule item : schedule) {
+            BigDecimal scheduledInterest = item.getInterestAmount() != null ? item.getInterestAmount() : BigDecimal.ZERO;
+            BigDecimal scheduledPrincipal = item.getPrincipalAmount() != null ? item.getPrincipalAmount() : BigDecimal.ZERO;
+            BigDecimal alreadyPaidInterest = item.getPaidInterestAmount();
+            BigDecimal alreadyPaidPrincipal = item.getPaidPrincipalAmount();
+            if (alreadyPaidInterest.signum() == 0 && alreadyPaidPrincipal.signum() == 0 && item.getPaidAmount() != null && item.getPaidAmount().signum() > 0) {
+                alreadyPaidInterest = item.getPaidAmount().min(scheduledInterest);
+                alreadyPaidPrincipal = item.getPaidAmount().subtract(alreadyPaidInterest).max(BigDecimal.ZERO).min(scheduledPrincipal);
+            }
+            BigDecimal interestApplied = remainingInterest.min(scheduledInterest.subtract(alreadyPaidInterest).max(BigDecimal.ZERO));
+            BigDecimal principalApplied = remainingPrincipal.min(scheduledPrincipal.subtract(alreadyPaidPrincipal).max(BigDecimal.ZERO));
+            if (interestApplied.signum() == 0 && principalApplied.signum() == 0) continue;
+            item.setPaidInterestAmount(alreadyPaidInterest.add(interestApplied));
+            item.setPaidPrincipalAmount(alreadyPaidPrincipal.add(principalApplied));
+            item.setPaidAmount(item.getPaidInterestAmount().add(item.getPaidPrincipalAmount()));
+            item.setOutstandingAmount(item.getTotalDue().subtract(item.getPaidAmount()).max(BigDecimal.ZERO));
+            item.setPaidDate(paymentDate);
+            item.setStatus(item.getOutstandingAmount().signum() == 0 ? RepaymentStatus.PAID : RepaymentStatus.PARTIAL);
+            remainingInterest = remainingInterest.subtract(interestApplied);
+            remainingPrincipal = remainingPrincipal.subtract(principalApplied);
+            if (remainingInterest.signum() == 0 && remainingPrincipal.signum() == 0) break;
+        }
+    }
+
+    private BigDecimal money(BigDecimal amount) {
+        if (amount == null) return BigDecimal.ZERO.setScale(2);
+        if (amount.signum() < 0 || amount.scale() > 2) throw new InvalidFinancialOperationException("Payment amounts must be non-negative with at most 2 decimals.");
+        return FinancialCalculator.round(amount);
+    }
+
+    private BigDecimal calculateProjectedInterest(Loan loan, List<LoanRepaymentSchedule> schedule) {
+        if ("FLAT".equalsIgnoreCase(loan.getInterestType())) {
+            return money(loan.getTotalInterest());
+        }
+        // Contractual interest is the standard reducing-balance interest for
+        // the original tenure.  Do not sum arrears rows: those rows include
+        // carried-forward dues and would count the same interest repeatedly.
+        BigDecimal rate = loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO;
+        boolean monthlyRate = rate.compareTo(BigDecimal.valueOf(5.0)) <= 0;
+        return FinancialCalculator.round(FinancialCalculator.generateAmortizationSchedule(
+                loan.getPrincipalAmount(), rate, monthlyRate,
+                Math.max(1, loan.getDurationMonths()), loan.getDisbursementDate()).stream()
+                .map(LoanRepaymentSchedule::getInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     /**
@@ -137,17 +291,9 @@ public class LoanService {
                 .findFirst()
                 .orElse(null);
 
-        if (currentInst != null) {
-            BigDecimal installmentOutstanding = currentInst.getOutstandingAmount() != null
-                    ? currentInst.getOutstandingAmount()
-                    : currentInst.getTotalDue().subtract(currentInst.getPaidAmount()).max(BigDecimal.ZERO);
-            if (paymentAmount.compareTo(installmentOutstanding) != 0) {
-                throw new InvalidFinancialOperationException(
-                        "Partial loan installment payments are not allowed. The full current installment of ₹"
-                                + installmentOutstanding + " must be paid."
-                );
-            }
-        }
+        // Partial repayment is allowed. The amount is allocated to the
+        // current installment and its status remains PARTIAL until the
+        // unpaid balance is received.
 
         BigDecimal scheduledInterestDue;
         if (currentInst != null && currentInst.getInterestAmount() != null && currentInst.getInterestAmount().compareTo(BigDecimal.ZERO) > 0) {
@@ -179,28 +325,16 @@ public class LoanService {
         loan.setOutstandingInterest(loan.getOutstandingInterest().subtract(interestComponent));
         loan.setTotalOutstanding(loan.getTotalOutstanding().subtract(paymentAmount));
 
-        // Update Repayment Schedules
-        BigDecimal remainingForSchedule = paymentAmount;
-
-        for (LoanRepaymentSchedule item : schedule) {
-            if (item.getStatus() != RepaymentStatus.PAID && remainingForSchedule.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal needed = item.getOutstandingAmount() != null
-                        ? item.getOutstandingAmount() : BigDecimal.ZERO;
-                if (remainingForSchedule.compareTo(needed) >= 0) {
-                    item.setPaidAmount(item.getPaidAmount().add(needed));
-                    item.setOutstandingAmount(BigDecimal.ZERO);
-                    item.setStatus(RepaymentStatus.PAID);
-                    item.setPaidDate(request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
-                    remainingForSchedule = remainingForSchedule.subtract(needed);
-                } else {
-                    item.setPaidAmount(item.getPaidAmount().add(remainingForSchedule));
-                    item.setOutstandingAmount(needed.subtract(remainingForSchedule));
-                    item.setStatus(RepaymentStatus.PARTIAL);
-                    item.setPaidDate(request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
-                    remainingForSchedule = BigDecimal.ZERO;
-                }
-            }
-        }
+        // Update the component ledger, not only the displayed pending amount.
+        // Future installments deliberately expose ₹0 pending until their due
+        // date, but a payment can still be recorded against them.  Using the
+        // explicit components ensures principal paid is persisted and the
+        // recalculated closing principal moves immediately.
+        applyPartialSchedulePayment(
+                schedule,
+                principalComponent,
+                interestComponent,
+                request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
         dataService.saveLoanSchedule(loan.getId(), schedule);
 
         // Check if fully settled
@@ -373,7 +507,7 @@ public class LoanService {
         boolean monthlyRate = "REDUCING".equalsIgnoreCase(loan.getInterestType())
                 && loan.getInterestRate() != null
                 && loan.getInterestRate().compareTo(BigDecimal.valueOf(5)) <= 0;
-        List<LoanRepaymentSchedule> rebuilt = FinancialCalculator.generateBachatGatReducingSchedule(
+        List<LoanRepaymentSchedule> rebuilt = FinancialCalculator.generateAmortizationSchedule(
                 loan.getOutstandingPrincipal(), loan.getInterestRate(), monthlyRate, remainingMonths, startDate);
         int nextInstallment = paid.size() + 1;
         BigDecimal futureInterest = BigDecimal.ZERO;

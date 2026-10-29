@@ -513,5 +513,174 @@
   "newUsername": "नवीन वापरकर्ता नाव",
   "confirmNewUsername": "नवीन वापरकर्ता नावाची पुष्टी करा",
   "saveUsername": "वापरकर्ता नाव जतन करा",
-  "usernameChangedRelogin": "वापरकर्ता नाव बदलले. कृपया पुन्हा प्रवेश करा."
+  "usernameChangedRelogin": "वापरकर्ता नाव बदलले. कृपया पुन्हा प्रवेश करा.",
+  "backToLoans": "कर्ज यादीकडे परत",
+  "recordRepayment": "परतफेड नोंदवा",
+  "extraPrepayment": "अतिरिक्त पूर्वपरतफेड",
+  "printStatement": "स्टेटमेंट प्रिंट करा",
+  "sanctionedPrincipal": "मंजूर मुद्दल",
+  "principalRepaid": "परत केलेले मुद्दल",
+  "directPrincipalReduction": "थेट मुद्दल कपात",
+  "remainingPrincipal": "शिल्लक मुद्दल",
+  "futureInterestBase": "पुढील व्याजासाठी आधार",
+  "totalOutstandingDues": "एकूण शिल्लक देय",
+  "remainingPrincipalAccruedInterest": "शिल्लक मुद्दल + जमा व्याज",
+  "loanTermsAmortization": "कर्ज अटी व परतफेड गणना",
+  "monthlyEmi": "मासिक EMI",
+  "tenureDuration": "कालावधी",
+  "totalInterestAccrued": "एकूण जमा व्याज",
+  "interestPaidToDate": "आजपर्यंत भरलेले व्याज",
+  "remainingInterestDue": "शिल्लक व्याज देय",
+  "nextInstallmentDue": "पुढील हप्ता देय",
+  "reducingBalanceSchedule": "घटती शिल्लक परतफेड वेळापत्रक",
+  "scheduleCalculationHelp": "BigDecimal घटती शिल्लक सूत्राने Java backend मध्ये अचूक गणना",
+  "serialNumber": "अनुक्रमांक",
+  "dueDate": "देय दिनांक",
+  "openingPrincipal": "सुरुवातीचे मुद्दल (₹)",
+  "principalComponent": "मुद्दल भाग (₹)",
+  "interestComponent": "व्याज भाग (₹)",
+  "emiAmount": "EMI रक्कम (₹)",
+  "paidAmount": "भरलेले (₹)",
+  "closingPrincipal": "शेवटचे मुद्दल (₹)",
+  "recordLoanRepayment": "कर्ज परतफेड नोंदवा",
+  "fullCurrentInstallment": "सध्याचा पूर्ण हप्ता (₹)",
+  "scheduledMonthlyEmi": "नियोजित मासिक EMI:",
+  "paymentDate": "भरणा दिनांक",
+  "referenceReceiptNumber": "संदर्भ / पावती क्रमांक",
+  "notes": "शेरा",
+  "saveRepayment": "परतफेड जतन करा",
+  "partialPayment": "अंशतः भरणा",
+  "partialPaymentAllocation": "अंशतः भरणा वाटप",
+  "partialPaymentHelp": "सदस्याने प्रत्यक्ष भरलेले घटक निवडा. न निवडलेली रक्कम बाकी राहील; फक्त व्याज भरल्यास मुद्दल कमी होणार नाही.",
+  "receivedAmount": "प्राप्त रक्कम (₹)",
+  "penaltyAmount": "दंड रक्कम",
+  "monthlyBachat": "मासिक बचत",
+  "loanPrincipal": "कर्ज मुद्दल",
+  "loanInterest": "कर्ज व्याज",
+  "payBachatOnly": "फक्त बचत भरा",
+  "savePartialPayment": "अंशतः भरणा जतन करा",
+  "partialPaymentSaved": "अंशतः भरणा यशस्वीरीत्या जतन केला.",
+  "groupFundAccountingTransparency": "गट निधी लेखा पारदर्शकता तपशील",
+  "accountingBreakdown": "लेखा तपशील",
+  "singleSourceOfTruth": "सत्याचा एकमेव स्रोत",
+  "groupFinancialOverview": "गट आर्थिक आढावा",
+  "liveAuditVerified": "थेट लेखापरीक्षण सत्यापित",
+  "currentGroupFund": "सध्याचा गट निधी",
+  "availableGroupCashLiquidity": "उपलब्ध गट रोख तरलता",
+  "totalGroupFund": "एकूण गट निधी",
+  "totalMonthlyCollection": "एकूण मासिक जमा",
+  "totalLoansGiven": "दिलेली एकूण कर्जे",
+  "totalInterestIncome": "एकूण व्याज उत्पन्न",
+  "groupExpenses": "गट खर्च",
+  "loansDisbursed": "वाटप केलेली कर्जे",
+  "principalRepaid": "परतफेड केलेले मुद्दल",
+  "currentAvailableFund": "सध्याचा उपलब्ध निधी",
+  "pendingSharePayments": "प्रलंबित बचत भरणे",
+  "pendingLoanPayments": "प्रलंबित कर्ज भरणे",
+  "upcomingMemberCollections": "आगामी सदस्य जमा",
+  "fullRegister": "पूर्ण नोंदवही",
+  "locationSchedule": "स्थान व वेळापत्रक",
+  "villageTown": "गाव / शहर",
+  "talukaDistrict": "तालुका व जिल्हा",
+  "statePin": "राज्य व पिन",
+  "dueDate": "देय दिनांक",
+  "bankName": "बँकेचे नाव",
+  "branch": "शाखा",
+  "accountNumber": "खाते क्रमांक",
+  "ifscCode": "IFSC कोड",
+  "upiId": "UPI आयडी",
+  "memberRefunds": "सदस्य परतावा",
+  "memberRefundsSubtitle": "गट निधीतून राखीव निर्गमन परतावे; बँक स्थिती स्वतंत्रपणे अद्ययावत केली जाते.",
+  "requestDate": "विनंती दिनांक",
+  "expectedCredit": "अपेक्षित जमा",
+  "loadingRefunds": "परतावे लोड होत आहेत...",
+  "noRefunds": "सदस्य परतावे नोंदलेले नाहीत.",
+  "refreshStatus": "स्थिती ताजी करा",
+  "loanApprovalsDisbursement": "कर्ज मंजुरी व वितरण",
+  "monthlyEmiCollectionStatus": "मासिक EMI जमा स्थिती",
+  "exportCsv": "CSV निर्यात करा",
+  "selectPeriod": "कालावधी निवडा:",
+  "loadReport": "अहवाल लोड करा",
+  "monthlyBachatCollectionAudit": "मासिक बचत जमा लेखापरीक्षण",
+  "totalExpectedMonthlyBachat": "अपेक्षित एकूण मासिक बचत",
+  "monthlyBachatCollected": "जमा केलेली मासिक बचत",
+  "monthlyBachatPending": "प्रलंबित मासिक बचत",
+  "monthlyBachatPenalty": "मासिक बचत दंड",
+  "openingFund": "प्रारंभिक निधी",
+  "remainingFund": "शिल्लक निधी",
+  "loanPrincipalRecovered": "वसूल केलेले कर्ज मुद्दल",
+  "loanDisbursement": "कर्ज वितरण",
+  "monthlyExpenses": "मासिक खर्च",
+  "monthlyBachatPaidMembers": "मासिक बचत भरलेले सदस्य",
+  "monthlyBachatNotPaidMembers": "मासिक बचत न भरलेले सदस्य",
+  "allMembersSavingsLoanPosition": "सर्व सदस्य — बचत व कर्ज स्थिती",
+  "dateTime": "दिनांक व वेळ",
+  "transactionType": "व्यवहार प्रकार",
+  "loanRef": "कर्ज संदर्भ",
+  "totalAmount": "एकूण रक्कम (₹)",
+  "allCategories": "सर्व श्रेणी",
+  "allMonths": "सर्व महिने",
+  "allYears": "सर्व वर्षे",
+  "allMembers": "सर्व सदस्य",
+  "monthlySavings": "मासिक बचत",
+  "loanDisbursementCategory": "कर्ज वितरण",
+  "repaymentEmi": "परतफेड (EMI)",
+  "additionalPrincipal": "अतिरिक्त मुद्दल",
+  "incomeAndPenalties": "उत्पन्न व दंड",
+  "reportAndStatement": "अहवाल व विवरण",
+  "collectionLoanRules": "जमा व कर्ज नियम",
+  "googleCloudIntegration": "Google Cloud प्लॅटफॉर्म एकत्रीकरण",
+  "monthlySavingsShare": "मासिक बचत हिस्सा (₹)",
+  "defaultLoanInterest": "डिफॉल्ट कर्ज व्याज (%)",
+  "gracePeriod": "सवलत कालावधी (दिवस)",
+  "latePaymentFee": "उशीर भरणा शुल्क (₹)",
+  "maxLoanLimit": "कमाल कर्ज मर्यादा (₹)",
+  "maxActiveLoans": "कमाल सक्रिय कर्जे",
+  "minMembership": "किमान सदस्यत्व (महिने)",
+  "saveBusinessRules": "व्यवसाय नियम जतन करा",
+  "changePassword": "पासवर्ड बदला",
+  "cloudSchedulerPubSub": "Cloud Scheduler व Pub/Sub",
+  "actions": "कृती",
+  "srNo": "अनु. क्र.",
+  "contact": "संपर्क",
+  "member": "सदस्य",
+  "pay": "भरा",
+  "payNow": "आता भरा",
+  "refreshPending": "प्रलंबित ताजी करा",
+  "paymentDate": "भरणा दिनांक",
+  "paymentMode": "भरणा पद्धत",
+  "totalPayable": "एकूण देय"
+  ,"groupOverview": "गट आर्थिक आढावा"
+  ,"designatedOfficeBearers": "नियुक्त पदाधिकारी"
+  ,"financialSummary": "डॅशबोर्ड आर्थिक सारांश"
+  ,"activeStanding": "१००% सक्रिय स्थिती"
+  ,"expected": "अपेक्षित"
+  ,"separatelyLedgedShareCapital": "स्वतंत्र नोंदवलेले बचत भांडवल"
+  ,"disbursed": "वाटप केलेले"
+  ,"pendingLoanApplicationsReview": "पुनरावलोकनासाठी प्रलंबित कर्ज अर्ज"
+  ,"registerNewMember": "नवीन सदस्य नोंदणी"
+  ,"previous": "मागील"
+  ,"next": "पुढील"
+  ,"noMemberRefunds": "सदस्य परतावे नोंदलेले नाहीत."
+  ,"designatedBankAccount": "अधिकृत बँक खाते"
+  ,"monthlyLoanPaymentEmi": "मासिक भरणा / EMI (₹)"
+  ,"borrower": "कर्जदार"
+  ,"sanctioned": "मंजूर (₹)"
+  ,"rateTenure": "दर / कालावधी"
+  ,"paidAmount": "भरलेली रक्कम (₹)"
+  ,"remainingPrincipal": "शिल्लक मुद्दल"
+  ,"monthlyLoanRepaymentSchedule": "कर्ज परतफेड वेळापत्रक"
+  ,"paymentHistory": "भरणा इतिहास"
+  ,"totalInflow": "एकूण आवक"
+  ,"totalOutflow": "एकूण जावक"
+  ,"netBalanceImpact": "निव्वळ शिल्लक परिणाम"
+  ,"recordedTransactions": "नोंदवलेले व्यवहार"
+  ,"memberName": "सदस्याचे नाव"
+  ,"paymentDateLabel": "भरणा दिनांक"
+  ,"paymentDateColumn": "भरणा दिनांक"
+  ,"january": "जानेवारी", "february": "फेब्रुवारी", "march": "मार्च", "april": "एप्रिल", "may": "मे", "june": "जून", "july": "जुलै", "august": "ऑगस्ट", "september": "सप्टेंबर", "october": "ऑक्टोबर", "november": "नोव्हेंबर", "december": "डिसेंबर"
+  ,"jan": "जाने", "feb": "फेब्रु", "mar": "मार्च", "apr": "एप्रि", "jun": "जून", "jul": "जुलै", "aug": "ऑग", "sep": "सप्टें", "oct": "ऑक्टो", "nov": "नोव्हें", "dec": "डिसें"
+  ,"groupRegistrationId": "गट नोंदणी ओळख: ", "govtRegistrationNo": "शासकीय बचत गट नोंदणी क्र.:", "groupCode": "गट कोड:", "formationDate": "स्थापना दिनांक:", "monthlyBachatLabel": "मासिक बचत:", "primaryPhone": "प्राथमिक फोन:", "email": "ईमेल:", "meetingLocation": "बैठकीचे ठिकाण:", "meetingDay": "बैठकीचा दिवस:", "meetingTime": "बैठकीची वेळ:"
+  ,"memberRefundsTable": "सदस्य परतावा", "refundAmount": "रक्कम", "refundStatus": "स्थिती", "refundAction": "कृती"
+  ,"totalSavingsLabel": "एकूण बचत", "loanInterestLabel": "कर्ज व्याज", "otherIncomeLabel": "इतर उत्पन्न"
 }

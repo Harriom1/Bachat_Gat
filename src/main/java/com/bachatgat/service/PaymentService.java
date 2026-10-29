@@ -31,6 +31,7 @@ public class PaymentService {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
     private final String hmacSecret;
+    private final boolean webhookSecretConfigured;
 
     private final FirestoreDataService dataService;
     private final CollectionService collectionService;
@@ -60,9 +61,11 @@ public class PaymentService {
         this.auditService = auditService;
         if (configuredHmacSecret == null || configuredHmacSecret.isBlank()) {
             this.hmacSecret = UUID.randomUUID().toString() + UUID.randomUUID();
+            this.webhookSecretConfigured = false;
             log.warn("payment.hmac-secret is not configured; using an ephemeral signing key. Configure it before enabling a real gateway.");
         } else {
             this.hmacSecret = configuredHmacSecret;
+            this.webhookSecretConfigured = true;
         }
     }
 
@@ -316,6 +319,12 @@ public class PaymentService {
         String groupId = groupSecurityService.resolveTargetGroupId(adminPrincipal, request.getGroupId());
         groupSecurityService.validateGroupAccess(adminPrincipal, groupId);
 
+        if (request.getReceivedBy() != null && !request.getReceivedBy().isBlank()
+                && !"PRESIDENT".equalsIgnoreCase(request.getReceivedBy())
+                && !"SECRETARY".equalsIgnoreCase(request.getReceivedBy())) {
+            throw new InvalidFinancialOperationException("Payments may be received only by the President or Secretary.");
+        }
+
         Member member = memberService.getMemberByMemberId(request.getMemberId());
         if (!member.getGroupId().equalsIgnoreCase(groupId)) {
             throw new ForbiddenException("Member does not belong to your Bachat Gat group.");
@@ -374,6 +383,7 @@ public class PaymentService {
         order.setStatus("SUCCESS");
         order.setReceiptNumber(receiptNumber);
         order.setCompletedAt(LocalDateTime.now());
+        order.setReceivedBy(request.getReceivedBy());
         order.setNotes(request.getNotes() != null ? request.getNotes() : "Manual payment recorded by admin " + adminPrincipal.getUsername());
 
         // Delegate to collection service
@@ -410,6 +420,19 @@ public class PaymentService {
      * Webhook receiver for payment gateways (e.g. Razorpay/Cashfree).
      */
     public PaymentReceiptDTO processWebhook(Map<String, Object> payload, String signatureHeader) {
+        return processWebhook(payload, signatureHeader, null);
+    }
+
+    /**
+     * Processes a gateway webhook only after verifying the signature over the
+     * exact raw request body. Razorpay sends an HMAC-SHA256 hex signature;
+     * Base64 is also accepted for gateways configured that way.
+     */
+    public PaymentReceiptDTO processWebhook(Map<String, Object> payload, String signatureHeader, String rawPayload) {
+        if (!verifyWebhookSignature(rawPayload, signatureHeader)) {
+            log.warn("Security alert: rejected webhook with invalid or missing signature");
+            throw new InvalidFinancialOperationException("Webhook signature verification failed.");
+        }
         log.info("Processing gateway webhook: {}", payload);
         String rawOrderId = (String) payload.get("orderId");
         if (rawOrderId == null && payload.containsKey("order_id")) {
@@ -486,9 +509,23 @@ public class PaymentService {
         dto.setTransactionId(order.getReferenceNumber() != null ? order.getReferenceNumber() : order.getOrderId());
         dto.setGroupId(order.getGroupId());
 
-        Group g = groupService.getGroupById(order.getGroupId());
-        dto.setGroupName(g != null ? g.getName() : "Bachat Gat");
-        dto.setGroupRegistrationNumber(g != null ? g.getRegistrationNumber() : "");
+        Group g = null;
+        try {
+            if (order.getGroupId() != null && !order.getGroupId().isBlank()) {
+                g = groupService.getGroupById(order.getGroupId());
+            }
+        } catch (RuntimeException ignored) {
+            // Older payment orders may contain a stale/missing group index.
+        }
+        String groupName = g != null ? g.getName() : null;
+        String registrationNumber = g != null ? g.getRegistrationNumber() : "";
+        if ((groupName == null || groupName.isBlank()) && order.getMemberId() != null) {
+            groupName = dataService.findMemberByMemberId(order.getMemberId())
+                    .map(com.bachatgat.model.Member::getGroupName)
+                    .orElse(null);
+        }
+        dto.setGroupName(groupName != null && !groupName.isBlank() ? groupName : "Bachat Gat");
+        dto.setGroupRegistrationNumber(registrationNumber);
 
         dto.setMemberId(order.getMemberId());
         dto.setMemberName(order.getMemberName());
@@ -504,6 +541,7 @@ public class PaymentService {
         dto.setStatus(order.getStatus());
         dto.setVerified("SUCCESS".equalsIgnoreCase(order.getStatus()));
         dto.setMessage(message);
+        dto.setReceivedBy(order.getReceivedBy());
         return dto;
     }
 
@@ -524,5 +562,25 @@ public class PaymentService {
         if (token == null || token.isBlank()) return false;
         String expected = generateSignatureToken(orderId, amount, memberId);
         return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private boolean verifyWebhookSignature(String rawPayload, String signatureHeader) {
+        if (!webhookSecretConfigured || rawPayload == null || rawPayload.isBlank()
+                || signatureHeader == null || signatureHeader.isBlank()) {
+            return false;
+        }
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(hmacSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] digest = mac.doFinal(rawPayload.getBytes(StandardCharsets.UTF_8));
+            String expectedHex = HexFormat.of().formatHex(digest);
+            String expectedBase64 = Base64.getEncoder().encodeToString(digest);
+            byte[] supplied = signatureHeader.getBytes(StandardCharsets.UTF_8);
+            return MessageDigest.isEqual(expectedHex.getBytes(StandardCharsets.UTF_8), supplied)
+                    || MessageDigest.isEqual(expectedBase64.getBytes(StandardCharsets.UTF_8), supplied);
+        } catch (Exception ex) {
+            log.error("Unable to verify webhook signature", ex);
+            return false;
+        }
     }
 }

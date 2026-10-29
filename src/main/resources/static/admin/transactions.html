@@ -672,25 +672,15 @@
       }
     }
 
-    function exportToCsv() {
+    async function exportToCsv() {
       const exportList = currentFilteredTransactions && currentFilteredTransactions.length > 0 ? currentFilteredTransactions : allTransactions;
       if (!exportList || exportList.length === 0) {
         Common.showToast('No transactions to export', 'warning');
         return;
       }
-      let csv = 'Transaction ID,Date,Type,Member Name,Loan ID,Principal,Interest,Total Amount,Description,Recorded By\n';
-      exportList.forEach(t => {
-        csv += `"${t.id}","${t.date || t.createdAt}","${t.type}","${(t.memberName || t.memberId || '').replace(/"/g, '""')}","${t.loanId || ''}","${t.principalAmount || 0}","${t.interestAmount || 0}","${t.amount || 0}","${(t.description || '').replace(/"/g, '""')}","${t.createdBy || ''}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', `transactions_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const table = document.querySelector('#transactions-table, table.data-table');
+      await Common.downloadTableWorkbooks([table], 'transactions');
+      Common.showToast('Transactions Excel workbook downloaded.', 'success');
     }
 
     function escapeHtml(str) {

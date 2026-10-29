@@ -36,6 +36,7 @@ public class PaymentOrder {
     private String status = "CREATED"; // CREATED, PENDING, SUCCESS, FAILED, CANCELLED, REFUNDED
     private String receiptNumber;
     private String notes;
+    private String receivedBy;
 
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -133,6 +134,9 @@ public class PaymentOrder {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getReceivedBy() { return receivedBy; }
+    public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

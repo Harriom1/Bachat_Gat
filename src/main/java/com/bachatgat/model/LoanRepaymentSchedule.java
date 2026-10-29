@@ -20,6 +20,8 @@ public class LoanRepaymentSchedule {
     private BigDecimal penaltyAmount = BigDecimal.ZERO;
     private BigDecimal totalDue = BigDecimal.ZERO;
     private BigDecimal paidAmount = BigDecimal.ZERO;
+    private BigDecimal paidPrincipalAmount = BigDecimal.ZERO;
+    private BigDecimal paidInterestAmount = BigDecimal.ZERO;
     private BigDecimal outstandingAmount = BigDecimal.ZERO;
     private BigDecimal closingPrincipal = BigDecimal.ZERO;
     private RepaymentStatus status = RepaymentStatus.UPCOMING;
@@ -60,6 +62,10 @@ public class LoanRepaymentSchedule {
     public void setTotalDue(BigDecimal totalDue) { this.totalDue = totalDue; }
     public BigDecimal getPaidAmount() { return paidAmount; }
     public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
+    public BigDecimal getPaidPrincipalAmount() { return paidPrincipalAmount != null ? paidPrincipalAmount : BigDecimal.ZERO; }
+    public void setPaidPrincipalAmount(BigDecimal paidPrincipalAmount) { this.paidPrincipalAmount = paidPrincipalAmount; }
+    public BigDecimal getPaidInterestAmount() { return paidInterestAmount != null ? paidInterestAmount : BigDecimal.ZERO; }
+    public void setPaidInterestAmount(BigDecimal paidInterestAmount) { this.paidInterestAmount = paidInterestAmount; }
     public BigDecimal getOutstandingAmount() { return outstandingAmount; }
     public void setOutstandingAmount(BigDecimal outstandingAmount) { this.outstandingAmount = outstandingAmount; }
     public BigDecimal getClosingPrincipal() { return closingPrincipal != null ? closingPrincipal : BigDecimal.ZERO; }

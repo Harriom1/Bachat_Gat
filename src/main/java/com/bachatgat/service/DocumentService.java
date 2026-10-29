@@ -1,6 +1,7 @@
 package com.bachatgat.service;
 
 import com.bachatgat.exception.ResourceNotFoundException;
+import com.bachatgat.exception.InvalidFinancialOperationException;
 import com.bachatgat.model.DocumentRecord;
 import com.bachatgat.repository.FirestoreDataService;
 import com.google.cloud.storage.Blob;
@@ -27,28 +28,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class DocumentService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
+    private static final long MAX_DOCUMENT_BYTES = 10L * 1024L * 1024L;
+    private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
+            "application/pdf", "image/jpeg", "image/png");
 
     private final FirestoreDataService dataService;
     private final Storage storage;
     private final Map<String, byte[]> fileCache = new ConcurrentHashMap<>();
     private final Map<String, String> contentTypeCache = new ConcurrentHashMap<>();
 
-    @Value("${gcp.storage.bucket:midc-doc-uploader-revamp-bachatgat-docs}")
+    @Value("${gcp.storage.bucket:bachat-gat-development-docs-2026}")
     private String bucketName;
 
     private final Path uploadDir = Paths.get("uploads", "documents");
 
     @Autowired
-    public DocumentService(FirestoreDataService dataService, @Autowired(required = false) Storage storage) {
+    public DocumentService(FirestoreDataService dataService,
+                           @Autowired(required = false) Storage storage,
+                           @Value("${gcp.firestore.emulator.enabled:false}") boolean firestoreEmulatorEnabled) {
         this.dataService = dataService;
         Storage resolvedStorage = null;
-        if (storage != null) {
+        if (firestoreEmulatorEnabled) {
+            log.info("Firestore emulator profile active; Cloud Storage writes are disabled for this process.");
+        } else if (storage != null) {
             resolvedStorage = storage;
         } else {
             try {
@@ -67,10 +77,13 @@ public class DocumentService {
 
     public DocumentRecord uploadDocument(String groupId, String memberId, String loanId,
                                          String documentType, MultipartFile file, String uploadedBy) throws IOException {
+        validateUpload(file);
         String docId = "DOC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "document.pdf";
+        String originalFilename = sanitizeFilename(file.getOriginalFilename());
+        String safeGroupId = sanitizePathSegment(groupId, "group");
+        String safeMemberId = sanitizePathSegment(memberId, "group");
         String objectPath = String.format("groups/%s/members/%s/documents/%s_%s",
-                groupId, memberId != null ? memberId : "group", docId, originalFilename);
+                safeGroupId, safeMemberId, docId, originalFilename);
 
         byte[] bytes = file.getBytes();
         String contentType = file.getContentType() != null ? file.getContentType() : "application/pdf";
@@ -82,7 +95,7 @@ public class DocumentService {
 
         // 2. Save locally on disk
         try {
-            Path groupMemberDir = uploadDir.resolve(groupId).resolve(memberId != null ? memberId : "group");
+            Path groupMemberDir = uploadDir.resolve(safeGroupId).resolve(safeMemberId);
             Files.createDirectories(groupMemberDir);
             Path localFilePath = groupMemberDir.resolve(docId + "_" + originalFilename);
             Files.write(localFilePath, bytes);
@@ -119,6 +132,62 @@ public class DocumentService {
         doc.setStatus("VERIFIED");
 
         return dataService.saveDocument(doc);
+    }
+
+    private void validateUpload(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidFinancialOperationException("Document file is required and cannot be empty.");
+        }
+        if (file.getSize() > MAX_DOCUMENT_BYTES) {
+            throw new InvalidFinancialOperationException("Document file must not exceed 10 MB.");
+        }
+        String contentType = file.getContentType() == null
+                ? "" : file.getContentType().toLowerCase(Locale.ROOT);
+        if (!ALLOWED_CONTENT_TYPES.contains(contentType)) {
+            throw new InvalidFinancialOperationException("Only PDF, JPEG, and PNG documents are allowed.");
+        }
+        String filename = sanitizeFilename(file.getOriginalFilename());
+        String extension = filename.contains(".")
+                ? filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT) : "";
+        boolean extensionMatches = ("application/pdf".equals(contentType) && "pdf".equals(extension))
+                || ("image/jpeg".equals(contentType) && Set.of("jpg", "jpeg").contains(extension))
+                || ("image/png".equals(contentType) && "png".equals(extension));
+        if (!extensionMatches) {
+            throw new InvalidFinancialOperationException("Filename extension does not match the document content type.");
+        }
+
+        byte[] bytes = file.getBytes();
+        boolean validHeader = ("application/pdf".equals(contentType)
+                && bytes.length >= 5
+                && bytes[0] == '%'
+                && bytes[1] == 'P' && bytes[2] == 'D' && bytes[3] == 'F' && bytes[4] == '-')
+                || ("image/jpeg".equals(contentType)
+                && bytes.length >= 3
+                && (bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xFF) == 0xD8 && (bytes[2] & 0xFF) == 0xFF)
+                || ("image/png".equals(contentType)
+                && bytes.length >= 8
+                && (bytes[0] & 0xFF) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G'
+                && (bytes[4] & 0xFF) == 0x0D && (bytes[5] & 0xFF) == 0x0A
+                && (bytes[6] & 0xFF) == 0x1A && (bytes[7] & 0xFF) == 0x0A);
+        if (!validHeader) {
+            throw new InvalidFinancialOperationException("Document content does not match its declared file type.");
+        }
+    }
+
+    private String sanitizeFilename(String filename) {
+        String candidate = filename == null || filename.isBlank() ? "document.pdf" : filename;
+        candidate = candidate.replace('\\', '/');
+        candidate = candidate.substring(candidate.lastIndexOf('/') + 1);
+        candidate = candidate.replaceAll("[^A-Za-z0-9._-]", "_");
+        candidate = candidate.replaceAll("\\.{2,}", ".");
+        if (candidate.isBlank() || candidate.startsWith(".")) candidate = "document.pdf";
+        return candidate.length() > 120 ? candidate.substring(0, 120) : candidate;
+    }
+
+    private String sanitizePathSegment(String value, String fallback) {
+        if (value == null || value.isBlank()) return fallback;
+        String safe = value.replaceAll("[^A-Za-z0-9_-]", "_");
+        return safe.isBlank() ? fallback : safe;
     }
 
     public List<DocumentRecord> getMemberDocuments(String memberId) {
@@ -197,8 +266,8 @@ public class DocumentService {
             }
         }
 
-        // 4. Generate high-fidelity verified PDF document
-        return generateVerificationPdf(doc, identifier);
+        // Never fabricate content for an unknown or unavailable document.
+        throw new ResourceNotFoundException("Document content is unavailable for: " + identifier);
     }
 
     public String getDocumentContentType(String identifier) {

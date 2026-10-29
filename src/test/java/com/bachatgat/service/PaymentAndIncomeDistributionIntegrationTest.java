@@ -112,6 +112,8 @@ class PaymentAndIncomeDistributionIntegrationTest {
         orderReq.setAmount(BigDecimal.valueOf(5000));
         orderReq.setPaymentType("MONTHLY_SAVINGS");
         orderReq.setShareAmount(BigDecimal.valueOf(5000));
+        orderReq.setMonth(1);
+        orderReq.setYear(2027); // Future period keeps this payment-flow test independent of today's date and prior emulator runs.
         orderReq.setIdempotencyKey("ORD-TEST-" + System.currentTimeMillis());
 
         MvcResult orderRes = mockMvc.perform(post("/api/payments/order")
@@ -197,17 +199,52 @@ class PaymentAndIncomeDistributionIntegrationTest {
     }
 
     @Test
+    @DisplayName("Webhook with invalid gateway signature is rejected before payment processing")
+    void testWebhookRejectsInvalidSignature() throws Exception {
+        PaymentOrderRequest orderReq = new PaymentOrderRequest();
+        orderReq.setAmount(BigDecimal.valueOf(5000));
+        orderReq.setIdempotencyKey("ORD-WEBHOOK-" + System.currentTimeMillis());
+        orderReq.setMonth(1);
+        orderReq.setYear(2027);
+
+        MvcResult orderRes = mockMvc.perform(post("/api/payments/order")
+                        .header("Authorization", "Bearer " + userToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(orderReq)))
+                .andExpect(status().isOk())
+                .andReturn();
+        String orderId = objectMapper.readTree(orderRes.getResponse().getContentAsString())
+                .path("data").path("orderId").asText();
+
+        Map<String, Object> payload = Map.of(
+                "orderId", orderId,
+                "event", "payment.captured",
+                "payment_id", "FAKE-WEBHOOK-PAYMENT",
+                "method", "UPI",
+                "reference_id", "FAKE-WEBHOOK-REFERENCE");
+
+        mockMvc.perform(post("/api/payments/webhook")
+                        .header("X-Razorpay-Signature", "invalid-signature")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
     @DisplayName("Admin can record Manual Payment and digital receipt is generated")
     void testAdminManualPaymentRecording() throws Exception {
+        LocalDate testPaymentDate = LocalDate.now().plusMonths(2).withDayOfMonth(5);
         Map<String, Object> manualReq = Map.of(
                 "groupId", "bg-001",
                 "memberId", "MPBG-M001",
                 "amount", 5000.0,
                 "paymentType", "SAVINGS",
                 "paymentMethod", "CASH",
-                "month", 3,
-                "year", 2026,
-                "referenceNumber", "MAN-REC-001"
+                "month", testPaymentDate.getMonthValue(),
+                "year", testPaymentDate.getYear(),
+                "paymentDate", testPaymentDate.toString(),
+                "referenceNumber", "MAN-REC-" + System.currentTimeMillis()
         );
 
         mockMvc.perform(post("/api/payments/manual")

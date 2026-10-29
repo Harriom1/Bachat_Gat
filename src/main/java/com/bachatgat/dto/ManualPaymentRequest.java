@@ -34,6 +34,8 @@ public class ManualPaymentRequest {
 
     private String referenceNumber;
     private String notes;
+    /** Authorized person who received the money; restricted by the controller/service to President or Secretary. */
+    private String receivedBy;
 
     public ManualPaymentRequest() {}
 
@@ -89,4 +91,7 @@ public class ManualPaymentRequest {
 
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public String getReceivedBy() { return receivedBy; }
+    public void setReceivedBy(String receivedBy) { this.receivedBy = receivedBy; }
 }

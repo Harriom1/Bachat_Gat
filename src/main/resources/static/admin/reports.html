@@ -1215,22 +1215,18 @@
       Common.showToast('Report CSV exported successfully!', 'success');
     }
 
-    // Export only the two approved group-level tables.
-    function exportCurrentReportCSV() {
-      const tables = document.querySelectorAll('#monthly-member-ledger, #monthly-loan-ledger');
-      const rows = [];
-      tables.forEach(body => {
-        const table = body.closest('table');
-        table?.querySelectorAll('tr').forEach(row => {
-          rows.push(Array.from(row.querySelectorAll('th,td')).map(cell =>
-            `"${cell.innerText.replace(/"/g, '""').replace(/\n/g, ' ').trim()}"`).join(','));
-        });
-      });
-      if (!rows.length) return;
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }));
-      link.download = `BachatGat_Group_Tables_${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
+    // Every report table is exported as a separate XLSX workbook.
+    async function exportCurrentReportCSV() {
+      const activeSheet = document.getElementById(`tab-${activeTabKey}`);
+      const tables = activeSheet
+        ? Array.from(activeSheet.querySelectorAll('table'))
+        : [];
+      if (!tables.length) {
+        Common.showToast('No table data to export in the current report.', 'warning');
+        return;
+      }
+      await Common.downloadTableWorkbooks(tables, 'BachatGat-report');
+      Common.showToast(`${tables.length} report workbook(s) downloaded.`, 'success');
     }
 
     function escapeHtml(str) {

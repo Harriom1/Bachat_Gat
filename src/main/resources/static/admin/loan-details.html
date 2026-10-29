@@ -24,12 +24,12 @@
         </div>
       </div>
       <ul class="sidebar-menu">
-        <li class="menu-category">MAIN</li>
+        <li class="menu-category" data-i18n="mainSection">MAIN</li>
         <li><a href="/admin/dashboard.html" class="menu-item"><i class="bi bi-grid-1x2-fill menu-icon"></i><span data-i18n="dashboard">Dashboard</span></a></li>
         <li><a href="/admin/groups.html" class="menu-item"><i class="bi bi-buildings-fill menu-icon"></i><span data-i18n="groups">Group Profile</span></a></li>
         <li><a href="/admin/members.html" class="menu-item"><i class="bi bi-people-fill menu-icon"></i><span data-i18n="members">Members</span></a></li>
 
-        <li class="menu-category">FINANCIALS</li>
+        <li class="menu-category" data-i18n="financialsSection">FINANCIALS</li>
         <li><a href="/admin/collections.html" class="menu-item"><i class="bi bi-wallet2 menu-icon"></i><span data-i18n="collections">Collections</span></a></li>
         <li><a href="/admin/loan-applications.html" class="menu-item"><i class="bi bi-file-earmark-text-fill menu-icon"></i><span data-i18n="loanApplications">Loan Applications</span></a></li>
         <li><a href="/admin/loans.html" class="menu-item active"><i class="bi bi-cash-stack menu-icon"></i><span data-i18n="loans">Loans</span></a></li>
@@ -37,7 +37,7 @@
         <li><a href="/admin/income.html" class="menu-item"><i class="bi bi-piggy-bank-fill menu-icon"></i><span data-i18n="income">Other Income</span></a></li>
         <li><a href="/admin/expenses.html" class="menu-item"><i class="bi bi-receipt menu-icon"></i><span data-i18n="expenses">Expenses</span></a></li>
 
-        <li class="menu-category">CONFIGURATION & AUDIT</li>
+        <li class="menu-category" data-i18n="configurationAuditSection">CONFIGURATION & AUDIT</li>
         <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
         <li><a href="/admin/reports.html" class="menu-item"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
         <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
@@ -55,7 +55,7 @@
         <div class="topbar-left">
           <button id="sidebar-toggle" class="menu-toggle"><i class="bi bi-list"></i></button>
           <a href="/admin/loans.html" class="btn-outline-custom" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">
-            <i class="bi bi-arrow-left"></i> Back to Loans
+            <i class="bi bi-arrow-left"></i> <span data-i18n="backToLoans">Back to Loans</span>
           </a>
         </div>
         <div class="topbar-right">
@@ -85,14 +85,17 @@
             <p class="page-subtitle">Borrower: <strong id="dtl-member-name">-</strong> (<span id="dtl-member-id">-</span>) | Sanctioned: <span id="dtl-sanction-date">-</span></p>
           </div>
           <div class="loan-detail-actions">
-            <button id="btn-open-repay" class="btn-primary-custom" title="Record Repayment" aria-label="Record Repayment">
-              <i class="bi bi-cash-coin"></i><span class="action-label">Record Repayment</span>
+            <button type="button" id="btn-open-repay" class="btn-primary-custom" data-i18n-title="recordRepayment" title="Record Repayment" aria-label="Record Repayment">
+              <i class="bi bi-cash-coin"></i><span class="action-label" data-i18n="recordRepayment">Record Repayment</span>
             </button>
-            <button id="btn-open-extra" class="btn-outline-custom" title="Extra Prepayment" aria-label="Extra Prepayment">
-              <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i><span class="action-label">Extra Prepayment</span>
+            <button type="button" id="btn-open-partial" class="btn-outline-custom" title="Partial Payment" aria-label="Partial Payment">
+              <i class="bi bi-pie-chart"></i><span class="action-label" data-i18n="partialPayment">Partial Payment</span>
             </button>
-            <button onclick="window.print()" class="btn-outline-custom" title="Print Statement" aria-label="Print Statement">
-              <i class="bi bi-printer"></i><span class="action-label">Print Statement</span>
+            <button type="button" id="btn-open-extra" class="btn-outline-custom" data-i18n-title="extraPrepayment" title="Extra Prepayment" aria-label="Extra Prepayment">
+              <i class="bi bi-lightning-charge-fill" style="color: #0284c7;"></i><span class="action-label" data-i18n="extraPrepayment">Extra Prepayment</span>
+            </button>
+            <button type="button" onclick="window.print()" class="btn-outline-custom" data-i18n-title="printStatement" title="Print Statement" aria-label="Print Statement">
+              <i class="bi bi-printer"></i><span class="action-label" data-i18n="printStatement">Print Statement</span>
             </button>
           </div>
         </div>
@@ -101,25 +104,25 @@
         <div class="content-card compact-detail-table-wrap mb-4">
           <table class="data-table compact-detail-table">
             <tbody>
-              <tr><th>Sanctioned Principal</th><td id="dtl-sanctioned-principal">₹0<br><small id="dtl-interest-rate-label" class="text-muted">12% p.a. Reducing Balance</small></td></tr>
-              <tr><th>Principal Repaid</th><td id="dtl-principal-paid">₹0<br><small id="dtl-principal-paid-sub" class="text-muted">Direct principal reduction</small></td></tr>
-              <tr><th>Remaining Principal</th><td id="dtl-remaining-principal">₹0<br><small class="text-muted">Base for future monthly interest</small></td></tr>
-              <tr><th>Total Outstanding Dues</th><td id="dtl-total-outstanding">₹0<br><small id="dtl-outstanding-sub" class="text-muted">Remaining Principal + Accrued Interest</small></td></tr>
+              <tr><th data-i18n="sanctionedPrincipal">Sanctioned Principal</th><td id="dtl-sanctioned-principal">₹0<br><small id="dtl-interest-rate-label" class="text-muted">12% p.a. Reducing Balance</small></td></tr>
+              <tr><th data-i18n="principalRepaid">Principal Repaid</th><td id="dtl-principal-paid">₹0<br><small id="dtl-principal-paid-sub" class="text-muted" data-i18n="directPrincipalReduction">Direct principal reduction</small></td></tr>
+              <tr><th data-i18n="remainingPrincipal">Remaining Principal</th><td id="dtl-remaining-principal">₹0<br><small class="text-muted" data-i18n="futureInterestBase">Base for future monthly interest</small></td></tr>
+              <tr><th data-i18n="totalOutstandingDues">Total Outstanding Dues</th><td id="dtl-total-outstanding">₹0<br><small id="dtl-outstanding-sub" class="text-muted" data-i18n="remainingPrincipalAccruedInterest">Remaining Principal + Accrued Interest</small></td></tr>
             </tbody>
           </table>
         </div>
 
         <!-- Loan Terms Card -->
         <div class="content-card compact-detail-table-wrap mb-4">
-          <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Loan Terms & Amortization Parameters</h3>
+          <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;" data-i18n="loanTermsAmortization">Loan Terms & Amortization Parameters</h3>
           <table class="data-table compact-detail-table">
             <tbody>
-              <tr><th>Monthly EMI</th><td id="dtl-monthly-emi">₹0</td></tr>
-              <tr><th>Tenure / Duration</th><td id="dtl-tenure">-</td></tr>
-              <tr><th>Total Interest Accrued</th><td id="dtl-interest-accrued">₹0</td></tr>
-              <tr><th>Interest Paid to Date</th><td id="dtl-interest-paid">₹0</td></tr>
-              <tr><th>Remaining Interest Due</th><td id="dtl-remaining-interest">₹0</td></tr>
-              <tr><th>Next Installment Due</th><td id="dtl-next-due-date">-</td></tr>
+              <tr><th data-i18n="monthlyEmi">Monthly EMI</th><td id="dtl-monthly-emi">₹0</td></tr>
+              <tr><th data-i18n="tenureDuration">Tenure / Duration</th><td id="dtl-tenure">-</td></tr>
+              <tr><th data-i18n="totalInterestAccrued">Total Interest Accrued</th><td id="dtl-interest-accrued">₹0</td></tr>
+              <tr><th data-i18n="interestPaidToDate">Interest Paid to Date</th><td id="dtl-interest-paid">₹0</td></tr>
+              <tr><th data-i18n="remainingInterestDue">Remaining Interest Due</th><td id="dtl-remaining-interest">₹0</td></tr>
+              <tr><th data-i18n="nextInstallmentDue">Next Installment Due</th><td id="dtl-next-due-date">-</td></tr>
             </tbody>
           </table>
         </div>
@@ -128,9 +131,9 @@
         <div class="content-card">
           <div class="card-header-flex mb-3">
             <div>
-              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Reducing-Balance Amortization Schedule</h3>
+              <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;" data-i18n="reducingBalanceSchedule">Reducing-Balance Amortization Schedule</h3>
               <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
-                Calculated strictly in Java backend using BigDecimal reducing balance formula
+                <span data-i18n="scheduleCalculationHelp">Calculated strictly in Java backend using BigDecimal reducing balance formula</span>
               </p>
             </div>
           </div>
@@ -138,20 +141,21 @@
             <table class="data-table loan-schedule-table">
               <thead>
                 <tr>
-                  <th class="serial-number-column">Sr.No.</th>
-                  <th>Due Date</th>
-                  <th style="text-align: right;">Opening Principal (₹)</th>
-                  <th style="text-align: right;">Principal Component (₹)</th>
-                  <th style="text-align: right;">Interest Component (₹)</th>
-                  <th style="text-align: right;">EMI Amount (₹)</th>
-                  <th style="text-align: right;">Paid (₹)</th>
-                  <th style="text-align: right;">Closing Principal (₹)</th>
-                  <th>Status</th>
+                  <th class="serial-number-column" data-i18n="serialNumber">Sr.No.</th>
+                  <th data-i18n="dueDate">Due Date</th>
+                  <th style="text-align: right;" data-i18n="openingPrincipal">Opening Principal (₹)</th>
+                  <th style="text-align: right;" data-i18n="principalComponent">Principal Component (₹)</th>
+                  <th style="text-align: right;" data-i18n="interestComponent">Interest Component (₹)</th>
+                  <th style="text-align: right;" data-i18n="emiAmount">EMI Amount (₹)</th>
+                  <th style="text-align: right;" data-i18n="paidAmount">Paid (₹)</th>
+                  <th style="text-align: right;" data-i18n="pendingAmount">Pending (₹)</th>
+                  <th style="text-align: right;" data-i18n="closingPrincipal">Closing Principal (₹)</th>
+                  <th data-i18n="status">Status</th>
                 </tr>
               </thead>
               <tbody id="schedule-tbody">
                 <tr>
-                  <td colspan="9" class="text-center py-4 text-muted">Loading loan amortization schedule...</td>
+                  <td colspan="10" class="text-center py-4 text-muted">Loading loan amortization schedule...</td>
                 </tr>
               </tbody>
             </table>
@@ -161,30 +165,64 @@
     </main>
   </div>
 
+  <!-- Internal partial-payment allocation modal -->
+  <div id="modal-partial" class="modal-backdrop">
+    <div class="modal-box" style="max-width: 560px;">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="partialPaymentAllocation">Partial Payment Allocation</h3>
+        <button type="button" class="btn-close-modal" onclick="closePartialModal()">&times;</button>
+      </div>
+      <form id="form-partial">
+        <div class="info-banner mb-3" style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem;" data-i18n="partialPaymentHelp">
+          Select exactly what the member paid. Unselected amounts remain unpaid; paying interest only does not reduce principal.
+        </div>
+        <div class="form-group mb-3">
+          <label class="form-label" data-i18n="receivedAmount">Amount Received (₹)</label>
+          <input type="number" id="inp-partial-total" class="form-control" min="0.01" step="0.01" required>
+        </div>
+        <div class="form-row mb-2">
+          <label class="form-group"><span><input type="checkbox" class="partial-component" data-target="inp-partial-penalty"> <span data-i18n="penaltyAmount">Penalty Amount</span></span><input type="number" id="inp-partial-penalty" class="form-control partial-input" min="0" step="0.01" value="0" disabled></label>
+          <label class="form-group"><span><input type="checkbox" class="partial-component" data-target="inp-partial-bachat"> <span data-i18n="monthlyBachat">Monthly Bachat</span></span><input type="number" id="inp-partial-bachat" class="form-control partial-input" min="0" step="0.01" value="0" disabled></label>
+        </div>
+        <div class="form-row mb-2">
+          <label class="form-group"><span><input type="checkbox" class="partial-component" data-target="inp-partial-principal"> <span data-i18n="loanPrincipal">Loan Principal</span></span><input type="number" id="inp-partial-principal" class="form-control partial-input" min="0" step="0.01" value="0" disabled></label>
+          <label class="form-group"><span><input type="checkbox" class="partial-component" data-target="inp-partial-interest"> <span data-i18n="loanInterest">Loan Interest</span></span><input type="number" id="inp-partial-interest" class="form-control partial-input" min="0" step="0.01" value="0" disabled></label>
+        </div>
+        <label class="form-label mb-3"><input type="checkbox" id="inp-partial-bachat-only"> <span data-i18n="payBachatOnly">Pay Bachat Only</span></label>
+        <div class="form-row mb-3">
+          <div class="form-group"><label class="form-label required" data-i18n="paymentDate">Payment Date</label><input type="date" id="inp-partial-date" class="form-control" required></div>
+          <div class="form-group"><label class="form-label required" data-i18n="paymentMode">Payment Mode</label><select id="inp-partial-mode" class="form-select" required><option value="CASH">Cash</option><option value="UPI">UPI / QR</option><option value="BANK_TRANSFER">Bank Transfer / NEFT</option><option value="CHEQUE">Cheque</option></select></div>
+        </div>
+        <div class="form-group mb-4"><label class="form-label" data-i18n="referenceReceiptNumber">Reference / Receipt Number</label><input type="text" id="inp-partial-ref" class="form-control"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;"><button type="button" class="btn-outline-custom" onclick="closePartialModal()" data-i18n="cancel">Cancel</button><button type="submit" class="btn-primary-custom" id="btn-submit-partial" data-i18n="savePartialPayment">Save Partial Payment</button></div>
+      </form>
+    </div>
+  </div>
+
   <!-- Repayment Modal -->
   <div id="modal-repay" class="modal-backdrop">
     <div class="modal-box" style="max-width: 480px;">
       <div class="modal-header">
-        <h3 class="modal-title">Record Loan Repayment</h3>
+          <h3 class="modal-title" data-i18n="recordLoanRepayment">Record Loan Repayment</h3>
         <button type="button" class="btn-close-modal" onclick="closeRepayModal()">&times;</button>
       </div>
       <form id="form-repay">
         <div class="form-group mb-3">
-          <label class="form-label required">Full Current Installment (₹)</label>
+          <label class="form-label required" data-i18n="fullCurrentInstallment">Full Current Installment (₹)</label>
           <div class="input-currency-group">
             <span class="currency-prefix">₹</span>
             <input type="number" id="inp-repay-amount" class="form-control" min="100" step="50" required readonly>
           </div>
-          <div class="form-help">Scheduled Monthly EMI: <strong id="repay-emi-help">₹0</strong></div>
+          <div class="form-help"><span data-i18n="scheduledMonthlyEmi">Scheduled Monthly EMI:</span> <strong id="repay-emi-help">₹0</strong></div>
         </div>
 
         <div class="form-row mb-3">
           <div class="form-group" style="flex: 1;">
-            <label class="form-label required">Payment Date</label>
+            <label class="form-label required" data-i18n="paymentDate">Payment Date</label>
             <input type="date" id="inp-repay-date" class="form-control" required>
           </div>
           <div class="form-group" style="flex: 1;">
-            <label class="form-label required">Payment Mode</label>
+            <label class="form-label required" data-i18n="paymentMode">Payment Mode</label>
             <select id="inp-repay-mode" class="form-select" required>
               <option value="CASH">Cash</option>
               <option value="UPI">UPI / QR</option>
@@ -195,18 +233,18 @@
         </div>
 
         <div class="form-group mb-3">
-          <label class="form-label">Reference / Receipt Number</label>
+          <label class="form-label" data-i18n="referenceReceiptNumber">Reference / Receipt Number</label>
           <input type="text" id="inp-repay-ref" class="form-control" placeholder="e.g. UTR-SBI-9821 or Cash receipt #12">
         </div>
 
         <div class="form-group mb-4">
-          <label class="form-label">Notes</label>
+          <label class="form-label" data-i18n="notes">Notes</label>
           <input type="text" id="inp-repay-notes" class="form-control" placeholder="e.g. Regular monthly installment deposit">
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button type="button" class="btn-outline-custom" onclick="closeRepayModal()">Cancel</button>
-          <button type="submit" class="btn-primary-custom" id="btn-submit-repay">Save Repayment</button>
+          <button type="button" class="btn-outline-custom" onclick="closeRepayModal()" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn-primary-custom" id="btn-submit-repay" data-i18n="saveRepayment">Save Repayment</button>
         </div>
       </form>
     </div>
@@ -298,23 +336,131 @@
           : 0;
         document.getElementById('inp-repay-amount').value = amount;
         document.getElementById('repay-emi-help').textContent = Common.formatIndianCurrency(amount);
-        document.getElementById('modal-repay').classList.add('show');
+        Common.openModal('modal-repay');
       });
 
       document.getElementById('btn-open-extra').addEventListener('click', () => {
-        document.getElementById('modal-extra').classList.add('show');
+        Common.openModal('modal-extra');
       });
+
+      document.getElementById('btn-open-partial').addEventListener('click', openPartialModal);
+      document.querySelectorAll('.partial-component').forEach(box => box.addEventListener('change', () => {
+        const input = document.getElementById(box.dataset.target);
+        input.disabled = !box.checked;
+        if (!box.checked) input.value = '0';
+        updatePartialTotal();
+      }));
+      document.querySelectorAll('.partial-input').forEach(input => input.addEventListener('input', () => {
+        if (!partialTotalManuallyEdited) updatePartialTotal();
+      }));
+      document.getElementById('inp-partial-total').addEventListener('input', () => { partialTotalManuallyEdited = true; });
+      document.getElementById('inp-partial-bachat-only').addEventListener('change', toggleBachatOnly);
 
       document.getElementById('form-repay').addEventListener('submit', handleRepaySubmit);
       document.getElementById('form-extra').addEventListener('submit', handleExtraSubmit);
+      document.getElementById('form-partial').addEventListener('submit', handlePartialSubmit);
     });
 
     function closeRepayModal() {
-      document.getElementById('modal-repay').classList.remove('show');
+      Common.closeModal('modal-repay');
     }
 
     function closeExtraModal() {
-      document.getElementById('modal-extra').classList.remove('show');
+      Common.closeModal('modal-extra');
+    }
+
+    let partialTotalManuallyEdited = false;
+
+    async function openPartialModal() {
+      document.getElementById('inp-partial-date').value = new Date().toISOString().slice(0, 10);
+      partialTotalManuallyEdited = false;
+      document.querySelectorAll('.partial-component').forEach(box => { box.checked = false; box.disabled = false; });
+      document.querySelectorAll('.partial-input').forEach(input => { input.value = '0'; input.disabled = true; });
+      document.getElementById('inp-partial-total').value = '0.00';
+      Common.openModal('modal-partial');
+      await populatePartialDefaults();
+      updatePartialTotal();
+    }
+
+    function closePartialModal() {
+      Common.closeModal('modal-partial');
+    }
+
+    function updatePartialTotal() {
+      if (partialTotalManuallyEdited) return;
+      const ids = ['inp-partial-penalty', 'inp-partial-bachat', 'inp-partial-principal', 'inp-partial-interest'];
+      document.getElementById('inp-partial-total').value = ids.reduce((sum, id) => sum + Number(document.getElementById(id).value || 0), 0).toFixed(2);
+    }
+
+    async function populatePartialDefaults() {
+      try {
+        const [member, collections, schedule] = await Promise.all([
+          currentLoan && currentLoan.memberId ? api.getMemberById(currentLoan.memberId) : Promise.resolve(null),
+          currentLoan && currentLoan.groupId ? api.getCollections(currentLoan.groupId) : Promise.resolve([]),
+          api.getLoanSchedule(currentLoanId)
+        ]);
+        const now = new Date();
+        const memberId = currentLoan && currentLoan.memberId;
+        const currentCollection = (Array.isArray(collections) ? collections : [])
+          .filter(c => !memberId || String(c.memberId || '').toLowerCase() === String(memberId).toLowerCase())
+          .filter(c => Number(c.year) === now.getFullYear() && Number(c.month) === now.getMonth() + 1)
+          .sort((a, b) => Number(b.pendingAmount || 0) - Number(a.pendingAmount || 0))[0];
+        const loanRows = Array.isArray(schedule) ? schedule : [];
+        const currentLoanRow = loanRows.find(row => Number(row.outstandingAmount || 0) > 0 && String(row.status || '').toUpperCase() !== 'PAID') || loanRows[0];
+        const setDefault = (id, value) => { document.getElementById(id).value = Math.max(0, Number(value || 0)).toFixed(2); };
+        setDefault('inp-partial-bachat', currentCollection ? (currentCollection.pendingAmount ?? (Number(currentCollection.expectedAmount || 0) - Number(currentCollection.paidAmount || 0))) : (member?.monthlyBachatAmount || member?.monthlySavingsAmount || 0));
+        setDefault('inp-partial-penalty', currentCollection ? (Number(currentCollection.lateFeeAmount || 0) - Number(currentCollection.paidLateFee || 0)) : 0);
+        setDefault('inp-partial-principal', currentLoanRow ? (Number(currentLoanRow.principalAmount || 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0);
+        setDefault('inp-partial-interest', currentLoanRow ? (Number(currentLoanRow.interestAmount || 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0);
+      } catch (err) {
+        Common.showToast('Could not load current payment dues: ' + err.message, 'warning');
+      }
+    }
+
+    function toggleBachatOnly() {
+      const only = document.getElementById('inp-partial-bachat-only').checked;
+      ['inp-partial-penalty', 'inp-partial-principal', 'inp-partial-interest'].forEach(id => {
+        const input = document.getElementById(id);
+        input.value = '0';
+        input.disabled = only;
+        const box = document.querySelector(`[data-target="${id}"]`);
+        box.checked = false;
+        box.disabled = only;
+      });
+      updatePartialTotal();
+    }
+
+    async function handlePartialSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-partial');
+      btn.disabled = true;
+      const payload = {
+        amount: Number(document.getElementById('inp-partial-total').value || 0),
+        penaltyAmount: Number(document.getElementById('inp-partial-penalty').value || 0),
+        monthlyBachatAmount: Number(document.getElementById('inp-partial-bachat').value || 0),
+        loanPrincipalAmount: Number(document.getElementById('inp-partial-principal').value || 0),
+        loanInterestAmount: Number(document.getElementById('inp-partial-interest').value || 0),
+        payBachatOnly: document.getElementById('inp-partial-bachat-only').checked,
+        paymentDate: document.getElementById('inp-partial-date').value,
+        paymentMethod: document.getElementById('inp-partial-mode').value,
+        referenceNumber: document.getElementById('inp-partial-ref').value.trim()
+      };
+      const componentTotal = payload.penaltyAmount + payload.monthlyBachatAmount + payload.loanPrincipalAmount + payload.loanInterestAmount;
+      if (Math.abs(componentTotal - payload.amount) > 0.01) {
+        Common.showToast('Amount received must equal the selected payment components.', 'warning');
+        btn.disabled = false;
+        return;
+      }
+      try {
+        await api.recordLoanPartialPayment(currentLoanId, payload);
+        Common.showToast(window.i18n ? window.i18n.t('partialPaymentSaved', 'Partial payment saved successfully.') : 'Partial payment saved successfully.', 'success');
+        closePartialModal();
+        await loadLoanDetails();
+      } catch (err) {
+        Common.showToast('Partial payment failed: ' + err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function loadLoanDetails() {
@@ -325,8 +471,12 @@
           return;
         }
 
-        renderHero();
         await loadSchedule();
+        // Loading the schedule reconciles the persisted loan summary from the
+        // same actual payment history. Reload it before rendering the summary
+        // so total interest and outstanding principal cannot show stale values.
+        currentLoan = await api.getLoanById(currentLoanId);
+        renderHero();
       } catch (err) {
         Common.showToast('Failed to load loan: ' + err.message, 'danger');
       }
@@ -365,7 +515,7 @@
         const schedule = await api.getLoanSchedule(currentLoanId);
         const tbody = document.getElementById('schedule-tbody');
         if (!schedule || schedule.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No schedule items generated.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No schedule items generated.</td></tr>`;
           return;
         }
 
@@ -378,6 +528,7 @@
             <td style="text-align: right; color: var(--text-muted);">${Common.formatIndianCurrency(s.interestComponent)}</td>
             <td style="text-align: right; font-weight: 700; color: var(--primary);">${Common.formatIndianCurrency(s.emiAmount)}</td>
             <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.paidAmount || 0)}</td>
+            <td style="text-align: right; color: var(--danger); font-weight: 600;">${Common.formatIndianCurrency(s.outstandingAmount || 0)}</td>
             <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(s.closingPrincipal)}</td>
             <td><span class="badge status-badge badge-${(s.status || 'upcoming').toLowerCase()}">${Common.escapeHtml ? Common.escapeHtml(s.status) : s.status}</span></td>
           </tr>

@@ -270,6 +270,15 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label class="form-label">Received By *</label>
+            <select id="pay-received-by" class="form-select" required>
+              <option value="PRESIDENT">President</option>
+              <option value="SECRETARY">Secretary</option>
+            </select>
+            <div class="form-help">Only the President or Secretary may be recorded as the authorized receiver.</div>
+          </div>
+
           <div class="form-grid mb-3">
             <div class="form-group">
               <label class="form-label">Idempotency Key (Duplicate Prevention)</label>
@@ -706,6 +715,7 @@
           paymentStatus: status,
           paymentMethod: document.getElementById('pay-method').value,
           referenceNumber: document.getElementById('pay-ref').value.trim(),
+          receivedBy: document.getElementById('pay-received-by').value,
           paymentDate: document.getElementById('pay-date').value
         };
 

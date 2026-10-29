@@ -5,6 +5,9 @@ import com.bachatgat.exception.DuplicateRecordException;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
+import com.bachatgat.repository.GroupRepository;
+import com.bachatgat.repository.MasterDataRepository;
+import com.bachatgat.repository.MemberRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,26 +19,33 @@ import java.util.*;
 public class MemberService {
 
     private final FirestoreDataService dataService;
+    private final MemberRepository memberRepository;
+    private final GroupRepository groupRepository;
+    private final MasterDataRepository masterDataRepository;
     private final TransactionService transactionService;
     private final AuditService auditService;
     private final PasswordEncoder passwordEncoder;
 
-    public MemberService(FirestoreDataService dataService, TransactionService transactionService,
+    public MemberService(FirestoreDataService dataService, MemberRepository memberRepository, GroupRepository groupRepository,
+                         MasterDataRepository masterDataRepository, TransactionService transactionService,
                          AuditService auditService, PasswordEncoder passwordEncoder) {
         this.dataService = dataService;
+        this.memberRepository = memberRepository;
+        this.groupRepository = groupRepository;
+        this.masterDataRepository = masterDataRepository;
         this.transactionService = transactionService;
         this.auditService = auditService;
         this.passwordEncoder = passwordEncoder;
     }
 
     public List<Member> getAllMembers() {
-        List<Member> members = dataService.getAllMembers();
+        List<Member> members = memberRepository.findAll();
         members.forEach(this::alignMonthlyBachatWithGroupRule);
         return members;
     }
 
     public List<Member> getMembers(String groupId) {
-        List<Member> members = dataService.getMembersByGroupId(groupId);
+        List<Member> members = memberRepository.findByGroupId(groupId);
         members.forEach(this::alignMonthlyBachatWithGroupRule);
         return members;
     }
@@ -45,24 +55,24 @@ public class MemberService {
     }
 
     public Member getMemberById(String id) {
-        Member member = dataService.findMemberById(id)
-                .or(() -> dataService.findMemberByMemberId(id))
+        Member member = memberRepository.findById(id)
+                .or(() -> memberRepository.findByMemberId(id))
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with ID: " + id));
         return alignMonthlyBachatWithGroupRule(member);
     }
 
     public Member getMemberByMemberId(String memberId) {
-        Member member = dataService.findMemberByMemberId(memberId)
+        Member member = memberRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with Member ID: " + memberId));
         return alignMonthlyBachatWithGroupRule(member);
     }
 
     public Member createMember(MemberDTO dto, String createdBy) {
-        Group group = dataService.findGroupById(dto.getGroupId())
+        Group group = groupRepository.findById(dto.getGroupId())
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + dto.getGroupId()));
 
         // Check duplicate mobile or PAN in the same group
-        List<Member> existing = dataService.getMembersByGroupId(dto.getGroupId());
+        List<Member> existing = memberRepository.findByGroupId(dto.getGroupId());
         for (Member m : existing) {
             if (m.getMobileNumber() != null && m.getMobileNumber().equalsIgnoreCase(dto.getMobileNumber().trim())) {
                 throw new DuplicateRecordException("Member with mobile number " + dto.getMobileNumber() + " already exists in this group");
@@ -74,7 +84,7 @@ public class MemberService {
 
         // Auto-generate Member Registration ID if not provided
         if (dto.getRegistrationId() == null || dto.getRegistrationId().isBlank()) {
-            dto.setRegistrationId(dataService.generateNextMemberRegistrationId(dto.getGroupId()));
+            dto.setRegistrationId(memberRepository.generateNextRegistrationId(dto.getGroupId()));
         }
 
         // Generate auto Member ID: e.g. MPBG-M021
@@ -103,7 +113,7 @@ public class MemberService {
         member.setCurrentShareBalance(initialShare);
         member.setTotalSavingsBalance(initialShare);
 
-        Member saved = dataService.saveMember(member);
+        Member saved = memberRepository.save(member);
 
         // Record initial share contribution transaction if > 0
         if (initialShare.compareTo(BigDecimal.ZERO) > 0) {
@@ -165,7 +175,7 @@ public class MemberService {
 
             saved.setHasLoginAccount(true);
             saved.setLoginUsername(username);
-            dataService.saveMember(saved);
+            memberRepository.save(saved);
         }
 
         auditService.log(group.getId(), createdBy, createdBy, "MEMBER_CREATED", "MEMBER",
@@ -177,11 +187,11 @@ public class MemberService {
     public Member enrollExistingMember(String groupId, String memberIdOrId, BigDecimal monthlyShare,
                                        BigDecimal committedAmount, LocalDate startDate, LocalDate endDate,
                                        String enrolledBy) {
-        Group group = dataService.findGroupById(groupId)
+        Group group = groupRepository.findById(groupId)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
 
-        Member member = dataService.findMemberById(memberIdOrId)
-                .or(() -> dataService.findMemberByMemberId(memberIdOrId))
+        Member member = memberRepository.findById(memberIdOrId)
+                .or(() -> memberRepository.findByMemberId(memberIdOrId))
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with ID: " + memberIdOrId));
 
         if (groupId.equals(member.getGroupId()) && member.getStatus() == MemberStatus.ACTIVE) {
@@ -206,7 +216,7 @@ public class MemberService {
         }
         member.setNextDueDate(LocalDate.now().withDayOfMonth(10));
 
-        Member updated = dataService.saveMember(member);
+        Member updated = memberRepository.save(member);
 
         dataService.findUserByUsername(member.getMobileNumber()).ifPresent(u -> {
             u.setGroupId(group.getId());
@@ -220,8 +230,8 @@ public class MemberService {
     }
 
     public void removeMemberFromGroup(String groupId, String memberIdOrId, String removedBy) {
-        Member member = dataService.findMemberById(memberIdOrId)
-                .or(() -> dataService.findMemberByMemberId(memberIdOrId))
+        Member member = memberRepository.findById(memberIdOrId)
+                .or(() -> memberRepository.findByMemberId(memberIdOrId))
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with ID: " + memberIdOrId));
 
         if (!groupId.equals(member.getGroupId())) {
@@ -233,10 +243,10 @@ public class MemberService {
         }
 
         if (member.getTotalSavingsBalance() == null || member.getTotalSavingsBalance().compareTo(BigDecimal.ZERO) <= 0) {
-            dataService.deleteMember(member.getId());
+            memberRepository.deleteById(member.getId());
         } else {
             member.setStatus(MemberStatus.EXITED);
-            dataService.saveMember(member);
+            memberRepository.save(member);
         }
 
         auditService.log(groupId, removedBy, removedBy, "MEMBER_REMOVED", "MEMBER",
@@ -280,7 +290,7 @@ public class MemberService {
 
         // Monthly Bachat is controlled by the group, not by an individual
         // member profile edit.
-        Group memberGroup = dataService.findGroupById(member.getGroupId()).orElse(null);
+        Group memberGroup = groupRepository.findById(member.getGroupId()).orElse(null);
         if (memberGroup != null) {
             BigDecimal groupMonthlyBachat = getEffectiveGroupMonthlyBachat(memberGroup);
             member.setMonthlyBachatAmount(groupMonthlyBachat);
@@ -299,7 +309,7 @@ public class MemberService {
             member.setNextDueDate(dto.getNextDueDate());
         }
 
-        Member updated = dataService.saveMember(member);
+        Member updated = memberRepository.save(member);
         String newState = updated.getFullName() + " | " + updated.getMobileNumber();
 
         auditService.log(member.getGroupId(), updatedBy, updatedBy, "MEMBER_UPDATED", "MEMBER",
@@ -310,13 +320,13 @@ public class MemberService {
 
     /** Normalize legacy registration numbers for one group to 000001, 000002, ... . */
     public List<Member> renumberGroupRegistrationIds(String groupId, String updatedBy) {
-        List<Member> groupMembers = new ArrayList<>(dataService.getMembersByGroupId(groupId));
+        List<Member> groupMembers = new ArrayList<>(memberRepository.findByGroupId(groupId));
         groupMembers.sort(Comparator.comparing(Member::getMemberId, Comparator.nullsLast(String::compareTo)));
         int sequence = 1;
         int year = LocalDate.now().getYear();
         for (Member member : groupMembers) {
             member.setRegistrationId(String.format("MEM-%d-%06d", year, sequence++));
-            dataService.saveMember(member);
+            memberRepository.save(member);
         }
         if (!groupMembers.isEmpty()) {
             auditService.log(groupId, updatedBy, updatedBy, "MEMBER_REGISTRATION_IDS_NORMALIZED", "GROUP",
@@ -326,7 +336,7 @@ public class MemberService {
     }
 
     private BigDecimal getEffectiveGroupMonthlyBachat(Group group) {
-        return dataService.getMasterDataForDate(group.getId(), LocalDate.now())
+        return masterDataRepository.findForDate(group.getId(), LocalDate.now())
                 .map(GroupMasterData::getMonthlyBachatAmount)
                 .filter(amount -> amount != null && amount.signum() > 0)
                 .orElse(group.getMonthlyBachatAmount() != null
@@ -335,7 +345,7 @@ public class MemberService {
 
     private Member alignMonthlyBachatWithGroupRule(Member member) {
         if (member != null && member.getGroupId() != null) {
-            dataService.findGroupById(member.getGroupId()).ifPresent(group -> {
+            groupRepository.findById(member.getGroupId()).ifPresent(group -> {
                 BigDecimal groupMonthlyBachat = getEffectiveGroupMonthlyBachat(group);
                 member.setMonthlyBachatAmount(groupMonthlyBachat);
                 member.setTotalSavingsTarget(groupMonthlyBachat.multiply(BigDecimal.valueOf(12)));
@@ -348,7 +358,7 @@ public class MemberService {
         Member member = getMemberById(id);
         MemberStatus oldStatus = member.getStatus();
         member.setStatus(newStatus);
-        Member updated = dataService.saveMember(member);
+        Member updated = memberRepository.save(member);
 
         auditService.log(member.getGroupId(), updatedBy, updatedBy, "MEMBER_STATUS_CHANGED", "MEMBER",
                 member.getMemberId(), oldStatus.name(), newStatus.name(), "127.0.0.1");
@@ -403,7 +413,7 @@ public class MemberService {
 
         member.setHasLoginAccount(true);
         member.setLoginUsername(finalUsername);
-        dataService.saveMember(member);
+        memberRepository.save(member);
 
         auditService.log(member.getGroupId(), adminUsername, adminUsername, "MEMBER_LOGIN_CREATED", "USER",
                 user.getId(), null, "Created login account for member " + member.getMemberId(), "127.0.0.1");

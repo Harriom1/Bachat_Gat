@@ -513,5 +513,174 @@
   "newUsername": "New username",
   "confirmNewUsername": "Confirm new username",
   "saveUsername": "Save Username",
-  "usernameChangedRelogin": "Username changed. Please sign in again."
+  "usernameChangedRelogin": "Username changed. Please sign in again.",
+  "backToLoans": "Back to Loans",
+  "recordRepayment": "Record Repayment",
+  "extraPrepayment": "Extra Prepayment",
+  "printStatement": "Print Statement",
+  "sanctionedPrincipal": "Sanctioned Principal",
+  "principalRepaid": "Principal Repaid",
+  "directPrincipalReduction": "Direct principal reduction",
+  "remainingPrincipal": "Remaining Principal",
+  "futureInterestBase": "Base for future monthly interest",
+  "totalOutstandingDues": "Total Outstanding Dues",
+  "remainingPrincipalAccruedInterest": "Remaining Principal + Accrued Interest",
+  "loanTermsAmortization": "Loan Terms & Amortization Parameters",
+  "monthlyEmi": "Monthly EMI",
+  "tenureDuration": "Tenure / Duration",
+  "totalInterestAccrued": "Total Interest Accrued",
+  "interestPaidToDate": "Interest Paid to Date",
+  "remainingInterestDue": "Remaining Interest Due",
+  "nextInstallmentDue": "Next Installment Due",
+  "reducingBalanceSchedule": "Reducing-Balance Amortization Schedule",
+  "scheduleCalculationHelp": "Calculated strictly in Java backend using BigDecimal reducing balance formula",
+  "serialNumber": "Sr.No.",
+  "dueDate": "Due Date",
+  "openingPrincipal": "Opening Principal (₹)",
+  "principalComponent": "Principal Component (₹)",
+  "interestComponent": "Interest Component (₹)",
+  "emiAmount": "EMI Amount (₹)",
+  "paidAmount": "Paid (₹)",
+  "closingPrincipal": "Closing Principal (₹)",
+  "recordLoanRepayment": "Record Loan Repayment",
+  "fullCurrentInstallment": "Full Current Installment (₹)",
+  "scheduledMonthlyEmi": "Scheduled Monthly EMI:",
+  "paymentDate": "Payment Date",
+  "referenceReceiptNumber": "Reference / Receipt Number",
+  "notes": "Notes",
+  "saveRepayment": "Save Repayment",
+  "partialPayment": "Partial Payment",
+  "partialPaymentAllocation": "Partial Payment Allocation",
+  "partialPaymentHelp": "Select exactly what the member paid. Unselected amounts remain unpaid; paying interest only does not reduce principal.",
+  "receivedAmount": "Amount Received (₹)",
+  "penaltyAmount": "Penalty Amount",
+  "monthlyBachat": "Monthly Bachat",
+  "loanPrincipal": "Loan Principal",
+  "loanInterest": "Loan Interest",
+  "payBachatOnly": "Pay Bachat Only",
+  "savePartialPayment": "Save Partial Payment",
+  "partialPaymentSaved": "Partial payment saved successfully.",
+  "groupFundAccountingTransparency": "Group Fund Accounting Transparency Breakdown",
+  "accountingBreakdown": "Accounting breakdown",
+  "singleSourceOfTruth": "SINGLE SOURCE OF TRUTH",
+  "groupFinancialOverview": "Group Financial Overview",
+  "liveAuditVerified": "LIVE AUDIT VERIFIED",
+  "currentGroupFund": "Current Group Fund",
+  "availableGroupCashLiquidity": "Available group cash liquidity",
+  "totalGroupFund": "Total Group Fund",
+  "totalMonthlyCollection": "Total Monthly Collection",
+  "totalLoansGiven": "Total Loans Given",
+  "totalInterestIncome": "Total Interest Income",
+  "groupExpenses": "Group Expenses",
+  "loansDisbursed": "Loans Disbursed",
+  "principalRepaid": "Principal Repaid",
+  "currentAvailableFund": "Current Available Fund",
+  "pendingSharePayments": "Pending Share Payments",
+  "pendingLoanPayments": "Pending Loan Payments",
+  "upcomingMemberCollections": "Upcoming Member Collections",
+  "fullRegister": "Full Register",
+  "locationSchedule": "Location & Schedule",
+  "villageTown": "Village / Town",
+  "talukaDistrict": "Taluka & District",
+  "statePin": "State & PIN",
+  "dueDate": "Due Date",
+  "bankName": "Bank Name",
+  "branch": "Branch",
+  "accountNumber": "Account Number",
+  "ifscCode": "IFSC Code",
+  "upiId": "UPI ID",
+  "memberRefunds": "Member Refunds",
+  "memberRefundsSubtitle": "Exit refunds reserved from group funds; bank status is updated separately.",
+  "requestDate": "Request Date",
+  "expectedCredit": "Expected Credit",
+  "loadingRefunds": "Loading refunds...",
+  "noRefunds": "No member refunds recorded.",
+  "refreshStatus": "Refresh Status",
+  "loanApprovalsDisbursement": "Loan Approvals & Disbursement",
+  "monthlyEmiCollectionStatus": "Monthly EMI Collection Status",
+  "exportCsv": "Export CSV",
+  "selectPeriod": "Select Period:",
+  "loadReport": "Load Report",
+  "monthlyBachatCollectionAudit": "Monthly Bachat Collection Audit",
+  "totalExpectedMonthlyBachat": "Total Expected Monthly Bachat",
+  "monthlyBachatCollected": "Monthly Bachat Collected",
+  "monthlyBachatPending": "Monthly Bachat Pending",
+  "monthlyBachatPenalty": "Monthly Bachat Penalty",
+  "openingFund": "Opening Fund",
+  "remainingFund": "Remaining Fund",
+  "loanPrincipalRecovered": "Loan Principal Recovered",
+  "loanDisbursement": "Loan Disbursement",
+  "monthlyExpenses": "Monthly Expenses",
+  "monthlyBachatPaidMembers": "Monthly Bachat Paid Members",
+  "monthlyBachatNotPaidMembers": "Monthly Bachat Not Paid Members",
+  "allMembersSavingsLoanPosition": "All Members — Savings & Loan Position",
+  "dateTime": "DATE & TIME",
+  "transactionType": "TRANSACTION TYPE",
+  "loanRef": "LOAN REF",
+  "totalAmount": "TOTAL AMOUNT (₹)",
+  "allCategories": "All Categories",
+  "allMonths": "All Months",
+  "allYears": "All Years",
+  "allMembers": "All Members",
+  "monthlySavings": "Monthly Savings",
+  "loanDisbursementCategory": "Loan Disbursement",
+  "repaymentEmi": "Repayment (EMI)",
+  "additionalPrincipal": "Additional Principal",
+  "incomeAndPenalties": "Income & Penalties",
+  "reportAndStatement": "Reports & Statements",
+  "collectionLoanRules": "Collection & Loan Rules",
+  "googleCloudIntegration": "Google Cloud Platform Integration",
+  "monthlySavingsShare": "MONTHLY SAVINGS SHARE (₹)",
+  "defaultLoanInterest": "DEFAULT LOAN INTEREST (%)",
+  "gracePeriod": "Grace Period (Days)",
+  "latePaymentFee": "Late Payment Fee (₹)",
+  "maxLoanLimit": "MAX LOAN LIMIT (₹)",
+  "maxActiveLoans": "MAX ACTIVE LOANS",
+  "minMembership": "MIN MEMBERSHIP (MONTHS)",
+  "saveBusinessRules": "Save Business Rules",
+  "changePassword": "Change Password",
+  "cloudSchedulerPubSub": "Cloud Scheduler & Pub/Sub",
+  "actions": "Actions",
+  "srNo": "Sr. No.",
+  "contact": "Contact",
+  "member": "Member",
+  "pay": "Pay",
+  "payNow": "Pay Now",
+  "refreshPending": "Refresh Pending",
+  "paymentDate": "Payment Date",
+  "paymentMode": "Payment Mode",
+  "totalPayable": "Total Payable"
+  ,"groupOverview": "Group Financial Overview"
+  ,"designatedOfficeBearers": "Designated Office Bearers"
+  ,"financialSummary": "Dashboard financial summary"
+  ,"activeStanding": "100% active standing"
+  ,"expected": "Expected"
+  ,"separatelyLedgedShareCapital": "Separately ledged share capital"
+  ,"disbursed": "Disbursed"
+  ,"pendingLoanApplicationsReview": "Pending Loan Applications Requiring Review"
+  ,"registerNewMember": "Register New Member"
+  ,"previous": "Previous"
+  ,"next": "Next"
+  ,"noMemberRefunds": "No member refunds recorded."
+  ,"designatedBankAccount": "Designated Bank Account"
+  ,"monthlyLoanPaymentEmi": "Monthly Payment / EMI (₹)"
+  ,"borrower": "Borrower"
+  ,"sanctioned": "Sanctioned (₹)"
+  ,"rateTenure": "Rate / Tenure"
+  ,"paidAmount": "Paid (₹)"
+  ,"remainingPrincipal": "Remaining Principal"
+  ,"monthlyLoanRepaymentSchedule": "Loan Repayment Schedule"
+  ,"paymentHistory": "Payment History"
+  ,"totalInflow": "Total Inflow"
+  ,"totalOutflow": "Total Outflow"
+  ,"netBalanceImpact": "Net Balance Impact"
+  ,"recordedTransactions": "Recorded Transactions"
+  ,"memberName": "Member Name"
+  ,"paymentDateLabel": "Payment Date"
+  ,"paymentDateColumn": "Payment Date"
+  ,"january": "January", "february": "February", "march": "March", "april": "April", "may": "May", "june": "June", "july": "July", "august": "August", "september": "September", "october": "October", "november": "November", "december": "December"
+  ,"jan": "Jan", "feb": "Feb", "mar": "Mar", "apr": "Apr", "jun": "Jun", "jul": "Jul", "aug": "Aug", "sep": "Sep", "oct": "Oct", "nov": "Nov", "dec": "Dec"
+  ,"groupRegistrationId": "Group Registration ID:", "govtRegistrationNo": "Govt Bachat Gat Reg No:", "groupCode": "Group Code:", "formationDate": "Formation Date:", "monthlyBachatLabel": "Monthly Bachat:", "primaryPhone": "Primary Phone:", "email": "Email:", "meetingLocation": "Meeting Location:", "meetingDay": "Meeting Day:", "meetingTime": "Meeting Time:"
+  ,"memberRefundsTable": "Member Refunds", "refundAmount": "Amount", "refundStatus": "Status", "refundAction": "Action"
+  ,"totalSavingsLabel": "Total Savings", "loanInterestLabel": "Loan Interest", "otherIncomeLabel": "Other Income"
 }

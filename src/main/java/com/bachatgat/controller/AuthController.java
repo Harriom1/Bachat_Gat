@@ -47,6 +47,25 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.ok("Login successful", response));
     }
 
+    /** One-time production bootstrap; disabled unless BOOTSTRAP_ADMIN_TOKEN is set. */
+    @PostMapping("/bootstrap-admin")
+    public ResponseEntity<ApiResponse<Void>> bootstrapAdmin(
+            @RequestHeader(name = "X-Bootstrap-Token", required = false) String bootstrapToken,
+            @Valid @RequestBody BootstrapAdminRequest request) {
+        authService.bootstrapInitialSuperAdmin(bootstrapToken, request);
+        return ResponseEntity.ok(ApiResponse.ok("Initial administrator created. Remove BOOTSTRAP_ADMIN_TOKEN now.", null));
+    }
+
+    /** Temporary break-glass recovery; remove ADMIN_PASSWORD_RESET_TOKEN immediately after use. */
+    @PostMapping("/reset-superadmin-password")
+    public ResponseEntity<ApiResponse<Void>> resetSuperAdminPassword(
+            @RequestHeader(name = "X-Admin-Password-Reset-Token", required = false) String resetToken,
+            @Valid @RequestBody ResetSuperAdminPasswordRequest request) {
+        authService.resetExistingSuperAdminPassword(resetToken, request);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Super administrator password reset. Remove ADMIN_PASSWORD_RESET_TOKEN now.", null));
+    }
+
     @PostMapping("/change-password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal UserPrincipal principal,

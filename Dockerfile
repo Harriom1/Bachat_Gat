@@ -16,11 +16,15 @@ RUN mvn dependency:go-offline -B || true
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# Stage 2: Minimal production runtime with JRE 21
-FROM eclipse-temurin:21-jre-alpine
+# Stage 2: Production runtime with JRE 21.
+# Use the regular Linux image instead of Alpine/musl because the Firestore
+# gRPC/Netty native stack can abort the JVM on Alpine before port 8080 opens.
+FROM eclipse-temurin:21-jre
 
-# Set non-root user for security compliance
-RUN addgroup -S bachatgroup && adduser -S bachatuser -G bachatgroup
+# Set non-root user for security compliance. The regular Temurin image uses
+# Debian user-management tools rather than Alpine's addgroup/adduser flags.
+RUN groupadd --system bachatgroup && \
+    useradd --system --gid bachatgroup --create-home --home-dir /home/bachatuser bachatuser
 USER bachatuser:bachatgroup
 
 WORKDIR /app

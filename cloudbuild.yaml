@@ -4,18 +4,22 @@
 # ==============================================================================
 
 steps:
-  # 1. Run Maven Build & Unit/Integration Tests
+  # 1. Build the production artifact. Tests are run locally against the emulator
+  # before submission; Cloud Build must never run integration tests against the
+  # real production Firestore database.
   - name: 'maven:3.9.9-eclipse-temurin-21-alpine'
     entrypoint: 'mvn'
-    args: ['clean', 'package', '-B']
-    id: 'maven-build-and-test'
+    args: ['clean', 'package', '-DskipTests', '-B']
+    id: 'maven-production-build'
 
-  # 2. Build Docker container image with Git commit SHA and latest tags
+  # 2. Build Docker container image with the Cloud Build ID and latest tags.
+  # BUILD_ID is available for manual `gcloud builds submit` runs; COMMIT_SHA is
+  # only populated for source-repository-triggered builds.
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$COMMIT_SHA'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$BUILD_ID'
       - '-t'
       - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:latest'
       - '.'
@@ -25,7 +29,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$COMMIT_SHA'
+      - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$BUILD_ID'
     id: 'docker-push-commit-tag'
 
   - name: 'gcr.io/cloud-builders/docker'
@@ -41,12 +45,12 @@ steps:
       - 'run'
       - 'deploy'
       - 'bachatgat-service'
-      - '--image=asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$COMMIT_SHA'
+      - '--image=asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$BUILD_ID'
       - '--region=asia-south1'
       - '--platform=managed'
       - '--allow-unauthenticated'
-      - '--set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,SPRING_PROFILES_ACTIVE=prod'
-      - '--set-secrets=JWT_SECRET=bachatgat-jwt-secret:latest'
+      - '--set-env-vars=GCP_PROJECT_ID=$PROJECT_ID,SPRING_PROFILES_ACTIVE=prod,APP_DEMO_DATA_ENABLED=false,STORAGE_BUCKET=bachat-gat-development-docs-2026,CORS_ALLOWED_ORIGINS=${_CORS_ALLOWED_ORIGINS}'
+      - '--set-secrets=JWT_SECRET=bachatgat-jwt-secret:latest,PAYMENT_HMAC_SECRET=bachatgat-payment-hmac-secret:latest'
       - '--min-instances=0'
       - '--max-instances=3'
       - '--memory=512Mi'
@@ -56,9 +60,13 @@ steps:
     id: 'cloud-run-deploy'
 
 images:
-  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:$BUILD_ID'
   - 'asia-south1-docker.pkg.dev/$PROJECT_ID/bachatgat-app/bachatgat-shg-manager:latest'
 
 timeout: '1200s'
 options:
   logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  # Override this with the final Cloud Run URL or custom domain at submission time.
+  _CORS_ALLOWED_ORIGINS: 'https://bachatgat-service-230889435212.asia-south1.run.app'

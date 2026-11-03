@@ -26,7 +26,7 @@ class I18nManager {
 
   async loadEnglishDictionary() {
     try {
-      const response = await fetch('/i18n/en.json?v=' + Date.now());
+      const response = await fetch('/i18n/en.json?v=1');
       if (!response.ok) return;
       this.englishTranslations = await response.json();
       Object.entries(this.englishTranslations).forEach(([key, value]) => {
@@ -45,13 +45,18 @@ class I18nManager {
     this.currentLang = lang;
     localStorage.setItem('app_lang', lang);
     try {
-      const response = await fetch(`/i18n/${lang}.json?v=` + Date.now());
-      if (response.ok) {
+      // init() already loaded English to support legacy text translation.
+      // Reuse it instead of downloading the same 33 KB file a second time.
+      if (lang === 'en' && Object.keys(this.englishTranslations).length > 0) {
+        this.translations = this.englishTranslations;
+      } else {
+        const response = await fetch(`/i18n/${lang}.json?v=1`);
+        if (!response.ok) return;
         this.translations = await response.json();
-        this.applyTranslations();
-        document.documentElement.lang = lang;
-        window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang, translations: this.translations } }));
       }
+      this.applyTranslations();
+      document.documentElement.lang = lang;
+      window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang, translations: this.translations } }));
     } catch (e) {
       console.warn(`Could not load translations for ${lang}:`, e);
     }

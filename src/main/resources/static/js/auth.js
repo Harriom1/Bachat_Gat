@@ -13,6 +13,10 @@ const Auth = {
   },
 
   setUser(user) {
+    const previous = this.getUser();
+    const previousScope = previous && (previous.id || previous.userId || previous.memberId || previous.username);
+    const nextScope = user && (user.id || user.userId || user.memberId || user.username);
+    if (previousScope !== nextScope && typeof clearApiCache === 'function') clearApiCache();
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -112,6 +116,7 @@ const Auth = {
   },
 
   logout() {
+    if (typeof clearApiCache === 'function') clearApiCache();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login.html';

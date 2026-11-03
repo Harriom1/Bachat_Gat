@@ -30,6 +30,9 @@ public class FirestoreDataService {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final boolean demoDataEnabled;
+    private final boolean normalizeRegistrationIdsOnStartup;
+    private final Set<String> loadedCollections = ConcurrentHashMap.newKeySet();
+    private final Object collectionLoadLock = new Object();
 
     // In-memory synchronized stores ensuring zero downtime and offline/local compatibility
     private final Map<String, User> users = new ConcurrentHashMap<>();
@@ -56,23 +59,34 @@ public class FirestoreDataService {
     public FirestoreDataService(@Autowired(required = false) Firestore firestore,
                                 PasswordEncoder passwordEncoder,
                                 ObjectMapper objectMapper,
-                                @org.springframework.beans.factory.annotation.Value("${app.demo-data.enabled:false}") boolean demoDataEnabled) {
+                                @org.springframework.beans.factory.annotation.Value("${app.demo-data.enabled:false}") boolean demoDataEnabled,
+                                @org.springframework.beans.factory.annotation.Value("${app.data.normalize-registration-ids-on-startup:false}") boolean normalizeRegistrationIdsOnStartup) {
         this.firestore = firestore;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
         this.demoDataEnabled = demoDataEnabled;
+        this.normalizeRegistrationIdsOnStartup = normalizeRegistrationIdsOnStartup;
+    }
+
+    /** Compatibility constructor used by focused unit tests. */
+    public FirestoreDataService(Firestore firestore, PasswordEncoder passwordEncoder, ObjectMapper objectMapper,
+                                boolean demoDataEnabled) {
+        this(firestore, passwordEncoder, objectMapper, demoDataEnabled, false);
     }
 
     /** Compatibility constructor used by focused unit tests. */
     public FirestoreDataService(Firestore firestore, PasswordEncoder passwordEncoder, ObjectMapper objectMapper) {
-        this(firestore, passwordEncoder, objectMapper, false);
+        this(firestore, passwordEncoder, objectMapper, false, false);
     }
 
     @PostConstruct
     public void init() {
         log.info("Initializing Bachat Gat repository...");
         if (firestore != null) {
-            loadPersistedData();
+            // Authentication and group selection are needed immediately.
+            // Operational collections are loaded lazily by their first read.
+            loadCollectionOnce("users", User.class, users, User::setId);
+            loadCollectionOnce("groups", Group.class, groups, Group::setId);
             if (demoDataEnabled && groups.isEmpty()) {
                 log.info("No Firestore groups found and demo data is enabled; creating development seed data.");
                 seedInitialDemoData();
@@ -82,7 +96,7 @@ public class FirestoreDataService {
             // Unit tests and explicitly offline development may use the in-memory fixture.
             seedInitialDemoData();
         }
-        normalizeLegacyRegistrationIds();
+        if (normalizeRegistrationIdsOnStartup) normalizeLegacyRegistrationIds();
         log.info("Repository initialized. Total groups: {}, Total members: {}, Total users: {}",
                 groups.size(), members.size(), users.size());
     }
@@ -125,6 +139,40 @@ public class FirestoreDataService {
             log.info("Loaded {} persisted {} record(s).", target.size(), collectionName);
         } catch (Exception ex) {
             throw new IllegalStateException("Could not load Firestore collection '" + collectionName + "'.", ex);
+        }
+    }
+
+    private <T> void loadCollectionOnce(String collectionName, Class<T> type,
+                                        Map<String, T> target, BiConsumer<T, String> idSetter) {
+        if (firestore == null || loadedCollections.contains(collectionName)) return;
+        synchronized (collectionLoadLock) {
+            if (loadedCollections.contains(collectionName)) return;
+            loadCollection(collectionName, type, target, idSetter);
+            loadedCollections.add(collectionName);
+        }
+    }
+
+    private void ensureLoaded(String collectionName) {
+        switch (collectionName) {
+            case "users" -> loadCollectionOnce(collectionName, User.class, users, User::setId);
+            case "groups" -> loadCollectionOnce(collectionName, Group.class, groups, Group::setId);
+            case "members" -> loadCollectionOnce(collectionName, Member.class, members, Member::setId);
+            case "collections" -> loadCollectionOnce(collectionName, CollectionRecord.class, collections, CollectionRecord::setId);
+            case "loanApplications" -> loadCollectionOnce(collectionName, LoanApplication.class, loanApplications, LoanApplication::setId);
+            case "loans" -> loadCollectionOnce(collectionName, Loan.class, loans, Loan::setId);
+            case "transactions" -> loadCollectionOnce(collectionName, Transaction.class, transactions, Transaction::setId);
+            case "auditLogs" -> loadCollectionOnce(collectionName, AuditLog.class, auditLogs, AuditLog::setId);
+            case "notifications" -> loadCollectionOnce(collectionName, SystemNotification.class, notifications, SystemNotification::setId);
+            case "documents" -> loadCollectionOnce(collectionName, DocumentRecord.class, documents, DocumentRecord::setId);
+            case "expenses" -> loadCollectionOnce(collectionName, GroupExpense.class, expenses, GroupExpense::setId);
+            case "meetings" -> loadCollectionOnce(collectionName, MeetingRecord.class, meetings, MeetingRecord::setId);
+            case "incomes" -> loadCollectionOnce(collectionName, GroupIncome.class, incomes, GroupIncome::setId);
+            case "adjustments" -> loadCollectionOnce(collectionName, MemberAdjustment.class, adjustments, MemberAdjustment::setId);
+            case "memberRefunds" -> loadCollectionOnce(collectionName, MemberRefund.class, memberRefunds, MemberRefund::setId);
+            case "groupMasterData" -> loadCollectionOnce(collectionName, GroupMasterData.class, masterDataMap, GroupMasterData::setId);
+            case "paymentOrders" -> loadCollectionOnce(collectionName, PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
+            case "loanSchedules" -> { loadCollectionOnce("loans", Loan.class, loans, Loan::setId); loadLoanSchedules(); loadedCollections.add(collectionName); }
+            default -> throw new IllegalArgumentException("Unknown Firestore collection: " + collectionName);
         }
     }
 
@@ -194,6 +242,7 @@ public class FirestoreDataService {
     // USER OPERATIONS
     // ==========================================
     public Optional<User> findUserByUsername(String identifier) {
+        ensureLoaded("users");
         if (identifier == null || identifier.isBlank()) return Optional.empty();
         String cleanId = identifier.trim();
         String digitsOnly = cleanId.replaceAll("[^0-9]", "");
@@ -224,10 +273,12 @@ public class FirestoreDataService {
     }
 
     public Optional<User> findUserById(String id) {
+        ensureLoaded("users");
         return Optional.ofNullable(users.get(id));
     }
 
     public Optional<User> findUserByMemberId(String memberId) {
+        ensureLoaded("users");
         return users.values().stream()
                 .filter(u -> memberId != null && memberId.equalsIgnoreCase(u.getMemberId()))
                 .findFirst();
@@ -289,16 +340,19 @@ public class FirestoreDataService {
     // GROUP OPERATIONS
     // ==========================================
     public List<Group> getAllGroups() {
+        ensureLoaded("groups");
         return groups.values().stream()
                 .sorted(Comparator.comparing(Group::getId))
                 .collect(Collectors.toList());
     }
 
     public Optional<Group> findGroupById(String id) {
+        ensureLoaded("groups");
         return Optional.ofNullable(groups.get(id));
     }
 
     public Optional<Group> findGroupByRegistrationId(String regId) {
+        ensureLoaded("groups");
         return groups.values().stream()
                 .filter(g -> g.getRegistrationId() != null && g.getRegistrationId().equalsIgnoreCase(regId))
                 .findFirst();
@@ -315,6 +369,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Group> findGroupByGroupCode(String code) {
+        ensureLoaded("groups");
         if (code == null) return Optional.empty();
         return groups.values().stream()
                 .filter(g -> g.getGroupCode() != null && g.getGroupCode().equalsIgnoreCase(code))
@@ -322,6 +377,7 @@ public class FirestoreDataService {
     }
 
     public List<User> findUsersByRole(Role role) {
+        ensureLoaded("users");
         return users.values().stream()
                 .filter(u -> u.getRole() == role)
                 .sorted(Comparator.comparing(User::getUsername))
@@ -329,6 +385,7 @@ public class FirestoreDataService {
     }
 
     public List<User> getAllUsers() {
+        ensureLoaded("users");
         return new ArrayList<>(users.values());
     }
 
@@ -409,6 +466,7 @@ public class FirestoreDataService {
     // MEMBER OPERATIONS
     // ==========================================
     public List<Member> getMembersByGroupId(String groupId) {
+        ensureLoaded("members");
         return members.values().stream()
                 .filter(m -> groupId == null || m.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(Member::getMemberId))
@@ -416,10 +474,12 @@ public class FirestoreDataService {
     }
 
     public Optional<Member> findMemberById(String id) {
+        ensureLoaded("members");
         return Optional.ofNullable(members.get(id));
     }
 
     public Member getMemberById(String idOrMemberId) {
+        ensureLoaded("members");
         if (idOrMemberId == null) return null;
         Member m = members.get(idOrMemberId);
         if (m != null) return m;
@@ -427,6 +487,7 @@ public class FirestoreDataService {
     }
 
     public List<Member> getAllMembers() {
+        ensureLoaded("members");
         return members.values().stream()
                 .sorted(Comparator.comparing(Member::getFullName))
                 .collect(Collectors.toList());
@@ -449,6 +510,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Member> findMemberByMemberId(String memberId) {
+        ensureLoaded("members");
         return members.values().stream()
                 .filter(m -> m.getMemberId().equalsIgnoreCase(memberId))
                 .findFirst();
@@ -458,6 +520,7 @@ public class FirestoreDataService {
     // MEMBER EXIT REFUND OPERATIONS
     // ==========================================
     public List<MemberRefund> getMemberRefundsByGroupId(String groupId) {
+        ensureLoaded("memberRefunds");
         return memberRefunds.values().stream()
                 .filter(r -> groupId == null || groupId.equals(r.getGroupId()))
                 .sorted(Comparator.comparing(MemberRefund::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -465,6 +528,7 @@ public class FirestoreDataService {
     }
 
     public List<MemberRefund> getMemberRefundsByMemberId(String memberId) {
+        ensureLoaded("memberRefunds");
         return memberRefunds.values().stream()
                 .filter(r -> memberId != null && memberId.equalsIgnoreCase(r.getMemberId()))
                 .sorted(Comparator.comparing(MemberRefund::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
@@ -472,6 +536,7 @@ public class FirestoreDataService {
     }
 
     public Optional<MemberRefund> findMemberRefundByMemberId(String memberId) {
+        ensureLoaded("memberRefunds");
         return memberRefunds.values().stream()
                 .filter(r -> memberId != null && memberId.equalsIgnoreCase(r.getMemberId())
                         && !"FAILED".equalsIgnoreCase(r.getStatus()))
@@ -511,6 +576,7 @@ public class FirestoreDataService {
     // COLLECTION OPERATIONS
     // ==========================================
     public List<CollectionRecord> getCollectionsByGroupId(String groupId) {
+        ensureLoaded("collections");
         return collections.values().stream()
                 .filter(c -> groupId == null || c.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(CollectionRecord::getYear).reversed()
@@ -519,6 +585,7 @@ public class FirestoreDataService {
     }
 
     public List<CollectionRecord> getCollectionsByMemberId(String memberId) {
+        ensureLoaded("collections");
         return collections.values().stream()
                 .filter(c -> c.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(CollectionRecord::getYear).reversed()
@@ -527,6 +594,7 @@ public class FirestoreDataService {
     }
 
     public Optional<CollectionRecord> findCollectionByBusinessKey(String businessKey) {
+        ensureLoaded("collections");
         return Optional.ofNullable(collections.get(businessKey));
     }
 
@@ -544,6 +612,7 @@ public class FirestoreDataService {
     // LOAN APPLICATION OPERATIONS
     // ==========================================
     public List<LoanApplication> getLoanApplicationsByGroupId(String groupId) {
+        ensureLoaded("loanApplications");
         return loanApplications.values().stream()
                 .filter(la -> groupId == null || la.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(LoanApplication::getCreatedAt).reversed())
@@ -551,6 +620,7 @@ public class FirestoreDataService {
     }
 
     public List<LoanApplication> getLoanApplicationsByMemberId(String memberId) {
+        ensureLoaded("loanApplications");
         return loanApplications.values().stream()
                 .filter(la -> la.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(LoanApplication::getCreatedAt).reversed())
@@ -558,6 +628,7 @@ public class FirestoreDataService {
     }
 
     public Optional<LoanApplication> findLoanApplicationById(String id) {
+        ensureLoaded("loanApplications");
         return Optional.ofNullable(loanApplications.get(id));
     }
 
@@ -575,6 +646,7 @@ public class FirestoreDataService {
     // LOAN OPERATIONS
     // ==========================================
     public List<Loan> getLoansByGroupId(String groupId) {
+        ensureLoaded("loans");
         return uniqueLoans().stream()
                 .filter(l -> groupId == null || l.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(Loan::getCreatedAt).reversed())
@@ -582,6 +654,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Loan> findLoanById(String id) {
+        ensureLoaded("loans");
         if (id == null || id.isBlank()) return Optional.empty();
         Loan l = loans.get(id);
         if (l != null) return Optional.of(l);
@@ -591,10 +664,12 @@ public class FirestoreDataService {
     }
 
     public Optional<Loan> findLoanByLoanId(String loanId) {
+        ensureLoaded("loans");
         return findLoanById(loanId);
     }
 
     public Optional<Loan> findActiveLoanByMemberId(String memberId) {
+        ensureLoaded("loans");
         return uniqueLoans().stream()
                 .filter(l -> l.getMemberId().equalsIgnoreCase(memberId) && 
                         (l.getStatus() == LoanStatus.ACTIVE || l.getStatus() == LoanStatus.PARTIALLY_PAID || l.getStatus() == LoanStatus.OVERDUE))
@@ -602,6 +677,7 @@ public class FirestoreDataService {
     }
 
     public List<Loan> getLoansByMemberId(String memberId) {
+        ensureLoaded("loans");
         return uniqueLoans().stream()
                 .filter(l -> l.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(Loan::getCreatedAt).reversed())
@@ -638,6 +714,7 @@ public class FirestoreDataService {
     }
 
     public List<LoanRepaymentSchedule> getLoanSchedule(String loanId) {
+        ensureLoaded("loanSchedules");
         if (loanId == null) return new ArrayList<>();
         List<LoanRepaymentSchedule> s = loanSchedules.get(loanId);
         if (s != null && !s.isEmpty()) {
@@ -646,7 +723,7 @@ public class FirestoreDataService {
                 Loan l = storedLoan.get();
                 List<LoanRepaymentSchedule> recalculated = com.bachatgat.util.FinancialCalculator.generateReducingScheduleWithPayments(
                         l.getPrincipalAmount(), l.getInterestRate(),
-                        l.getInterestRate() != null && l.getInterestRate().compareTo(BigDecimal.valueOf(5.0)) <= 0,
+                        "MONTHLY".equalsIgnoreCase(l.getInterestRateBasis()),
                         l.getDurationMonths() > 0 ? l.getDurationMonths() : 12,
                         l.getDisbursementDate() != null ? l.getDisbursementDate() : LocalDate.now(), s);
                 reconcileReducingLoanSummary(l, recalculated);
@@ -679,7 +756,7 @@ public class FirestoreDataService {
             List<LoanRepaymentSchedule> generated = flatInterest
                     ? generateFlatSchedule(principal, rate, duration, startDate, l.getTotalInterest(), l.getMonthlyInstallment())
                     : com.bachatgat.util.FinancialCalculator.generateReducingScheduleWithPayments(principal, rate,
-                            rate.compareTo(BigDecimal.valueOf(5.0)) <= 0, duration, startDate, new ArrayList<>());
+                            "MONTHLY".equalsIgnoreCase(l.getInterestRateBasis()), duration, startDate, new ArrayList<>());
 
             if (!flatInterest) {
                 reconcileReducingLoanSummary(l, generated);
@@ -692,7 +769,7 @@ public class FirestoreDataService {
             // Reconcile status and reducing balances strictly based on actual payments
             BigDecimal runningPrincipal = principal.setScale(0, java.math.RoundingMode.HALF_UP);
             BigDecimal remainingPaid = l.getTotalPaid() != null ? l.getTotalPaid() : BigDecimal.ZERO;
-            boolean isMonthlyRate = rate.compareTo(BigDecimal.valueOf(5.0)) <= 0;
+            boolean isMonthlyRate = "MONTHLY".equalsIgnoreCase(l.getInterestRateBasis());
             BigDecimal monthlyRateFactor = isMonthlyRate
                     ? rate.divide(BigDecimal.valueOf(100), 8, java.math.RoundingMode.HALF_UP)
                     : rate.divide(BigDecimal.valueOf(1200), 8, java.math.RoundingMode.HALF_UP);
@@ -764,8 +841,7 @@ public class FirestoreDataService {
     private void reconcileReducingLoanSummary(Loan loan, List<LoanRepaymentSchedule> schedule) {
         if (loan == null || schedule == null || schedule.isEmpty()) return;
         BigDecimal principal = loan.getPrincipalAmount() != null ? loan.getPrincipalAmount() : BigDecimal.ZERO;
-        boolean monthlyRate = loan.getInterestRate() != null
-                && loan.getInterestRate().compareTo(BigDecimal.valueOf(5.0)) <= 0;
+        boolean monthlyRate = "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis());
         List<LoanRepaymentSchedule> contractualSchedule = FinancialCalculator.generateAmortizationSchedule(
                 principal,
                 loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO,
@@ -786,8 +862,12 @@ public class FirestoreDataService {
         loan.setTotalInterest(totalInterest);
         loan.setInterestPaid(paidInterest);
         loan.setOutstandingInterest(remainingInterest);
+        loan.setPendingInterest(remainingInterest);
         loan.setPrincipalPaid(paidPrincipal);
         loan.setOutstandingPrincipal(remainingPrincipal);
+        loan.setPendingPrincipal(schedule.stream()
+                .map(LoanRepaymentSchedule::getPendingPrincipal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
         loan.setTotalOutstanding(remainingPrincipal.add(remainingInterest));
         loan.setTotalPayable(principal.add(totalInterest));
         loan.setMonthlyInstallment(contractualSchedule.isEmpty()
@@ -858,6 +938,7 @@ public class FirestoreDataService {
     // TRANSACTIONS LEDGER
     // ==========================================
     public List<Transaction> getTransactionsByGroupId(String groupId) {
+        ensureLoaded("transactions");
         return transactions.values().stream()
                 .filter(t -> groupId == null || t.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(Transaction::getCreatedAt).reversed())
@@ -865,6 +946,7 @@ public class FirestoreDataService {
     }
 
     public List<Transaction> getTransactionsByMemberId(String memberId) {
+        ensureLoaded("transactions");
         return transactions.values().stream()
                 .filter(t -> t.getMemberId() != null && t.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(Transaction::getCreatedAt).reversed())
@@ -881,6 +963,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Transaction> findTransactionByIdempotencyKey(String idempotencyKey) {
+        ensureLoaded("transactions");
         if (idempotencyKey == null || idempotencyKey.isBlank()) return Optional.empty();
         return transactions.values().stream()
                 .filter(t -> idempotencyKey.equalsIgnoreCase(t.getIdempotencyKey()))
@@ -888,6 +971,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Transaction> findTransactionByReference(String reference) {
+        ensureLoaded("transactions");
         if (reference == null || reference.isBlank()) return Optional.empty();
         return transactions.values().stream()
                 .filter(t -> reference.equalsIgnoreCase(t.getReference()))
@@ -899,6 +983,7 @@ public class FirestoreDataService {
     // AUDIT LOGS
     // ==========================================
     public List<AuditLog> getAuditLogsByGroupId(String groupId) {
+        ensureLoaded("auditLogs");
         return auditLogs.values().stream()
                 .filter(a -> groupId == null || a.getGroupId() == null || a.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(AuditLog::getTimestamp).reversed())
@@ -917,6 +1002,7 @@ public class FirestoreDataService {
     // NOTIFICATIONS
     // ==========================================
     public List<SystemNotification> getNotificationsForUser(String userId, String role, String groupId) {
+        ensureLoaded("notifications");
         return notifications.values().stream()
                 .filter(n -> (n.getTargetUserId() != null && n.getTargetUserId().equals(userId)) ||
                              (n.getTargetRole() != null && n.getTargetRole().equals(role) && (n.getGroupId() == null || n.getGroupId().equals(groupId))))
@@ -937,18 +1023,21 @@ public class FirestoreDataService {
     // DOCUMENTS
     // ==========================================
     public List<DocumentRecord> getDocumentsByMemberId(String memberId) {
+        ensureLoaded("documents");
         return documents.values().stream()
                 .filter(d -> d.getMemberId() != null && d.getMemberId().equalsIgnoreCase(memberId))
                 .collect(Collectors.toList());
     }
 
     public List<DocumentRecord> getDocumentsByGroupId(String groupId) {
+        ensureLoaded("documents");
         return documents.values().stream()
                 .filter(d -> groupId == null || d.getGroupId().equals(groupId))
                 .collect(Collectors.toList());
     }
 
     public Optional<DocumentRecord> findDocumentById(String id) {
+        ensureLoaded("documents");
         return Optional.ofNullable(documents.get(id));
     }
 
@@ -965,6 +1054,7 @@ public class FirestoreDataService {
     // EXPENSES & MEETINGS
     // ==========================================
     public List<GroupExpense> getExpensesByGroupId(String groupId) {
+        ensureLoaded("expenses");
         return expenses.values().stream()
                 .filter(e -> groupId == null || e.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(GroupExpense::getExpenseDate).reversed())
@@ -981,6 +1071,7 @@ public class FirestoreDataService {
     }
 
     public List<MeetingRecord> getMeetingsByGroupId(String groupId) {
+        ensureLoaded("meetings");
         return meetings.values().stream()
                 .filter(m -> groupId == null || m.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(MeetingRecord::getMeetingDate).reversed())
@@ -1000,6 +1091,7 @@ public class FirestoreDataService {
     // OTHER INCOME OPERATIONS (Section 14 & 16)
     // ==========================================
     public List<GroupIncome> getIncomesByGroupId(String groupId) {
+        ensureLoaded("incomes");
         return incomes.values().stream()
                 .filter(i -> groupId == null || i.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(GroupIncome::getIncomeDate).reversed())
@@ -1007,6 +1099,7 @@ public class FirestoreDataService {
     }
 
     public Optional<GroupIncome> findIncomeById(String id) {
+        ensureLoaded("incomes");
         return Optional.ofNullable(incomes.get(id));
     }
 
@@ -1023,6 +1116,7 @@ public class FirestoreDataService {
     // MEMBER ADJUSTMENT OPERATIONS (Section 16 & 17)
     // ==========================================
     public List<MemberAdjustment> getAdjustmentsByGroupId(String groupId) {
+        ensureLoaded("adjustments");
         return adjustments.values().stream()
                 .filter(a -> groupId == null || a.getGroupId().equals(groupId))
                 .sorted(Comparator.comparing(MemberAdjustment::getCreatedAt).reversed())
@@ -1030,6 +1124,7 @@ public class FirestoreDataService {
     }
 
     public List<MemberAdjustment> getAdjustmentsByMemberId(String memberId) {
+        ensureLoaded("adjustments");
         return adjustments.values().stream()
                 .filter(a -> a.getMemberId() != null && a.getMemberId().equalsIgnoreCase(memberId))
                 .sorted(Comparator.comparing(MemberAdjustment::getCreatedAt).reversed())
@@ -1049,6 +1144,7 @@ public class FirestoreDataService {
     // MASTER DATA OPERATIONS (Section 7, 8, 9, 58)
     // ==========================================
     public Optional<GroupMasterData> getLatestMasterDataByGroupId(String groupId) {
+        ensureLoaded("groupMasterData");
         return masterDataMap.values().stream()
                 .filter(m -> m.getGroupId().equals(groupId) && m.isActive())
                 .max(Comparator.comparingInt(GroupMasterData::getVersion));
@@ -1056,6 +1152,7 @@ public class FirestoreDataService {
 
     /** Selects the rule version that applied to a collection month. */
     public Optional<GroupMasterData> getMasterDataForDate(String groupId, LocalDate collectionDate) {
+        ensureLoaded("groupMasterData");
         LocalDate date = collectionDate != null ? collectionDate : LocalDate.now();
         return masterDataMap.values().stream()
                 .filter(m -> m.getGroupId().equals(groupId))
@@ -1065,6 +1162,7 @@ public class FirestoreDataService {
     }
 
     public List<GroupMasterData> getAllMasterDataVersions(String groupId) {
+        ensureLoaded("groupMasterData");
         return masterDataMap.values().stream()
                 .filter(m -> m.getGroupId().equals(groupId))
                 .sorted(Comparator.comparingInt(GroupMasterData::getVersion).reversed())
@@ -1084,11 +1182,13 @@ public class FirestoreDataService {
     // PAYMENT ORDER OPERATIONS
     // ==========================================
     public Optional<PaymentOrder> findPaymentOrderById(String orderId) {
+        ensureLoaded("paymentOrders");
         if (orderId == null) return Optional.empty();
         return Optional.ofNullable(paymentOrders.get(orderId));
     }
 
     public Optional<PaymentOrder> findPaymentOrderByReceiptNumber(String receiptNumber) {
+        ensureLoaded("paymentOrders");
         if (receiptNumber == null) return Optional.empty();
         return paymentOrders.values().stream()
                 .filter(o -> receiptNumber.equalsIgnoreCase(o.getReceiptNumber()))
@@ -1096,6 +1196,7 @@ public class FirestoreDataService {
     }
 
     public List<PaymentOrder> getPaymentOrdersByGroupId(String groupId) {
+        ensureLoaded("paymentOrders");
         return paymentOrders.values().stream()
                 .filter(o -> groupId == null || groupId.equals(o.getGroupId()))
                 .sorted(Comparator.comparing(PaymentOrder::getCreatedAt).reversed())
@@ -1103,6 +1204,7 @@ public class FirestoreDataService {
     }
 
     public List<PaymentOrder> getPaymentOrdersByMemberId(String memberId) {
+        ensureLoaded("paymentOrders");
         return paymentOrders.values().stream()
                 .filter(o -> memberId != null && memberId.equalsIgnoreCase(o.getMemberId()))
                 .sorted(Comparator.comparing(PaymentOrder::getCreatedAt).reversed())

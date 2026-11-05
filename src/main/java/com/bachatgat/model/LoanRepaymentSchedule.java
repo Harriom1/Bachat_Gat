@@ -16,6 +16,8 @@ public class LoanRepaymentSchedule {
     private BigDecimal openingPrincipal = BigDecimal.ZERO;
     private BigDecimal emiAmount = BigDecimal.ZERO;
     private BigDecimal principalAmount = BigDecimal.ZERO;
+    /** Principal scheduled for this original installment, excluding carried arrears. */
+    private BigDecimal scheduledPrincipalAmount = BigDecimal.ZERO;
     private BigDecimal interestAmount = BigDecimal.ZERO;
     private BigDecimal penaltyAmount = BigDecimal.ZERO;
     private BigDecimal totalDue = BigDecimal.ZERO;
@@ -23,6 +25,29 @@ public class LoanRepaymentSchedule {
     private BigDecimal paidPrincipalAmount = BigDecimal.ZERO;
     private BigDecimal paidInterestAmount = BigDecimal.ZERO;
     private BigDecimal outstandingAmount = BigDecimal.ZERO;
+    private BigDecimal pendingInterest = BigDecimal.ZERO;
+    private BigDecimal pendingPrincipal = BigDecimal.ZERO;
+    /** Annual rate used to calculate this installment. */
+    private BigDecimal annualInterestRate = BigDecimal.ZERO;
+    /** Monthly rate used to calculate this installment. */
+    private BigDecimal monthlyInterestRate = BigDecimal.ZERO;
+    /** Contractual EMI before carried arrears are added. */
+    private BigDecimal originalScheduledEmi = BigDecimal.ZERO;
+    /** Carried unpaid interest from earlier installments. */
+    private BigDecimal previousPendingInterest = BigDecimal.ZERO;
+    /** Carried unpaid principal from earlier installments. */
+    private BigDecimal previousPendingPrincipal = BigDecimal.ZERO;
+    /** Complete interest due for this row, including carried interest. */
+    private BigDecimal totalInterestDue = BigDecimal.ZERO;
+    /** Complete principal due for this row, including carried principal. */
+    private BigDecimal totalPrincipalDue = BigDecimal.ZERO;
+    /** Remaining unpaid interest after this row's payment. */
+    private BigDecimal remainingPendingInterest = BigDecimal.ZERO;
+    /** Remaining unpaid principal after this row's payment. */
+    private BigDecimal remainingPendingPrincipal = BigDecimal.ZERO;
+    private String arrangementType = "NORMAL";
+    private String exceptionApprovedBy;
+    private LocalDateTime exceptionApprovedAt;
     private BigDecimal closingPrincipal = BigDecimal.ZERO;
     private RepaymentStatus status = RepaymentStatus.UPCOMING;
     private LocalDate paidDate;
@@ -53,6 +78,13 @@ public class LoanRepaymentSchedule {
     public BigDecimal getPrincipalAmount() { return principalAmount; }
     public BigDecimal getPrincipalComponent() { return principalAmount; }
     public void setPrincipalAmount(BigDecimal principalAmount) { this.principalAmount = principalAmount; }
+    public BigDecimal getScheduledPrincipalAmount() {
+        return scheduledPrincipalAmount != null && scheduledPrincipalAmount.signum() != 0
+                ? scheduledPrincipalAmount : principalAmount;
+    }
+    public void setScheduledPrincipalAmount(BigDecimal scheduledPrincipalAmount) {
+        this.scheduledPrincipalAmount = scheduledPrincipalAmount;
+    }
     public BigDecimal getInterestAmount() { return interestAmount; }
     public BigDecimal getInterestComponent() { return interestAmount; }
     public void setInterestAmount(BigDecimal interestAmount) { this.interestAmount = interestAmount; }
@@ -68,6 +100,35 @@ public class LoanRepaymentSchedule {
     public void setPaidInterestAmount(BigDecimal paidInterestAmount) { this.paidInterestAmount = paidInterestAmount; }
     public BigDecimal getOutstandingAmount() { return outstandingAmount; }
     public void setOutstandingAmount(BigDecimal outstandingAmount) { this.outstandingAmount = outstandingAmount; }
+    public BigDecimal getPendingInterest() { return pendingInterest != null ? pendingInterest : BigDecimal.ZERO; }
+    public void setPendingInterest(BigDecimal pendingInterest) { this.pendingInterest = pendingInterest; }
+    public BigDecimal getPendingPrincipal() { return pendingPrincipal != null ? pendingPrincipal : BigDecimal.ZERO; }
+    public void setPendingPrincipal(BigDecimal pendingPrincipal) { this.pendingPrincipal = pendingPrincipal; }
+    public BigDecimal getAnnualInterestRate() { return annualInterestRate != null ? annualInterestRate : BigDecimal.ZERO; }
+    public void setAnnualInterestRate(BigDecimal annualInterestRate) { this.annualInterestRate = annualInterestRate; }
+    public BigDecimal getMonthlyInterestRate() { return monthlyInterestRate != null ? monthlyInterestRate : BigDecimal.ZERO; }
+    public void setMonthlyInterestRate(BigDecimal monthlyInterestRate) { this.monthlyInterestRate = monthlyInterestRate; }
+    public BigDecimal getOriginalScheduledEmi() { return originalScheduledEmi != null ? originalScheduledEmi : getEmiAmount(); }
+    public void setOriginalScheduledEmi(BigDecimal originalScheduledEmi) { this.originalScheduledEmi = originalScheduledEmi; }
+    public BigDecimal getPreviousPendingInterest() { return previousPendingInterest != null ? previousPendingInterest : BigDecimal.ZERO; }
+    public void setPreviousPendingInterest(BigDecimal previousPendingInterest) { this.previousPendingInterest = previousPendingInterest; }
+    public BigDecimal getPreviousPendingPrincipal() { return previousPendingPrincipal != null ? previousPendingPrincipal : BigDecimal.ZERO; }
+    public void setPreviousPendingPrincipal(BigDecimal previousPendingPrincipal) { this.previousPendingPrincipal = previousPendingPrincipal; }
+    public BigDecimal getTotalInterestDue() { return totalInterestDue != null ? totalInterestDue : getInterestAmount(); }
+    public void setTotalInterestDue(BigDecimal totalInterestDue) { this.totalInterestDue = totalInterestDue; }
+    public BigDecimal getTotalPrincipalDue() { return totalPrincipalDue != null ? totalPrincipalDue : getPrincipalAmount(); }
+    public void setTotalPrincipalDue(BigDecimal totalPrincipalDue) { this.totalPrincipalDue = totalPrincipalDue; }
+    public BigDecimal getRemainingPendingInterest() { return remainingPendingInterest != null ? remainingPendingInterest : getPendingInterest(); }
+    public void setRemainingPendingInterest(BigDecimal remainingPendingInterest) { this.remainingPendingInterest = remainingPendingInterest; }
+    public BigDecimal getRemainingPendingPrincipal() { return remainingPendingPrincipal != null ? remainingPendingPrincipal : getPendingPrincipal(); }
+    public void setRemainingPendingPrincipal(BigDecimal remainingPendingPrincipal) { this.remainingPendingPrincipal = remainingPendingPrincipal; }
+    public String getPaymentStatus() { return status == null ? null : status.name(); }
+    public String getArrangementType() { return arrangementType == null ? "NORMAL" : arrangementType; }
+    public void setArrangementType(String arrangementType) { this.arrangementType = arrangementType; }
+    public String getExceptionApprovedBy() { return exceptionApprovedBy; }
+    public void setExceptionApprovedBy(String exceptionApprovedBy) { this.exceptionApprovedBy = exceptionApprovedBy; }
+    public LocalDateTime getExceptionApprovedAt() { return exceptionApprovedAt; }
+    public void setExceptionApprovedAt(LocalDateTime exceptionApprovedAt) { this.exceptionApprovedAt = exceptionApprovedAt; }
     public BigDecimal getClosingPrincipal() { return closingPrincipal != null ? closingPrincipal : BigDecimal.ZERO; }
     public void setClosingPrincipal(BigDecimal closingPrincipal) { this.closingPrincipal = closingPrincipal; }
     public BigDecimal getRemainingPrincipal() { return getClosingPrincipal(); }

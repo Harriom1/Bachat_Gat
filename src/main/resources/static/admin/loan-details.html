@@ -135,6 +135,9 @@
               <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">
                 <span data-i18n="scheduleCalculationHelp">Calculated strictly in Java backend using BigDecimal reducing balance formula</span>
               </p>
+              <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0 0;">
+                Closing principal is the actual principal still outstanding after payments. It remains equal to opening principal for unpaid or interest-only rows; scheduled principal is carried as pending until actually paid.
+              </p>
             </div>
           </div>
           <div class="table-responsive">
@@ -148,14 +151,16 @@
                   <th style="text-align: right;" data-i18n="interestComponent">Interest Component (₹)</th>
                   <th style="text-align: right;" data-i18n="emiAmount">EMI Amount (₹)</th>
                   <th style="text-align: right;" data-i18n="paidAmount">Paid (₹)</th>
-                  <th style="text-align: right;" data-i18n="pendingAmount">Pending (₹)</th>
+                  <th style="text-align: right;">Pending Interest (₹)</th>
+                  <th style="text-align: right;">Pending Principal (₹)</th>
+                  <th style="text-align: right;" data-i18n="pendingAmount">Pending Total (₹)</th>
                   <th style="text-align: right;" data-i18n="closingPrincipal">Closing Principal (₹)</th>
                   <th data-i18n="status">Status</th>
                 </tr>
               </thead>
               <tbody id="schedule-tbody">
                 <tr>
-                  <td colspan="10" class="text-center py-4 text-muted">Loading loan amortization schedule...</td>
+                  <td colspan="11" class="text-center py-4 text-muted">Loading loan amortization schedule...</td>
                 </tr>
               </tbody>
             </table>
@@ -174,7 +179,7 @@
       </div>
       <form id="form-partial">
         <div class="info-banner mb-3" style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem;" data-i18n="partialPaymentHelp">
-          Select exactly what the member paid. Unselected amounts remain unpaid; paying interest only does not reduce principal.
+          Enter the amount received. The backend allocates it to oldest pending interest first, then pending principal. Browser component amounts are not trusted.
         </div>
         <div class="form-group mb-3">
           <label class="form-label" data-i18n="receivedAmount">Amount Received (₹)</label>
@@ -406,12 +411,29 @@
           .filter(c => Number(c.year) === now.getFullYear() && Number(c.month) === now.getMonth() + 1)
           .sort((a, b) => Number(b.pendingAmount || 0) - Number(a.pendingAmount || 0))[0];
         const loanRows = Array.isArray(schedule) ? schedule : [];
-        const currentLoanRow = loanRows.find(row => Number(row.outstandingAmount || 0) > 0 && String(row.status || '').toUpperCase() !== 'PAID') || loanRows[0];
+        // For arrears, the latest due row contains the complete catch-up
+        // amount: previous unpaid principal/interest plus this installment's
+        // dues. Selecting the first unpaid row would show only the old row's
+        // balance after an interest-only payment and hide the next month's
+        // current principal and interest.
+        const dueRows = loanRows.filter(row => {
+          if (String(row.status || '').toUpperCase() === 'PAID') return false;
+          const dueDate = row.dueDate ? new Date(`${row.dueDate}T00:00:00`) : null;
+          return dueDate && !Number.isNaN(dueDate.getTime()) && dueDate <= now;
+        });
+        const arrearsRows = loanRows.filter(row => {
+          if (String(row.status || '').toUpperCase() === 'PAID') return false;
+          return Number(row.pendingPrincipal || row.remainingPendingPrincipal || 0) > 0
+            || Number(row.pendingInterest || row.remainingPendingInterest || 0) > 0;
+        });
+        const currentLoanRow = (dueRows.length ? dueRows[dueRows.length - 1] : null)
+          || (arrearsRows.length ? arrearsRows[arrearsRows.length - 1] : null)
+          || loanRows[0];
         const setDefault = (id, value) => { document.getElementById(id).value = Math.max(0, Number(value || 0)).toFixed(2); };
         setDefault('inp-partial-bachat', currentCollection ? (currentCollection.pendingAmount ?? (Number(currentCollection.expectedAmount || 0) - Number(currentCollection.paidAmount || 0))) : (member?.monthlyBachatAmount || member?.monthlySavingsAmount || 0));
         setDefault('inp-partial-penalty', currentCollection ? (Number(currentCollection.lateFeeAmount || 0) - Number(currentCollection.paidLateFee || 0)) : 0);
-        setDefault('inp-partial-principal', currentLoanRow ? (Number(currentLoanRow.principalAmount || 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0);
-        setDefault('inp-partial-interest', currentLoanRow ? (Number(currentLoanRow.interestAmount || 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0);
+        setDefault('inp-partial-principal', currentLoanRow ? (Number(currentLoanRow.totalPrincipalDue ?? currentLoanRow.principalAmount ?? 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0);
+        setDefault('inp-partial-interest', currentLoanRow ? (Number(currentLoanRow.totalInterestDue ?? currentLoanRow.interestAmount ?? 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0);
       } catch (err) {
         Common.showToast('Could not load current payment dues: ' + err.message, 'warning');
       }
@@ -445,9 +467,9 @@
         paymentMethod: document.getElementById('inp-partial-mode').value,
         referenceNumber: document.getElementById('inp-partial-ref').value.trim()
       };
-      const componentTotal = payload.penaltyAmount + payload.monthlyBachatAmount + payload.loanPrincipalAmount + payload.loanInterestAmount;
-      if (Math.abs(componentTotal - payload.amount) > 0.01) {
-        Common.showToast('Amount received must equal the selected payment components.', 'warning');
+      const collectionTotal = payload.penaltyAmount + payload.monthlyBachatAmount;
+      if (collectionTotal > payload.amount + 0.01) {
+        Common.showToast('Penalty and Bachat cannot exceed the amount received.', 'warning');
         btn.disabled = false;
         return;
       }
@@ -493,21 +515,21 @@
       statusBadge.textContent = l.status;
       statusBadge.className = `badge status-badge badge-${(l.status || 'active').toLowerCase()}`;
 
-      document.getElementById('dtl-sanctioned-principal').textContent = Common.formatIndianCurrency(l.principalAmount);
-      document.getElementById('dtl-principal-paid').textContent = Common.formatIndianCurrency(l.principalPaid);
-      document.getElementById('dtl-remaining-principal').textContent = Common.formatIndianCurrency(l.outstandingPrincipal);
+      document.getElementById('dtl-sanctioned-principal').textContent = Common.formatLoanCurrency(l.principalAmount);
+      document.getElementById('dtl-principal-paid').textContent = Common.formatLoanCurrency(l.principalPaid);
+      document.getElementById('dtl-remaining-principal').textContent = Common.formatLoanCurrency(l.outstandingPrincipal);
 
       const totalOut = parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0);
-      document.getElementById('dtl-total-outstanding').textContent = Common.formatIndianCurrency(totalOut);
+      document.getElementById('dtl-total-outstanding').textContent = Common.formatLoanCurrency(totalOut);
 
-      document.getElementById('dtl-monthly-emi').textContent = Common.formatIndianCurrency(l.monthlyInstallment);
+      document.getElementById('dtl-monthly-emi').textContent = Common.formatLoanCurrency(l.monthlyInstallment);
       document.getElementById('dtl-tenure').textContent = `${l.durationMonths || 12} Months`;
-      document.getElementById('dtl-interest-accrued').textContent = Common.formatIndianCurrency(l.totalInterest);
-      document.getElementById('dtl-interest-paid').textContent = Common.formatIndianCurrency(l.interestPaid);
-      document.getElementById('dtl-remaining-interest').textContent = Common.formatIndianCurrency(l.outstandingInterest);
+      document.getElementById('dtl-interest-accrued').textContent = Common.formatLoanCurrency(l.totalInterest);
+      document.getElementById('dtl-interest-paid').textContent = Common.formatLoanCurrency(l.interestPaid);
+      document.getElementById('dtl-remaining-interest').textContent = Common.formatLoanCurrency(l.outstandingInterest);
       document.getElementById('dtl-next-due-date').textContent = l.nextDueDate ? Common.formatDate(l.nextDueDate) : 'N/A';
 
-      document.getElementById('repay-emi-help').textContent = Common.formatIndianCurrency(l.monthlyInstallment);
+      document.getElementById('repay-emi-help').textContent = Common.formatLoanCurrency(l.monthlyInstallment);
     }
 
     async function loadSchedule() {
@@ -515,7 +537,7 @@
         const schedule = await api.getLoanSchedule(currentLoanId);
         const tbody = document.getElementById('schedule-tbody');
         if (!schedule || schedule.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4 text-muted">No schedule items generated.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="11" class="text-center py-4 text-muted">No schedule items generated.</td></tr>`;
           return;
         }
 
@@ -523,13 +545,15 @@
           <tr>
             <td><strong>${s.installmentNo}</strong></td>
             <td>${Common.formatDate(s.dueDate)}</td>
-            <td style="text-align: right;">${Common.formatIndianCurrency(s.openingPrincipal)}</td>
-            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.principalComponent)}</td>
-            <td style="text-align: right; color: var(--text-muted);">${Common.formatIndianCurrency(s.interestComponent)}</td>
-            <td style="text-align: right; font-weight: 700; color: var(--primary);">${Common.formatIndianCurrency(s.emiAmount)}</td>
-            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatIndianCurrency(s.paidAmount || 0)}</td>
-            <td style="text-align: right; color: var(--danger); font-weight: 600;">${Common.formatIndianCurrency(s.outstandingAmount || 0)}</td>
-            <td style="text-align: right; font-weight: 600;">${Common.formatIndianCurrency(s.closingPrincipal)}</td>
+            <td style="text-align: right;">${Common.formatLoanCurrency(s.openingPrincipal)}</td>
+              <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatLoanCurrency(s.scheduledPrincipalAmount ?? s.principalComponent ?? s.principalAmount)}</td>
+            <td style="text-align: right; color: var(--text-muted);">${Common.formatLoanCurrency(s.interestComponent ?? s.interestAmount)}</td>
+            <td style="text-align: right; font-weight: 700; color: var(--primary);">${Common.formatLoanCurrency(s.emiAmount)}</td>
+            <td style="text-align: right; color: var(--success); font-weight: 600;">${Common.formatLoanCurrency(s.paidAmount || 0)}</td>
+            <td style="text-align: right; color: var(--danger);">${Common.formatLoanCurrency(s.pendingInterest ?? 0)}</td>
+            <td style="text-align: right; color: var(--danger);">${Common.formatLoanCurrency(s.pendingPrincipal ?? 0)}</td>
+            <td style="text-align: right; color: var(--danger); font-weight: 600;">${Common.formatLoanCurrency(s.outstandingAmount || 0)}</td>
+            <td style="text-align: right; font-weight: 600;">${Common.formatLoanCurrency(s.closingPrincipal)}</td>
             <td><span class="badge status-badge badge-${(s.status || 'upcoming').toLowerCase()}">${Common.escapeHtml ? Common.escapeHtml(s.status) : s.status}</span></td>
           </tr>
         `).join('');

@@ -10,6 +10,7 @@ import com.bachatgat.model.User;
 import com.bachatgat.repository.FirestoreDataService;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.AuditService;
+import com.bachatgat.service.OtpVerificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,11 +29,14 @@ public class AdminClientAdminController {
     private final FirestoreDataService dataService;
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
+    private final OtpVerificationService otpVerificationService;
 
-    public AdminClientAdminController(FirestoreDataService dataService, PasswordEncoder passwordEncoder, AuditService auditService) {
+    public AdminClientAdminController(FirestoreDataService dataService, PasswordEncoder passwordEncoder, AuditService auditService,
+                                      OtpVerificationService otpVerificationService) {
         this.dataService = dataService;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.otpVerificationService = otpVerificationService;
     }
 
     @GetMapping
@@ -108,6 +112,19 @@ public class AdminClientAdminController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> createClientAdmin(
             @Valid @RequestBody CreateAdminRequest request,
             @AuthenticationPrincipal UserPrincipal principal) {
+
+        boolean creatingNewGroup = request.isCreateNewGroup()
+                || (request.getGroupId() == null && request.getGroupName() != null && !request.getGroupName().isBlank());
+        if (creatingNewGroup) {
+            if (request.getVerificationSessionId() == null || request.getEmailVerificationId() == null
+                    || request.getMobileVerificationId() == null) {
+                throw new IllegalArgumentException("Email and mobile verification are required before creating a new group.");
+            }
+            otpVerificationService.requireVerified(request.getEmailVerificationId(), request.getVerificationSessionId(),
+                    "EMAIL", request.getEmail());
+            otpVerificationService.requireVerified(request.getMobileVerificationId(), request.getVerificationSessionId(),
+                    "FIREBASE_PHONE", request.getMobileNumber());
+        }
 
         dataService.findUserByUsername(request.getUsername()).ifPresent(u -> {
             throw new DuplicateRecordException("Username '" + request.getUsername() + "' is already in use");

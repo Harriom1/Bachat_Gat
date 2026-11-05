@@ -86,6 +86,7 @@
               <p class="mt-2">Loading notifications...</p>
             </div>
           </div>
+          <p id="notifications-sync-status" class="text-muted" style="margin: 1rem 0 0; font-size: 0.8rem;" aria-live="polite"></p>
         </div>
       </div>
     </main>
@@ -96,18 +97,41 @@
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
   <script>
+    const NOTIFICATION_POLL_INTERVAL_MS = 60000;
+    let notificationPollTimer;
+
     document.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.isAuthenticated()) {
         window.location.href = '/login.html';
         return;
       }
+      await refreshNotifications(false);
+      startNotificationPolling();
+    });
+
+    async function refreshNotifications(showErrorToast) {
       try {
         const notifs = await api.getMyNotifications();
         renderNotifications(notifs);
+        const status = document.getElementById('notifications-sync-status');
+        if (status) status.textContent = `Last checked: ${new Date().toLocaleTimeString()}. Automatic checks run every 60 seconds while this page is open.`;
       } catch (err) {
-        Common.showToast('Failed to load notifications: ' + err.message, 'danger');
+        if (showErrorToast) Common.showToast('Failed to refresh notifications: ' + err.message, 'danger');
       }
+    }
+
+    function startNotificationPolling() {
+      clearInterval(notificationPollTimer);
+      notificationPollTimer = setInterval(() => {
+        if (document.visibilityState === 'visible' && Auth.isAuthenticated()) refreshNotifications(true);
+      }, NOTIFICATION_POLL_INTERVAL_MS);
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && Auth.isAuthenticated()) refreshNotifications(false);
     });
+
+    window.addEventListener('beforeunload', () => clearInterval(notificationPollTimer));
 
     function renderNotifications(notifs) {
       const container = document.getElementById('notifications-list');

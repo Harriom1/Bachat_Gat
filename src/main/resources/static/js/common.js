@@ -24,6 +24,23 @@ const Common = {
     return this.formatINR(amount);
   },
 
+  /**
+   * Whole-rupee formatting for loan amounts. Backend calculations retain
+   * precision, but the normal loan interface follows the application's
+   * accounting policy and does not display paise.
+   */
+  formatLoanCurrency(amount) {
+    if (amount === undefined || amount === null || isNaN(amount)) {
+      return '₹0';
+    }
+    return new Intl.NumberFormat(this.getLocale(), {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(amount));
+  },
+
   /** Human-facing member number, scoped to the member's own group. */
   getGroupScopedMemberRegistrationId(member) {
     const memberId = String(member?.memberId || '');
@@ -637,6 +654,40 @@ const Common = {
       XLSX.utils.book_append_sheet(book, sheet, title);
       XLSX.writeFile(book, `${filePrefix}-${title.replace(/[^a-z0-9_-]+/gi, '_')}-${date}.xlsx`);
     });
+  },
+
+  /**
+   * Exports all supplied HTML tables into one workbook with one worksheet per table.
+   */
+  async downloadTablesWorkbook(tables, fileName = 'BachatGat_Reports.xlsx') {
+    const list = (tables || []).filter(Boolean);
+    if (!list.length) throw new Error('No table data to export.');
+    if (!window.XLSX) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.onload = resolve;
+        script.onerror = () => reject(new Error('Excel export library could not be loaded.'));
+        document.head.appendChild(script);
+      });
+    }
+
+    const book = XLSX.utils.book_new();
+    const usedNames = new Set();
+    list.forEach((table, index) => {
+      const sheet = XLSX.utils.table_to_sheet(table, { raw: false });
+      const requestedName = table.getAttribute('data-export-name') || `Report-${index + 1}`;
+      let name = requestedName.replace(/[\\/?*:[\]]/g, ' ').trim().slice(0, 31) || `Report-${index + 1}`;
+      let suffix = 2;
+      while (usedNames.has(name)) {
+        const base = name.slice(0, 27);
+        name = `${base}-${suffix++}`.slice(0, 31);
+      }
+      usedNames.add(name);
+      XLSX.utils.book_append_sheet(book, sheet, name);
+    });
+
+    XLSX.writeFile(book, fileName);
   }
 };
 

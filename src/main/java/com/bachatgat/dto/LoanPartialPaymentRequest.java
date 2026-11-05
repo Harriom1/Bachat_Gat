@@ -18,6 +18,8 @@ public class LoanPartialPaymentRequest {
     private String paymentMethod = "CASH";
     private String referenceNumber;
     private String notes;
+    private String arrangementType = "NORMAL"; // NORMAL, INTEREST_ONLY, DEFERRED_PRINCIPAL
+    private String approvalNote;
 
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
@@ -39,4 +41,8 @@ public class LoanPartialPaymentRequest {
     public void setReferenceNumber(String referenceNumber) { this.referenceNumber = referenceNumber; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getArrangementType() { return arrangementType; }
+    public void setArrangementType(String arrangementType) { this.arrangementType = arrangementType; }
+    public String getApprovalNote() { return approvalNote; }
+    public void setApprovalNote(String approvalNote) { this.approvalNote = approvalNote; }
 }

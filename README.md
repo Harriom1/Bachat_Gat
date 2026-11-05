@@ -57,6 +57,14 @@ This platform provides:
 - **Approval Workflow**: Multi-tier committee verification and approval by group leaders.
 - **Repayment & EMI Schedules**: Dynamic EMI tracking with interest breakdown and outstanding principal tracking.
 
+#### Loan calculation rules
+
+- New loan approvals interpret the entered interest rate as an annual nominal percentage by default. A monthly percentage is supported only when the request explicitly sets the legacy monthly-rate flag.
+- Reducing-balance EMI and monthly interest are calculated on the outstanding principal using backend `BigDecimal` arithmetic; the browser is never authoritative for principal, interest, or balances.
+- Repayments allocate the oldest unpaid interest first and then the oldest scheduled principal. Interest-only partial payments are validated against actual outstanding interest and do not reduce principal.
+- Loans persist pending interest and pending principal separately. The final installment is adjusted to clear the remaining principal without creating or losing principal through rounding.
+- Normal loan displays use whole-rupee `HALF_UP` rounding (for example, ₹100.49 → ₹100 and ₹100.50 → ₹101); internal ledger values retain two-decimal precision.
+
 ### 4. 🏛️ Meetings & Group Governance
 - **Meeting Logs**: Record minutes of meeting, resolutions, and decision summaries.
 - **Attendance Registry**: Monitor member participation in periodic meetings.

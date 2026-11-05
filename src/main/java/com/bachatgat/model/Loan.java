@@ -18,6 +18,7 @@ public class Loan {
     // Financial calculations
     private BigDecimal principalAmount = BigDecimal.ZERO;
     private BigDecimal interestRate = BigDecimal.valueOf(12.0); // Annual %
+    private String interestRateBasis = "ANNUAL";
     private int durationMonths = 12;
     private String interestType = "REDUCING"; // FLAT or REDUCING
     
@@ -30,6 +31,8 @@ public class Loan {
     
     private BigDecimal outstandingPrincipal = BigDecimal.ZERO;
     private BigDecimal outstandingInterest = BigDecimal.ZERO;
+    private BigDecimal pendingInterest = BigDecimal.ZERO;
+    private BigDecimal pendingPrincipal = BigDecimal.ZERO;
     private BigDecimal totalOutstanding = BigDecimal.ZERO;
     
     private BigDecimal monthlyInstallment = BigDecimal.ZERO;
@@ -70,6 +73,8 @@ public class Loan {
     public void setPrincipalAmount(BigDecimal principalAmount) { this.principalAmount = principalAmount; }
     public BigDecimal getInterestRate() { return interestRate; }
     public void setInterestRate(BigDecimal interestRate) { this.interestRate = interestRate; }
+    public String getInterestRateBasis() { return interestRateBasis == null ? "ANNUAL" : interestRateBasis; }
+    public void setInterestRateBasis(String interestRateBasis) { this.interestRateBasis = interestRateBasis; }
     public int getDurationMonths() { return durationMonths; }
     public void setDurationMonths(int durationMonths) { this.durationMonths = durationMonths; }
     public String getInterestType() { return interestType; }
@@ -88,6 +93,10 @@ public class Loan {
     public void setOutstandingPrincipal(BigDecimal outstandingPrincipal) { this.outstandingPrincipal = outstandingPrincipal; }
     public BigDecimal getOutstandingInterest() { return outstandingInterest; }
     public void setOutstandingInterest(BigDecimal outstandingInterest) { this.outstandingInterest = outstandingInterest; }
+    public BigDecimal getPendingInterest() { return pendingInterest != null ? pendingInterest : BigDecimal.ZERO; }
+    public void setPendingInterest(BigDecimal pendingInterest) { this.pendingInterest = pendingInterest; }
+    public BigDecimal getPendingPrincipal() { return pendingPrincipal != null ? pendingPrincipal : BigDecimal.ZERO; }
+    public void setPendingPrincipal(BigDecimal pendingPrincipal) { this.pendingPrincipal = pendingPrincipal; }
     public BigDecimal getTotalOutstanding() { return totalOutstanding; }
     public void setTotalOutstanding(BigDecimal totalOutstanding) { this.totalOutstanding = totalOutstanding; }
     public BigDecimal getMonthlyInstallment() { return monthlyInstallment; }

@@ -29,6 +29,9 @@ public class CreateAdminRequest {
     @JsonAlias("monthlyShareAmount")
     private java.math.BigDecimal monthlyBachatAmount;
     private int collectionDueDay = 10;
+    private String verificationSessionId;
+    private String emailVerificationId;
+    private String mobileVerificationId;
 
     public CreateAdminRequest() {}
 
@@ -64,4 +67,10 @@ public class CreateAdminRequest {
     public void setMonthlyShareAmount(java.math.BigDecimal monthlyShareAmount) { this.monthlyBachatAmount = monthlyShareAmount; }
     public int getCollectionDueDay() { return collectionDueDay; }
     public void setCollectionDueDay(int collectionDueDay) { this.collectionDueDay = collectionDueDay; }
+    public String getVerificationSessionId() { return verificationSessionId; }
+    public void setVerificationSessionId(String verificationSessionId) { this.verificationSessionId = verificationSessionId; }
+    public String getEmailVerificationId() { return emailVerificationId; }
+    public void setEmailVerificationId(String emailVerificationId) { this.emailVerificationId = emailVerificationId; }
+    public String getMobileVerificationId() { return mobileVerificationId; }
+    public void setMobileVerificationId(String mobileVerificationId) { this.mobileVerificationId = mobileVerificationId; }
 }

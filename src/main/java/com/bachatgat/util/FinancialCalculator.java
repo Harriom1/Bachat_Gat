@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 public final class FinancialCalculator {
 
     public static final int MONEY_SCALE = 2;
+    public static final int DISPLAY_SCALE = 0;
     public static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
     private FinancialCalculator() {}
@@ -20,6 +21,12 @@ public final class FinancialCalculator {
             return BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING);
         }
         return value.setScale(MONEY_SCALE, ROUNDING);
+    }
+
+    /** Whole-rupee display policy used by all loan screens and reports. */
+    public static BigDecimal roundDisplay(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO.setScale(DISPLAY_SCALE, ROUNDING)
+                : value.setScale(DISPLAY_SCALE, ROUNDING);
     }
 
     /**
@@ -141,10 +148,16 @@ public final class FinancialCalculator {
             entry.setEmiAmount(totalDue);
             entry.setInterestAmount(interest);
             entry.setPrincipalAmount(principalPortion);
+            entry.setScheduledPrincipalAmount(principalPortion);
             entry.setPenaltyAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
             entry.setTotalDue(totalDue);
             entry.setPaidAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
             entry.setOutstandingAmount(totalDue);
+            entry.setPendingInterest(interest);
+            entry.setPendingPrincipal(principalPortion);
+            setScheduleCalculationFields(entry, ratePercent, isMonthlyRate, totalDue,
+                    BigDecimal.ZERO, BigDecimal.ZERO, interest, principalPortion,
+                    interest, principalPortion);
             entry.setClosingPrincipal(closingPrincipal);
             entry.setStatus(i == 1 ? com.bachatgat.model.RepaymentStatus.DUE : com.bachatgat.model.RepaymentStatus.UPCOMING);
 
@@ -178,6 +191,32 @@ public final class FinancialCalculator {
         }
 
         return new BigDecimal[]{round(principalPaid), round(interestPaid)};
+    }
+
+    private static void setScheduleCalculationFields(
+            com.bachatgat.model.LoanRepaymentSchedule entry,
+            BigDecimal ratePercent,
+            boolean isMonthlyRate,
+            BigDecimal contractualEmi,
+            BigDecimal previousInterest,
+            BigDecimal previousPrincipal,
+            BigDecimal totalInterestDue,
+            BigDecimal totalPrincipalDue,
+            BigDecimal remainingInterest,
+            BigDecimal remainingPrincipal) {
+        BigDecimal annualRate = isMonthlyRate
+                ? ratePercent.multiply(BigDecimal.valueOf(12)) : ratePercent;
+        BigDecimal monthlyRate = isMonthlyRate
+                ? ratePercent : ratePercent.divide(BigDecimal.valueOf(12), 8, ROUNDING);
+        entry.setAnnualInterestRate(round(annualRate));
+        entry.setMonthlyInterestRate(round(monthlyRate));
+        entry.setOriginalScheduledEmi(round(contractualEmi));
+        entry.setPreviousPendingInterest(round(previousInterest));
+        entry.setPreviousPendingPrincipal(round(previousPrincipal));
+        entry.setTotalInterestDue(round(totalInterestDue));
+        entry.setTotalPrincipalDue(round(totalPrincipalDue));
+        entry.setRemainingPendingInterest(round(remainingInterest));
+        entry.setRemainingPendingPrincipal(round(remainingPrincipal));
     }
 
     public static java.util.List<com.bachatgat.model.LoanRepaymentSchedule> generateAmortizationSchedule(
@@ -237,6 +276,7 @@ public final class FinancialCalculator {
             if (!useActualBalance) {
                 entry.setOpeningPrincipal(projected.getOpeningPrincipal());
                 entry.setPrincipalAmount(projected.getPrincipalAmount());
+                entry.setScheduledPrincipalAmount(projected.getPrincipalAmount());
                 entry.setInterestAmount(projected.getInterestAmount());
                 entry.setEmiAmount(projected.getEmiAmount());
                 entry.setTotalDue(projected.getTotalDue());
@@ -245,6 +285,10 @@ public final class FinancialCalculator {
                 entry.setPaidInterestAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
                 entry.setOutstandingAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
                 entry.setClosingPrincipal(projected.getClosingPrincipal());
+                setScheduleCalculationFields(entry, ratePercent, isMonthlyRate,
+                        projected.getEmiAmount(), BigDecimal.ZERO, BigDecimal.ZERO,
+                        projected.getInterestAmount(), projected.getPrincipalAmount(),
+                        BigDecimal.ZERO, BigDecimal.ZERO);
                 entry.setStatus(com.bachatgat.model.RepaymentStatus.UPCOMING);
                 result.add(entry);
                 continue;
@@ -272,6 +316,7 @@ public final class FinancialCalculator {
 
             entry.setOpeningPrincipal(opening);
             entry.setPrincipalAmount(round(principalDue));
+            entry.setScheduledPrincipalAmount(round(scheduledPrincipal));
             entry.setInterestAmount(round(interestDue));
             entry.setEmiAmount(totalDue);
             entry.setTotalDue(totalDue);
@@ -279,11 +324,21 @@ public final class FinancialCalculator {
             entry.setPaidPrincipalAmount(round(paidPrincipal));
             entry.setPaidInterestAmount(round(paidInterest));
             entry.setOutstandingAmount(due || hasRecordedPayment ? outstanding : BigDecimal.ZERO);
+            entry.setPendingInterest(round(interestDue.subtract(paidInterest).max(BigDecimal.ZERO)));
+            entry.setPendingPrincipal(round(principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO)));
             entry.setClosingPrincipal(round(opening.subtract(paidPrincipal).max(BigDecimal.ZERO)));
+            setScheduleCalculationFields(entry, ratePercent, isMonthlyRate,
+                    projected.getEmiAmount(), unpaidInterest, unpaidPrincipal,
+                    interestDue, principalDue,
+                    interestDue.subtract(paidInterest).max(BigDecimal.ZERO),
+                    principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO));
             entry.setStatus(outstanding.signum() == 0 && (due || hasRecordedPayment)
                     ? com.bachatgat.model.RepaymentStatus.PAID
                     : (paid.signum() > 0 ? com.bachatgat.model.RepaymentStatus.PARTIAL
-                    : (due ? com.bachatgat.model.RepaymentStatus.DUE
+                    : (due
+                    ? (projected.getDueDate().isBefore(asOf)
+                    ? com.bachatgat.model.RepaymentStatus.OVERDUE
+                    : com.bachatgat.model.RepaymentStatus.DUE)
                     : com.bachatgat.model.RepaymentStatus.UPCOMING)));
 
             unpaidPrincipal = principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO);
@@ -386,6 +441,7 @@ public final class FinancialCalculator {
         BigDecimal unpaidPrincipal = BigDecimal.ZERO;
         BigDecimal unpaidInterest = BigDecimal.ZERO;
         java.time.LocalDate baseDate = startDate != null ? startDate : java.time.LocalDate.now();
+        java.time.LocalDate asOf = java.time.LocalDate.now();
 
         for (int i = 1; i <= durationMonths; i++) {
             com.bachatgat.model.LoanRepaymentSchedule entry = new com.bachatgat.model.LoanRepaymentSchedule();
@@ -402,6 +458,7 @@ public final class FinancialCalculator {
             BigDecimal totalDue = round(principalDue.add(interestDue));
 
             entry.setPrincipalAmount(principalDue);
+            entry.setScheduledPrincipalAmount(round(currentPrincipal));
             entry.setInterestAmount(interestDue);
             entry.setEmiAmount(totalDue);
             entry.setTotalDue(totalDue);
@@ -410,7 +467,9 @@ public final class FinancialCalculator {
             // This is a no-payment projection. Actual payment allocation updates it later.
             entry.setClosingPrincipal(round(openingPrincipal));
             entry.setPenaltyAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
-            entry.setStatus(i == 1 ? com.bachatgat.model.RepaymentStatus.DUE : com.bachatgat.model.RepaymentStatus.UPCOMING);
+            entry.setStatus(entry.getDueDate().isBefore(asOf)
+                    ? com.bachatgat.model.RepaymentStatus.OVERDUE
+                    : (i == 1 ? com.bachatgat.model.RepaymentStatus.DUE : com.bachatgat.model.RepaymentStatus.UPCOMING));
             schedule.add(entry);
 
             unpaidPrincipal = principalDue;
@@ -440,6 +499,7 @@ public final class FinancialCalculator {
         BigDecimal unpaidInterest = BigDecimal.ZERO;
         BigDecimal paidPrincipalToDate = BigDecimal.ZERO;
         java.time.LocalDate baseDate = startDate != null ? startDate : java.time.LocalDate.now();
+        java.time.LocalDate asOf = java.time.LocalDate.now();
 
         for (int i = 1; i <= durationMonths; i++) {
             com.bachatgat.model.LoanRepaymentSchedule source = null;
@@ -480,6 +540,7 @@ public final class FinancialCalculator {
             BigDecimal paid = round(paidInterest.add(paidPrincipal));
 
             entry.setPrincipalAmount(principalDue);
+            entry.setScheduledPrincipalAmount(round(currentPrincipal));
             entry.setInterestAmount(interestDue);
             entry.setEmiAmount(totalDue);
             entry.setTotalDue(totalDue);
@@ -487,6 +548,8 @@ public final class FinancialCalculator {
             entry.setPaidPrincipalAmount(paidPrincipal);
             entry.setPaidAmount(paid);
             entry.setOutstandingAmount(totalDue.subtract(paid).max(BigDecimal.ZERO));
+            entry.setPendingInterest(round(interestDue.subtract(paidInterest).max(BigDecimal.ZERO)));
+            entry.setPendingPrincipal(round(principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO)));
             // Scheduled/overdue principal is only a receivable. It changes
             // the balance after an actual principal payment is recorded.
             BigDecimal actualPrincipalPaid = paidPrincipal;
@@ -497,7 +560,9 @@ public final class FinancialCalculator {
             entry.setStatus(entry.getOutstandingAmount().signum() == 0
                     ? com.bachatgat.model.RepaymentStatus.PAID
                     : (paid.signum() > 0 ? com.bachatgat.model.RepaymentStatus.PARTIAL
-                    : (i == 1 ? com.bachatgat.model.RepaymentStatus.DUE : com.bachatgat.model.RepaymentStatus.UPCOMING)));
+                    : (entry.getDueDate().isBefore(asOf)
+                    ? com.bachatgat.model.RepaymentStatus.OVERDUE
+                    : (i == 1 ? com.bachatgat.model.RepaymentStatus.DUE : com.bachatgat.model.RepaymentStatus.UPCOMING))));
 
             result.add(entry);
             unpaidPrincipal = principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO);
@@ -510,7 +575,6 @@ public final class FinancialCalculator {
 
     public static java.util.List<com.bachatgat.model.LoanRepaymentSchedule> generateBachatGatReducingSchedule(
             BigDecimal principal, BigDecimal ratePercent, int durationMonths, java.time.LocalDate startDate) {
-        boolean isMonthlyRate = ratePercent != null && ratePercent.compareTo(BigDecimal.valueOf(5.0)) <= 0;
-        return generateBachatGatReducingSchedule(principal, ratePercent, isMonthlyRate, durationMonths, startDate);
+        return generateBachatGatReducingSchedule(principal, ratePercent, false, durationMonths, startDate);
     }
 }

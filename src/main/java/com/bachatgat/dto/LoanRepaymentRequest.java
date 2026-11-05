@@ -14,6 +14,8 @@ public class LoanRepaymentRequest {
     private String paymentMethod = "CASH"; // CASH, UPI, BANK_TRANSFER
     private String referenceNumber;
     private String notes;
+    private String arrangementType = "NORMAL";
+    private String approvalNote;
 
     public LoanRepaymentRequest() {}
 
@@ -34,4 +36,8 @@ public class LoanRepaymentRequest {
     public void setReferenceNumber(String referenceNumber) { this.referenceNumber = referenceNumber; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+    public String getArrangementType() { return arrangementType; }
+    public void setArrangementType(String arrangementType) { this.arrangementType = arrangementType; }
+    public String getApprovalNote() { return approvalNote; }
+    public void setApprovalNote(String approvalNote) { this.approvalNote = approvalNote; }
 }

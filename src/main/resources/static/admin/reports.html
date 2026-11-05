@@ -155,8 +155,8 @@
             <button onclick="window.print()" class="btn-primary-custom report-corner-action" title="Print or export PDF" aria-label="Print or export PDF">
               <i class="bi bi-printer-fill"></i><span class="action-label">Print / PDF</span>
             </button>
-            <button onclick="exportCurrentReportCSV()" class="btn-outline-custom report-corner-action" title="Export CSV" aria-label="Export CSV">
-              <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i><span class="action-label">Export CSV</span>
+            <button onclick="exportCurrentReportExcel()" class="btn-outline-custom report-corner-action" title="Download one Excel workbook" aria-label="Download one Excel workbook">
+              <i class="bi bi-file-earmark-spreadsheet-fill" style="color: var(--success);"></i><span class="action-label">Download Excel</span>
             </button>
             <button id="btn-open-whatsapp" onclick="openWhatsAppModal()" class="btn-outline-custom report-corner-action" title="Share by WhatsApp" aria-label="Share by WhatsApp">
               <i class="bi bi-whatsapp" style="color: #25D366;"></i><span class="action-label">WhatsApp</span>
@@ -358,14 +358,14 @@
           <div class="content-card report-summary-table-wrap" style="margin-bottom: 1.5rem;">
             <h3 style="margin-bottom: 1rem;">Monthly Financial Summary</h3>
             <div class="table-responsive">
-              <table class="data-table compact-report-table">
+              <table class="data-table compact-report-table" data-export-name="Monthly Financial Summary">
                 <thead><tr><th>Financial Item</th><th style="text-align:right;">Amount</th></tr></thead>
                 <tbody id="monthly-summary-tbody"></tbody>
               </table>
             </div>
           </div>
 
-          <table class="data-table report-personal-detail">
+          <table class="data-table report-personal-detail" data-export-name="Monthly Collections">
             <thead>
               <tr>
                 <th>Member Name</th>
@@ -387,7 +387,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #16a34a; text-align: center; margin-bottom: 1rem;">Monthly Bachat Paid Members</h3>
             <div class="table-responsive">
-              <table class="data-table compact-report-table">
+              <table class="data-table compact-report-table" data-export-name="Paid Members">
                 <thead><tr><th>Sr.No.</th><th>Member Name</th><th>Monthly Bachat</th><th>Status</th></tr></thead>
                 <tbody id="monthly-bachat-paid"><tr><td colspan="4" class="text-center text-muted">Load a report to view paid members.</td></tr></tbody>
               </table>
@@ -397,7 +397,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">Monthly Bachat Not Paid Members</h3>
             <div class="table-responsive">
-              <table class="data-table compact-report-table">
+              <table class="data-table compact-report-table" data-export-name="Unpaid Members">
                 <thead><tr><th>Sr.No.</th><th>Member Name</th><th>Monthly Bachat</th><th>Status</th></tr></thead>
                 <tbody id="monthly-bachat-unpaid"><tr><td colspan="4" class="text-center text-muted">Load a report to view unpaid members.</td></tr></tbody>
               </table>
@@ -407,7 +407,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Members — Savings &amp; Loan Position</h3>
             <div class="table-responsive">
-              <table class="data-table compact-report-table">
+              <table class="data-table compact-report-table" data-export-name="Member Savings and Loans">
                 <thead><tr><th class="serial-number-column">Sr.No.</th><th>Member</th><th>Monthly Bachat</th><th>Total Savings</th><th>Loan Outstanding</th></tr></thead>
                 <tbody id="monthly-member-ledger"><tr><td colspan="5" class="text-center text-muted">Load a report to view members.</td></tr></tbody>
               </table>
@@ -417,7 +417,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Loans — Current Position</h3>
             <div class="table-responsive">
-              <table class="data-table compact-report-table">
+              <table class="data-table compact-report-table" data-export-name="Loan Current Position">
                 <thead><tr><th>Loan ID</th><th>Borrower</th><th>Principal</th><th>EMI</th><th>Interest Rate</th><th>Outstanding</th><th>Status</th></tr></thead>
                 <tbody id="monthly-loan-ledger"><tr><td colspan="7" class="text-center text-muted">Load a report to view loans.</td></tr></tbody>
               </table>
@@ -719,9 +719,16 @@
         </div>
 
         <div class="form-group mb-3">
+          <label class="form-label">Select existing recipient</label>
+          <select id="wa-recipient-select" class="form-select">
+            <option value="">Enter a number manually below</option>
+          </select>
+        </div>
+
+        <div class="form-group mb-3">
           <label class="form-label required">Recipient WhatsApp Number</label>
           <input type="tel" id="wa-phone" class="form-control" required placeholder="e.g. +91 9876543210 or 9876543210">
-          <div class="form-help">Enter 10-digit mobile number with or without country code.</div>
+          <div class="form-help">Enter a 10-digit mobile number with or without country code. The PDF will download first, then WhatsApp will open for manual attachment.</div>
         </div>
 
         <div class="form-group mb-4">
@@ -1116,12 +1123,33 @@
     // WhatsApp and Email Modals
     function openWhatsAppModal() {
       document.getElementById('modal-whatsapp').classList.add('show');
-      if (!reportDeliveryStatus.whatsappConfigured) {
-        Common.showToast('The WhatsApp form is open, but server delivery needs WhatsApp environment variables.', 'warning');
-      }
+      loadWhatsAppRecipients();
     }
     function closeWhatsAppModal() {
       document.getElementById('modal-whatsapp').classList.remove('show');
+    }
+
+    async function loadWhatsAppRecipients() {
+      const select = document.getElementById('wa-recipient-select');
+      if (!select || select.dataset.loaded === 'true') return;
+      try {
+        const groupId = document.getElementById('active-group-select').value || 'bg-001';
+        const members = await api.getMembers(groupId);
+        const options = (members || [])
+          .filter(member => member.mobileNumber || member.alternateMobile)
+          .map(member => {
+            const label = `${member.fullName || member.memberId || 'Member'}${member.designation ? ` (${member.designation})` : ''}`;
+            const number = member.mobileNumber || member.alternateMobile;
+            return `<option value="${escapeHtml(number)}">${escapeHtml(label)}</option>`;
+          });
+        select.innerHTML = '<option value="">Enter a number manually below</option>' + options.join('');
+        select.dataset.loaded = 'true';
+        select.addEventListener('change', () => {
+          if (select.value) document.getElementById('wa-phone').value = select.value;
+        });
+      } catch (err) {
+        console.warn('Unable to load WhatsApp recipients:', err);
+      }
     }
 
     function openEmailModal() {
@@ -1136,23 +1164,41 @@
 
     async function handleSendWhatsApp(e) {
       e.preventDefault();
-      const groupId = document.getElementById('active-group-select').value || 'bg-001';
       const btn = document.getElementById('btn-submit-wa');
       btn.disabled = true;
-
-      const payload = {
-        reportType: document.getElementById('wa-report-type').value,
-        recipient: document.getElementById('wa-phone').value.trim(),
-        channel: 'WHATSAPP',
-        customMessage: document.getElementById('wa-notes').value.trim()
-      };
+      const popup = window.open('about:blank', '_blank');
 
       try {
-        const res = await api.shareReportWhatsApp(groupId, payload);
-        Common.showToast(res.message || 'PDF report sent successfully on WhatsApp.', 'success');
+        let phone = document.getElementById('wa-phone').value.replace(/\D/g, '');
+        if (phone.startsWith('0')) phone = phone.slice(1);
+        if (phone.length === 10) phone = `91${phone}`;
+        if (!/^\d{10,15}$/.test(phone)) throw new Error('Enter a valid WhatsApp number with country code.');
+
+        const reportType = document.getElementById('wa-report-type').selectedOptions[0].textContent;
+        const groupName = document.getElementById('active-group-select').selectedOptions[0]?.textContent || 'Bachat Gat';
+        const month = document.getElementById('monthly-report-month')?.selectedOptions[0]?.textContent;
+        const year = document.getElementById('monthly-report-year')?.value;
+        const note = document.getElementById('wa-notes').value.trim();
+        const message = [
+          'Hello,',
+          '',
+          `Please find the ${reportType} for ${groupName}${month && year ? ` for ${month} ${year}` : ''}.`,
+          '',
+          note || 'The report PDF has been downloaded. Please attach it to this WhatsApp message.',
+          '',
+          'Thank you.',
+          'Bachat Gat Application'
+        ].join('\n');
+
+        const filename = await downloadCurrentReportPdf();
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+        if (popup && !popup.closed) popup.location.href = whatsappUrl;
+        else window.location.href = whatsappUrl;
+        Common.showToast(`${filename} downloaded. Attach it manually in WhatsApp.`, 'success');
         closeWhatsAppModal();
       } catch (err) {
-        Common.showToast('WhatsApp dispatch failed: ' + err.message, 'danger');
+        if (popup && !popup.closed) popup.close();
+        Common.showToast('WhatsApp preparation failed: ' + err.message, 'danger');
       } finally {
         btn.disabled = false;
       }
@@ -1215,18 +1261,60 @@
       Common.showToast('Report CSV exported successfully!', 'success');
     }
 
-    // Every report table is exported as a separate XLSX workbook.
-    async function exportCurrentReportCSV() {
+    let reportExportInProgress = false;
+    async function exportCurrentReportExcel() {
+      if (reportExportInProgress) return;
+      reportExportInProgress = true;
       const activeSheet = document.getElementById(`tab-${activeTabKey}`);
       const tables = activeSheet
         ? Array.from(activeSheet.querySelectorAll('table'))
         : [];
       if (!tables.length) {
         Common.showToast('No table data to export in the current report.', 'warning');
+        reportExportInProgress = false;
         return;
       }
-      await Common.downloadTableWorkbooks(tables, 'BachatGat-report');
-      Common.showToast(`${tables.length} report workbook(s) downloaded.`, 'success');
+      try {
+        await Common.downloadTablesWorkbook(tables, `BachatGat_Reports_${new Date().toISOString().slice(0, 10)}.xlsx`);
+        Common.showToast(`One Excel workbook downloaded with ${tables.length} worksheets.`, 'success');
+      } catch (err) {
+        Common.showToast('Excel export failed: ' + err.message, 'danger');
+      } finally {
+        reportExportInProgress = false;
+      }
+    }
+
+    async function downloadCurrentReportPdf() {
+      if (!window.html2pdf) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = resolve;
+          script.onerror = () => reject(new Error('PDF library could not be loaded.'));
+          document.head.appendChild(script);
+        });
+      }
+      const report = document.getElementById(`tab-${activeTabKey}`);
+      if (!report) throw new Error('No report is currently selected.');
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:fixed;left:-100000px;top:0;width:900px;background:#fff;padding:20px;';
+      const clone = report.cloneNode(true);
+      clone.querySelectorAll('.no-print').forEach(element => element.remove());
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+      const filename = `BachatGat_${activeTabKey}_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      try {
+        await window.html2pdf().set({
+          margin: 0.35,
+          filename,
+          image: { type: 'jpeg', quality: 0.95 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        }).from(wrapper).save();
+        return filename;
+      } finally {
+        wrapper.remove();
+      }
     }
 
     function escapeHtml(str) {

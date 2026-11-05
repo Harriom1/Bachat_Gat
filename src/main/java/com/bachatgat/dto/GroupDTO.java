@@ -71,6 +71,9 @@ public class GroupDTO {
     private String ifsc;
     private String upiDetails;
     private String status;
+    private String verificationSessionId;
+    private String emailVerificationId;
+    private String mobileVerificationId;
 
     public GroupDTO() {}
 
@@ -170,6 +173,12 @@ public class GroupDTO {
     public void setUpiDetails(String upiDetails) { this.upiDetails = upiDetails; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getVerificationSessionId() { return verificationSessionId; }
+    public void setVerificationSessionId(String verificationSessionId) { this.verificationSessionId = verificationSessionId; }
+    public String getEmailVerificationId() { return emailVerificationId; }
+    public void setEmailVerificationId(String emailVerificationId) { this.emailVerificationId = emailVerificationId; }
+    public String getMobileVerificationId() { return mobileVerificationId; }
+    public void setMobileVerificationId(String mobileVerificationId) { this.mobileVerificationId = mobileVerificationId; }
 
     public Integer getCollectionDueDay() { return collectionDueDay != null && collectionDueDay > 0 ? collectionDueDay : 10; }
     public void setCollectionDueDay(Integer collectionDueDay) { this.collectionDueDay = collectionDueDay; }

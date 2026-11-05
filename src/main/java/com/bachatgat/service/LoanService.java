@@ -60,29 +60,18 @@ public class LoanService {
      * Records an internal, administrator-approved partial payment. Each
      * component is explicit so paying interest alone never reduces principal.
      */
-    public Loan recordPartialPayment(String loanId, LoanPartialPaymentRequest request, String adminUsername) {
+    public synchronized Loan recordPartialPayment(String loanId, LoanPartialPaymentRequest request, String adminUsername) {
         Loan loan = getLoanById(loanId);
         BigDecimal penalty = money(request.getPenaltyAmount());
         BigDecimal bachat = money(request.getMonthlyBachatAmount());
-        BigDecimal principal = money(request.getLoanPrincipalAmount());
-        BigDecimal interest = money(request.getLoanInterestAmount());
         BigDecimal total = money(request.getAmount());
-        BigDecimal calculated = penalty.add(bachat).add(principal).add(interest);
+        BigDecimal principal = BigDecimal.ZERO.setScale(2);
+        BigDecimal interest = BigDecimal.ZERO.setScale(2);
 
         if (request.isPayBachatOnly() && (penalty.signum() > 0 || principal.signum() > 0 || interest.signum() > 0)) {
             throw new InvalidFinancialOperationException("Bachat-only payment cannot include penalty or loan components.");
         }
-        if (calculated.compareTo(total) != 0) {
-            throw new InvalidFinancialOperationException("Selected payment components must equal the amount received.");
-        }
-        if (principal.compareTo(loan.getOutstandingPrincipal()) > 0) {
-            throw new InvalidFinancialOperationException("Principal payment exceeds the outstanding principal.");
-        }
-        if (interest.compareTo(loan.getOutstandingInterest()) > 0) {
-            throw new InvalidFinancialOperationException("Interest payment exceeds the outstanding interest.");
-        }
-        if (request.getReferenceNumber() != null && !request.getReferenceNumber().isBlank()
-                && dataService.findTransactionByReference(request.getReferenceNumber()).isPresent()) {
+        if (isDuplicateLoanReference(loan, request.getReferenceNumber())) {
             throw new InvalidFinancialOperationException("A payment with this reference already exists.");
         }
 
@@ -105,10 +94,30 @@ public class LoanService {
             collectionService.recordPayment(loan.getGroupId(), collection, adminUsername);
         }
 
-        BigDecimal loanPayment = principal.add(interest);
+        BigDecimal loanPayment = total.subtract(penalty).subtract(bachat).max(BigDecimal.ZERO);
+        if (loanPayment.signum() > 0) {
+            BigDecimal requestedInterest = money(request.getLoanInterestAmount());
+            BigDecimal requestedPrincipal = money(request.getLoanPrincipalAmount());
+            boolean explicitInterestOnly = requestedInterest.signum() > 0
+                    && requestedPrincipal.signum() == 0
+                    && loanPayment.compareTo(requestedInterest) == 0;
+            if (explicitInterestOnly) {
+                // The browser may request an interest-only arrangement, but
+                // the backend still caps it at the actual outstanding interest
+                // and never accepts a client-supplied principal allocation.
+                interest = loanPayment.min(loan.getOutstandingInterest());
+                principal = BigDecimal.ZERO.setScale(2);
+            } else {
+                BigDecimal[] allocated = allocateLoanPayment(loan, loanPayment);
+                principal = allocated[0];
+                interest = allocated[1];
+            }
+        }
         if (loanPayment.signum() > 0) {
             List<LoanRepaymentSchedule> schedule = dataService.getLoanSchedule(loan.getId());
             applyPartialSchedulePayment(schedule, principal, interest, paymentDate);
+            markInterestOnlyRowPartialWhenNeeded(schedule, principal, interest);
+            recordArrangement(schedule, request.getArrangementType(), adminUsername, paymentDate);
             dataService.saveLoanSchedule(loan.getId(), schedule);
             // Rebuild all future rows from the updated payment history. This
             // is what makes interest-only payment and no-payment arrears
@@ -122,6 +131,8 @@ public class LoanService {
             loan.setOutstandingPrincipal(originalPrincipal.subtract(loan.getPrincipalPaid()).max(BigDecimal.ZERO));
             loan.setOutstandingInterest(calculateProjectedInterest(loan, schedule)
                     .subtract(loan.getInterestPaid()).max(BigDecimal.ZERO));
+            loan.setPendingInterest(loan.getOutstandingInterest());
+            loan.setPendingPrincipal(loan.getOutstandingPrincipal());
             loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(loan.getOutstandingInterest()));
             loan.setStatus(loan.getTotalOutstanding().signum() <= 0 ? LoanStatus.COMPLETED : LoanStatus.PARTIALLY_PAID);
             schedule.stream().filter(s -> s.getStatus() != RepaymentStatus.PAID).findFirst()
@@ -175,12 +186,53 @@ public class LoanService {
             item.setPaidPrincipalAmount(alreadyPaidPrincipal.add(principalApplied));
             item.setPaidAmount(item.getPaidInterestAmount().add(item.getPaidPrincipalAmount()));
             item.setOutstandingAmount(item.getTotalDue().subtract(item.getPaidAmount()).max(BigDecimal.ZERO));
+            item.setPendingInterest(scheduledInterest.subtract(item.getPaidInterestAmount()).max(BigDecimal.ZERO));
+            item.setPendingPrincipal(scheduledPrincipal.subtract(item.getPaidPrincipalAmount()).max(BigDecimal.ZERO));
             item.setPaidDate(paymentDate);
             item.setStatus(item.getOutstandingAmount().signum() == 0 ? RepaymentStatus.PAID : RepaymentStatus.PARTIAL);
             remainingInterest = remainingInterest.subtract(interestApplied);
             remainingPrincipal = remainingPrincipal.subtract(principalApplied);
             if (remainingInterest.signum() == 0 && remainingPrincipal.signum() == 0) break;
         }
+    }
+
+    private void markInterestOnlyRowPartialWhenNeeded(List<LoanRepaymentSchedule> schedule,
+                                                       BigDecimal principal, BigDecimal interest) {
+        if (principal.signum() != 0 || interest.signum() == 0
+                || schedule.stream().anyMatch(item -> item.getStatus() == RepaymentStatus.PARTIAL)) {
+            return;
+        }
+        schedule.stream()
+                .filter(item -> item.getPrincipalAmount() != null
+                        && item.getPrincipalAmount().subtract(item.getPaidPrincipalAmount()).signum() > 0)
+                .findFirst()
+                .ifPresent(item -> item.setStatus(RepaymentStatus.PARTIAL));
+    }
+
+    private void recordArrangement(List<LoanRepaymentSchedule> schedule, String arrangementType,
+                                   String approvedBy, LocalDate paymentDate) {
+        String type = arrangementType == null || arrangementType.isBlank() ? "NORMAL" : arrangementType.toUpperCase();
+        if ("NORMAL".equals(type)) return;
+        schedule.stream()
+                .filter(item -> item.getStatus() == RepaymentStatus.PARTIAL
+                        || (item.getPaidDate() != null && item.getPaidDate().equals(paymentDate)))
+                .findFirst()
+                .ifPresent(item -> {
+                    item.setArrangementType(type);
+                    item.setExceptionApprovedBy(approvedBy);
+                    item.setExceptionApprovedAt(java.time.LocalDateTime.now());
+                });
+    }
+
+    private boolean isDuplicateLoanReference(Loan loan, String reference) {
+        if (reference == null || reference.isBlank()) return false;
+        return dataService.findTransactionByReference(reference)
+                .filter(existing -> loan.getLoanId() != null
+                        && loan.getLoanId().equalsIgnoreCase(existing.getLoanId())
+                        && (existing.getType() == TransactionType.LOAN_REPAYMENT
+                        || existing.getType() == TransactionType.LOAN_EXTRA_PAYMENT
+                        || existing.getType() == TransactionType.EXTRA_LOAN_PAYMENT))
+                .isPresent();
     }
 
     private BigDecimal money(BigDecimal amount) {
@@ -197,7 +249,7 @@ public class LoanService {
         // the original tenure.  Do not sum arrears rows: those rows include
         // carried-forward dues and would count the same interest repeatedly.
         BigDecimal rate = loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO;
-        boolean monthlyRate = rate.compareTo(BigDecimal.valueOf(5.0)) <= 0;
+        boolean monthlyRate = "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis());
         return FinancialCalculator.round(FinancialCalculator.generateAmortizationSchedule(
                 loan.getPrincipalAmount(), rate, monthlyRate,
                 Math.max(1, loan.getDurationMonths()), loan.getDisbursementDate()).stream()
@@ -270,7 +322,7 @@ public class LoanService {
      * Separates interest and principal accounting, updates schedules, and verifies totals.
      * Triggers interest income allocation to all eligible group members (including borrower).
      */
-    public Loan recordRepayment(String loanId, LoanRepaymentRequest request, String adminUsername) {
+    public synchronized Loan recordRepayment(String loanId, LoanRepaymentRequest request, String adminUsername) {
         Loan loan = getLoanById(loanId);
 
         if (loan.getStatus() == LoanStatus.COMPLETED) {
@@ -278,6 +330,10 @@ public class LoanService {
         }
 
         BigDecimal paymentAmount = FinancialCalculator.round(request.getAmount());
+
+        if (isDuplicateLoanReference(loan, request.getReferenceNumber())) {
+            throw new InvalidFinancialOperationException("A payment with this reference already exists.");
+        }
 
         if (paymentAmount.compareTo(loan.getTotalOutstanding()) > 0) {
             throw new InvalidFinancialOperationException("Payment amount ₹" + paymentAmount + 
@@ -313,8 +369,9 @@ public class LoanService {
                     .min(loan.getOutstandingInterest());
         }
 
-        BigDecimal interestComponent = paymentAmount.min(scheduledInterestDue);
-        BigDecimal principalComponent = paymentAmount.subtract(interestComponent).min(loan.getOutstandingPrincipal());
+        BigDecimal[] allocated = allocateLoanPayment(loan, paymentAmount);
+        BigDecimal principalComponent = allocated[0];
+        BigDecimal interestComponent = allocated[1];
 
         // Update Loan Balances
         loan.setPrincipalPaid(loan.getPrincipalPaid().add(principalComponent));
@@ -324,6 +381,8 @@ public class LoanService {
         loan.setOutstandingPrincipal(loan.getOutstandingPrincipal().subtract(principalComponent));
         loan.setOutstandingInterest(loan.getOutstandingInterest().subtract(interestComponent));
         loan.setTotalOutstanding(loan.getTotalOutstanding().subtract(paymentAmount));
+        loan.setPendingInterest(loan.getOutstandingInterest());
+        loan.setPendingPrincipal(loan.getOutstandingPrincipal());
 
         // Update the component ledger, not only the displayed pending amount.
         // Future installments deliberately expose ₹0 pending until their due
@@ -334,6 +393,8 @@ public class LoanService {
                 schedule,
                 principalComponent,
                 interestComponent,
+                request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
+        recordArrangement(schedule, request.getArrangementType(), adminUsername,
                 request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now());
         dataService.saveLoanSchedule(loan.getId(), schedule);
 
@@ -404,6 +465,40 @@ public class LoanService {
                 loan.getLoanId(), null, "Recorded ₹" + paymentAmount + " (Prin: " + principalComponent + ", Int: " + interestComponent + ")", "127.0.0.1");
 
         return savedLoan;
+    }
+
+    /** Central backend allocation policy: oldest unpaid interest first, then
+     * oldest unpaid scheduled principal. Browser-supplied components are never
+     * authoritative. */
+    private BigDecimal[] allocateLoanPayment(Loan loan, BigDecimal payment) {
+        BigDecimal remaining = payment.max(BigDecimal.ZERO);
+        BigDecimal interest = BigDecimal.ZERO;
+        BigDecimal principal = BigDecimal.ZERO;
+        List<LoanRepaymentSchedule> schedule = dataService.getLoanSchedule(loan.getId());
+        for (LoanRepaymentSchedule item : schedule) {
+            BigDecimal interestDue = item.getInterestAmount() == null ? BigDecimal.ZERO : item.getInterestAmount();
+            BigDecimal principalDue = item.getPrincipalAmount() == null ? BigDecimal.ZERO : item.getPrincipalAmount();
+            BigDecimal paidInterest = item.getPaidInterestAmount();
+            BigDecimal paidPrincipal = item.getPaidPrincipalAmount();
+            if (paidInterest.signum() == 0 && paidPrincipal.signum() == 0 && item.getPaidAmount() != null
+                    && item.getPaidAmount().signum() > 0) {
+                paidInterest = item.getPaidAmount().min(interestDue);
+                paidPrincipal = item.getPaidAmount().subtract(paidInterest).min(principalDue).max(BigDecimal.ZERO);
+            }
+            BigDecimal interestOpen = interestDue.subtract(paidInterest).max(BigDecimal.ZERO);
+            BigDecimal principalOpen = principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO);
+            BigDecimal interestPart = remaining.min(interestOpen);
+            remaining = remaining.subtract(interestPart);
+            BigDecimal principalPart = remaining.min(principalOpen);
+            remaining = remaining.subtract(principalPart);
+            interest = interest.add(interestPart);
+            principal = principal.add(principalPart);
+            if (remaining.signum() == 0) break;
+        }
+        if (remaining.signum() > 0) {
+            throw new InvalidFinancialOperationException("Payment exceeds the currently scheduled loan dues.");
+        }
+        return new BigDecimal[]{money(principal), money(interest)};
     }
 
     /**
@@ -505,8 +600,7 @@ public class LoanService {
                 ? (loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now())
                 : paid.get(paid.size() - 1).getDueDate();
         boolean monthlyRate = "REDUCING".equalsIgnoreCase(loan.getInterestType())
-                && loan.getInterestRate() != null
-                && loan.getInterestRate().compareTo(BigDecimal.valueOf(5)) <= 0;
+                && "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis());
         List<LoanRepaymentSchedule> rebuilt = FinancialCalculator.generateAmortizationSchedule(
                 loan.getOutstandingPrincipal(), loan.getInterestRate(), monthlyRate, remainingMonths, startDate);
         int nextInstallment = paid.size() + 1;

@@ -53,6 +53,7 @@ public class FirestoreDataService {
     private final Map<String, MemberRefund> memberRefunds = new ConcurrentHashMap<>();
     private final Map<String, GroupMasterData> masterDataMap = new ConcurrentHashMap<>();
     private final Map<String, PaymentOrder> paymentOrders = new ConcurrentHashMap<>();
+    private final Map<String, OtpChallenge> otpChallenges = new ConcurrentHashMap<>();
 
     @Autowired
 
@@ -171,6 +172,7 @@ public class FirestoreDataService {
             case "memberRefunds" -> loadCollectionOnce(collectionName, MemberRefund.class, memberRefunds, MemberRefund::setId);
             case "groupMasterData" -> loadCollectionOnce(collectionName, GroupMasterData.class, masterDataMap, GroupMasterData::setId);
             case "paymentOrders" -> loadCollectionOnce(collectionName, PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
+            case "otpChallenges" -> loadCollectionOnce(collectionName, OtpChallenge.class, otpChallenges, OtpChallenge::setId);
             case "loanSchedules" -> { loadCollectionOnce("loans", Loan.class, loans, Loan::setId); loadLoanSchedules(); loadedCollections.add(collectionName); }
             default -> throw new IllegalArgumentException("Unknown Firestore collection: " + collectionName);
         }
@@ -253,6 +255,29 @@ public class FirestoreDataService {
                                 || (!digitsOnly.isEmpty() && digitsOnly.length() >= 10 && u.getMobileNumber().replaceAll("[^0-9]", "").endsWith(digitsOnly))))
                         || (u.getMemberId() != null && u.getMemberId().equalsIgnoreCase(cleanId)))
                 .findFirst();
+    }
+
+    public Optional<OtpChallenge> findOtpChallengeById(String id) {
+        if (id == null || id.isBlank()) return Optional.empty();
+        if (firestore == null) return Optional.ofNullable(otpChallenges.get(id));
+        try {
+            DocumentSnapshot snapshot = firestore.collection("otpChallenges").document(id).get().get();
+            if (!snapshot.exists()) return Optional.empty();
+            OtpChallenge challenge = objectMapper.convertValue(snapshot.getData(), OtpChallenge.class);
+            challenge.setId(snapshot.getId());
+            return Optional.of(challenge);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not read OTP challenge.", ex);
+        }
+    }
+
+    public OtpChallenge saveOtpChallenge(OtpChallenge challenge) {
+        if (challenge.getId() == null || challenge.getId().isBlank()) {
+            challenge.setId(UUID.randomUUID().toString());
+        }
+        otpChallenges.put(challenge.getId(), challenge);
+        persistToFirestore("otpChallenges", challenge.getId(), challenge);
+        return challenge;
     }
 
     public Optional<User> findUserByIdentifier(String identifier) {

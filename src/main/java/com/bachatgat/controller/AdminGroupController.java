@@ -8,6 +8,7 @@ import com.bachatgat.model.Role;
 import com.bachatgat.security.GroupSecurityService;
 import com.bachatgat.security.UserPrincipal;
 import com.bachatgat.service.GroupService;
+import com.bachatgat.service.OtpVerificationService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +25,13 @@ public class AdminGroupController {
 
     private final GroupService groupService;
     private final GroupSecurityService groupSecurityService;
+    private final OtpVerificationService otpVerificationService;
 
-    public AdminGroupController(GroupService groupService, GroupSecurityService groupSecurityService) {
+    public AdminGroupController(GroupService groupService, GroupSecurityService groupSecurityService,
+                                OtpVerificationService otpVerificationService) {
         this.groupService = groupService;
         this.groupSecurityService = groupSecurityService;
+        this.otpVerificationService = otpVerificationService;
     }
 
     @GetMapping
@@ -76,6 +80,14 @@ public class AdminGroupController {
     public ResponseEntity<ApiResponse<Group>> createGroup(
             @Valid @RequestBody GroupDTO dto,
             @AuthenticationPrincipal UserPrincipal principal) {
+        if (dto.getVerificationSessionId() == null || dto.getEmailVerificationId() == null
+                || dto.getMobileVerificationId() == null) {
+            throw new IllegalArgumentException("Email and mobile verification are required before creating a new group.");
+        }
+        otpVerificationService.requireVerified(dto.getEmailVerificationId(), dto.getVerificationSessionId(),
+                "EMAIL", dto.getPresidentEmail());
+        otpVerificationService.requireVerified(dto.getMobileVerificationId(), dto.getVerificationSessionId(),
+                "FIREBASE_PHONE", dto.getPresidentMobile());
         Group created = groupService.createGroup(dto, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("Group created successfully", created));
     }

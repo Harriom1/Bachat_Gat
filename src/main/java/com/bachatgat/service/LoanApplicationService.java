@@ -210,8 +210,7 @@ public class LoanApplicationService {
         BigDecimal monthlyInstallment;
         List<LoanRepaymentSchedule> schedules = new ArrayList<>();
 
-        boolean isMonthlyRate = Boolean.TRUE.equals(request.getIsMonthlyRate()) ||
-                (request.getIsMonthlyRate() == null && rate.compareTo(BigDecimal.valueOf(5.0)) <= 0);
+        boolean isMonthlyRate = Boolean.TRUE.equals(request.getIsMonthlyRate());
 
         if ("REDUCING".equalsIgnoreCase(interestType) || "REDUCING_BALANCE".equalsIgnoreCase(interestType)) {
             interestType = "REDUCING";
@@ -275,6 +274,7 @@ public class LoanApplicationService {
         loan.setChequeNumber(normalizeChequeNumber(request.getChequeNumber()));
         loan.setPrincipalAmount(approvedPrincipal);
         loan.setInterestRate(rate);
+        loan.setInterestRateBasis(isMonthlyRate ? "MONTHLY" : "ANNUAL");
         loan.setDurationMonths(durationMonths);
         loan.setInterestType(interestType);
         loan.setTotalInterest(totalInterest);

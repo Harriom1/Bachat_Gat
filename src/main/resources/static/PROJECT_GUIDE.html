@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project Guide | Bachat Gat Platform</title>
+  <style>
+    :root { --ink:#172033; --muted:#526078; --blue:#075985; --pale:#eff6ff; --line:#dbe4ee; --good:#166534; --warn:#92400e; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif; background:#f8fafc; }
+    header { padding:2.5rem max(1rem,calc((100% - 1180px)/2)); color:white; background:linear-gradient(135deg,#082f49,#0369a1); }
+    header h1 { margin:0 0 .35rem; font-size:clamp(1.8rem,4vw,3rem); }
+    header p { margin:.25rem 0; color:#dbeafe; }
+    .layout { display:grid; grid-template-columns:250px minmax(0,1fr); gap:2rem; max-width:1180px; margin:2rem auto; padding:0 1rem; }
+    nav { position:sticky; top:1rem; align-self:start; padding:1rem; background:white; border:1px solid var(--line); border-radius:12px; }
+    nav strong { display:block; margin-bottom:.5rem; }
+    nav a { display:block; padding:.3rem 0; color:var(--blue); text-decoration:none; }
+    nav a:hover { text-decoration:underline; }
+    main { min-width:0; }
+    section { margin-bottom:1.5rem; padding:1.5rem; background:white; border:1px solid var(--line); border-radius:12px; box-shadow:0 2px 8px #0f172a08; }
+    h2 { margin-top:0; color:#0c4a6e; }
+    h3 { color:#164e63; }
+    code, pre { font-family:Consolas,"Cascadia Code",monospace; }
+    code { padding:.1rem .3rem; background:#f1f5f9; border-radius:4px; }
+    pre { overflow:auto; padding:1rem; color:#e2e8f0; background:#0f172a; border-radius:8px; }
+    table { width:100%; border-collapse:collapse; }
+    th,td { padding:.65rem; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); }
+    th { color:#0c4a6e; background:var(--pale); }
+    .callout { padding:1rem; margin:1rem 0; border-left:4px solid #0284c7; background:var(--pale); }
+    .warning { border-left-color:#d97706; background:#fffbeb; color:var(--warn); }
+    .success { border-left-color:#16a34a; background:#f0fdf4; color:var(--good); }
+    .diagram { padding:1rem; overflow:auto; color:#0c4a6e; background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; white-space:pre; }
+    .toolbar { display:flex; gap:.6rem; flex-wrap:wrap; margin-top:1rem; }
+    .toolbar input { flex:1 1 260px; padding:.7rem; border:1px solid #bae6fd; border-radius:7px; }
+    button { cursor:pointer; padding:.7rem 1rem; border:0; border-radius:7px; color:white; background:#0369a1; font-weight:700; }
+    details { margin:1rem 0; padding:.8rem 1rem; border:1px solid var(--line); border-radius:8px; }
+    details summary { cursor:pointer; color:#075985; font-weight:700; }
+    .fact { color:#166534; font-weight:700; } .inference { color:#92400e; font-weight:700; } .unknown { color:#9f1239; font-weight:700; }
+    footer { max-width:1180px; margin:0 auto; padding:0 1rem 2rem; color:var(--muted); }
+    @media (max-width:760px) { .layout { display:block; } nav { position:static; margin-bottom:1rem; } section { padding:1rem; } th,td { font-size:.9rem; } }
+  </style>
+  <style>
+    :root {
+      --bg:#0f1115; --bg-soft:#161922; --panel:#1b1f2a; --panel-2:#20242f;
+      --border:#2a2f3d; --line-soft:#232838; --ink:#e7eaf0; --muted:#a5adbd;
+      --brand:#6ea8fe; --brand-2:#8b7cf6; --accent:#38bdf8; --good:#43d17a;
+      --warn:#f5b544; --danger:#f2678b; --code-bg:#12151d;
+      --shadow:0 12px 34px rgba(0,0,0,.28); --radius:14px;
+      --mono:"SF Mono",ui-monospace,"JetBrains Mono","Fira Code",Consolas,monospace;
+    }
+    :root[data-theme="light"] {
+      --bg:#f5f7fb; --bg-soft:#eceff6; --panel:#fff; --panel-2:#f5f7fc;
+      --border:#e0e5ef; --line-soft:#eaeef6; --ink:#1a2130; --muted:#4d596e;
+      --brand:#2f6bff; --brand-2:#6d4df6; --accent:#0ea5e9; --good:#12a150;
+      --warn:#b9770c; --danger:#d6336c; --code-bg:#0f1320;
+      --shadow:0 12px 34px rgba(25,40,80,.12);
+    }
+    * { transition: background-color .18s ease, border-color .18s ease, color .18s ease; }
+    body { background:var(--bg); color:var(--ink); font-size:15px; }
+    header { position:relative; background:radial-gradient(900px 300px at 0% 0%,rgba(110,168,254,.2),transparent 65%),linear-gradient(135deg,#151a2a,#26204a); padding-top:3.2rem; padding-bottom:2.4rem; box-shadow:var(--shadow); }
+    header::after { content:"BACHAT GAT · DEVELOPER KNOWLEDGE BASE"; display:block; max-width:1180px; margin:1.1rem auto 0; padding:0 1rem; color:rgba(255,255,255,.58); font:700 11px/1 var(--mono); letter-spacing:1.3px; }
+    header h1 { letter-spacing:-.7px; }
+    header p { max-width:850px; }
+    .header-tools { position:absolute; top:1.2rem; right:max(1rem,calc((100% - 1180px)/2)); display:flex; gap:.5rem; }
+    .theme-button { padding:.55rem .8rem; border:1px solid rgba(255,255,255,.25); border-radius:9px; background:rgba(255,255,255,.1); color:#fff; cursor:pointer; font-weight:700; }
+    .layout { max-width:1320px; grid-template-columns:285px minmax(0,1fr); gap:1.4rem; margin-top:1.4rem; }
+    nav { top:1rem; background:linear-gradient(180deg,var(--bg-soft),var(--bg)); border-color:var(--border); box-shadow:var(--shadow); }
+    nav strong { color:var(--ink); letter-spacing:.3px; }
+    nav a { color:var(--muted); border-radius:8px; padding:.42rem .55rem; font-size:13.5px; }
+    nav a:hover { background:var(--panel); color:var(--brand); text-decoration:none; }
+    nav a.active { background:var(--panel); color:var(--brand); box-shadow:inset 2px 0 var(--brand); font-weight:700; }
+    section { background:var(--panel); border-color:var(--border); border-radius:var(--radius); box-shadow:var(--shadow); }
+    section:first-child { background:radial-gradient(600px 190px at 0% 0%,rgba(110,168,254,.12),transparent 70%),var(--panel); }
+    h2 { color:var(--brand); letter-spacing:-.2px; }
+    h3 { color:var(--accent); }
+    code { background:var(--panel-2); color:var(--accent); border:1px solid var(--line-soft); }
+    pre { background:var(--code-bg); border:1px solid var(--border); box-shadow:inset 0 1px rgba(255,255,255,.03); }
+    table { border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+    th { color:var(--brand); background:var(--panel-2); }
+    th,td { border-color:var(--line-soft); }
+    .callout, .diagram { background:var(--panel-2); border-color:var(--border); }
+    .warning { background:rgba(245,181,68,.09); color:var(--warn); }
+    .success { background:rgba(67,209,122,.09); color:var(--good); }
+    .toolbar input { background:var(--panel); color:var(--ink); border-color:var(--border); }
+    button { background:linear-gradient(135deg,var(--brand),var(--brand-2)); box-shadow:0 5px 14px rgba(47,107,255,.18); }
+    details { background:var(--panel); border-color:var(--border); }
+    details summary { color:var(--brand); }
+    .hero-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:1.2rem 0 .4rem; }
+    .hero-card { padding:14px; border:1px solid var(--border); border-radius:11px; background:var(--panel-2); }
+    .hero-card b { display:block; color:var(--accent); font-size:12px; letter-spacing:.6px; text-transform:uppercase; }
+    .hero-card span { display:block; margin-top:4px; color:var(--muted); font-size:13px; }
+    .tag-row { display:flex; flex-wrap:wrap; gap:7px; margin:.8rem 0; }
+    .tag { padding:4px 9px; border:1px solid var(--border); border-radius:999px; background:var(--panel-2); color:var(--muted); font:12px var(--mono); }
+    footer { max-width:1320px; color:var(--muted); }
+    @media(max-width:820px){ .hero-grid { grid-template-columns:1fr; } .header-tools { position:static; max-width:1180px; margin:1rem auto 0; padding:0 1rem; } header::after { margin-top:1rem; } }
+    @media print { :root { --bg:#fff; --panel:#fff; --ink:#111; --muted:#444; --border:#ccc; } header { box-shadow:none; } section { box-shadow:none; break-inside:avoid; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-tools"><button class="theme-button" id="themeButton" type="button" onclick="toggleTheme()">🌗 Theme</button></div>
+    <h1>Bachat Gat Investment Application</h1>
+    <p>Project learning course, developer guide, local runbook, security audit, loan rules, testing, and deployment handbook.</p>
+    <p><strong>Purpose:</strong> understand this repository from the browser page through Spring Boot, Firestore, authentication, financial workflows, and Cloud Run.</p>
+    <div class="hero-grid">
+      <div class="hero-card"><b>Stack</b><span>Java 21 · Spring Boot · Maven · HTML/CSS/JavaScript</span></div>
+      <div class="hero-card"><b>Data</b><span>Firestore with an isolated local emulator profile</span></div>
+      <div class="hero-card"><b>Deployment</b><span>Docker · Artifact Registry · Cloud Build · Cloud Run</span></div>
+    </div>
+    <div class="tag-row"><span class="tag">Beginner friendly</span><span class="tag">Evidence based</span><span class="tag">Production safe</span><span class="tag">No secrets included</span></div>
+  </header>
+
+  <div class="layout">
+    <nav aria-label="Guide navigation">
+      <strong>Contents</strong>
+      <a href="#orientation">Guide orientation</a>
+      <a href="#verified">Verified inventory</a>
+      <a href="#flow">Application flow</a>
+      <a href="#local">Local setup</a>
+      <a href="#security">Security and data safety</a>
+      <a href="#loans">Loan calculation</a>
+      <a href="#testing">Testing</a>
+      <a href="#cloud">Google Cloud deployment</a>
+      <a href="#troubleshooting">Troubleshooting</a>
+      <a href="#new-machine">New Windows machine</a>
+      <a href="#inventory">File and API map</a>
+      <a href="#database">Database and recovery</a>
+      <a href="#credentials">Credentials and login</a>
+      <a href="#config">Environment reference</a>
+      <a href="#audit">Security audit</a>
+      <a href="#backup">Backup and recovery</a>
+      <a href="#status">Audit status</a>
+    </nav>
+
+    <main>
+      <section id="orientation">
+        <h2>0. Guide orientation</h2>
+        <p>This document is written as a learning course and an operational handbook. Read the first sections to understand the product, then use the local setup and troubleshooting sections when working on a machine.</p>
+        <div class="diagram">Browser UI → REST controller → service/business rule → repository → Firestore
+       ↓              ↓                    ↓                    ↓
+     user action   security         validation/calculation    persistence</div>
+        <h3>What this application does</h3>
+        <div class="hero-grid">
+          <div class="hero-card"><b>Groups and people</b><span>Manage Bachat Gat groups, members, roles, and group-scoped access.</span></div>
+          <div class="hero-card"><b>Money workflows</b><span>Track savings, income, expenses, loans, repayments, payments, and reports.</span></div>
+          <div class="hero-card"><b>Documents and audit</b><span>Protect uploaded documents and preserve traceable financial and administrative activity.</span></div>
+        </div>
+        <h3>Core vocabulary</h3>
+        <table>
+          <tr><th>Term</th><th>Simple meaning in this project</th></tr>
+          <tr><td>Controller</td><td>The request receptionist: receives an HTTP request and sends it to the correct service.</td></tr>
+          <tr><td>Service</td><td>The business-rule layer: validates decisions such as loan calculations or payment allocation.</td></tr>
+          <tr><td>Repository</td><td>The persistence boundary: reads and writes application records without exposing database details to the UI.</td></tr>
+          <tr><td>Authentication</td><td>Proves which user is signed in.</td></tr>
+          <tr><td>Authorization</td><td>Checks whether that user may access this group, document, or financial operation.</td></tr>
+          <tr><td>Emulator</td><td>A local Firestore substitute used for safe development and testing.</td></tr>
+        </table>
+        <details><summary>Suggested learning order</summary><p>Start with this orientation, continue through the verified inventory and request flow, run the local emulator setup, read the security and loan sections, then use the new-machine and Cloud Run sections when deploying.</p></details>
+      </section>
+
+      <section id="verified">
+        <h2>1. Verified project inventory</h2>
+        <table>
+          <tr><th>Item</th><th>Finding</th><th>Evidence</th></tr>
+          <tr><td>Backend</td><td>Spring Boot application written in Java.</td><td><code>pom.xml</code>, <code>src/main/java</code></td></tr>
+          <tr><td>Frontend</td><td>Static HTML, CSS, and JavaScript served by Spring Boot.</td><td><code>src/main/resources/static</code></td></tr>
+          <tr><td>Build</td><td>Maven.</td><td><code>pom.xml</code></td></tr>
+          <tr><td>Database integration</td><td>Firestore repository/data-service integration, with a Firestore emulator for safe local testing.</td><td><code>FirestoreDataService.java</code>, emulator configuration</td></tr>
+          <tr><td>Authentication</td><td>Spring Security with JWT-based login and role/group authorization.</td><td><code>src/main/java/com/bachatgat/security</code></td></tr>
+          <tr><td>Local URL</td><td><code>http://localhost:8080</code></td><td>Spring Boot default server port</td></tr>
+          <tr><td>Cloud project</td><td><code>bachat-gat-development</code></td><td>Deployment configuration supplied for this project</td></tr>
+          <tr><td>Cloud region</td><td><code>asia-south1</code></td><td>Cloud Run and Artifact Registry deployment configuration</td></tr>
+        </table>
+        <div class="callout warning"><strong>Secrets:</strong> This guide intentionally does not contain passwords, JWT values, reset tokens, service-account keys, or password hashes.</div>
+        <div class="toolbar"><input id="search" type="search" placeholder="Search this guide…" oninput="filterGuide()"><button type="button" onclick="window.print()">Print / Save PDF</button></div>
+      </section>
+
+      <section id="flow">
+        <h2>2. How a request moves through the application</h2>
+        <div class="diagram">Browser page
+    ↓ fetch / XMLHttpRequest
+Spring Boot REST controller
+    ↓ authentication, role and group checks
+Service / business rules
+    ↓ repository and Firestore data service
+Firestore or Firestore emulator
+    ↓ response
+Browser updates the page</div>
+        <p>The frontend is not the financial authority. Loan amounts, interest, balances, payment allocation, and access decisions are validated by the backend.</p>
+        <h3>Main areas</h3>
+        <ul>
+          <li>Authentication and role-based access.</li>
+          <li>Bachat Gat groups and member records.</li>
+          <li>Savings, income, expenses, transactions, loans, and repayments.</li>
+          <li>Administrative dashboards and loan-detail screens.</li>
+          <li>Document upload and protected document access.</li>
+        </ul>
+      </section>
+
+      <section id="local">
+        <h2>3. Safe local setup</h2>
+        <p>Use two PowerShell windows. The emulator window must stay open.</p>
+        <h3>Window 1: start Firestore emulator</h3>
+        <pre>gcloud emulators firestore start --host-port=127.0.0.1:8081</pre>
+        <h3>Window 2: start the application</h3>
+        <pre>cd "C:\Users\hariom\Desktop\bhachat_investment\BachatGat-InvertUR-Money-2c800011b97c8d8c2e1d84fb3827df6777ec825e"
+
+$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8081"
+$env:FIRESTORE_EMULATOR_ENABLED="true"
+$env:GCP_PROJECT_ID="bachat-gat-local"
+$env:APP_DEMO_DATA_ENABLED="true"
+$env:SPRING_PROFILES_ACTIVE="dev"
+
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"</pre>
+        <div class="callout success"><strong>Local-only settings:</strong> the local project name and emulator host keep test data away from the production Firestore project.</div>
+        <p>Open <code>http://localhost:8080</code>. Stop the application with <code>Ctrl+C</code> in Window 2, and stop the emulator with <code>Ctrl+C</code> in Window 1.</p>
+      </section>
+
+      <section id="security">
+        <h2>4. Security and data safety</h2>
+        <ul>
+          <li>Production must not enable demo-data reset or seed behavior.</li>
+          <li>Document access requires authentication and the correct Bachat Gat group.</li>
+          <li>Unknown document IDs return not-found rather than generated fake documents.</li>
+          <li>Uploads require validation and sanitized filenames.</li>
+          <li>Payment webhooks require signature verification.</li>
+          <li>Financial updates use duplicate/idempotency safeguards and backend allocation.</li>
+          <li>Never place secrets in this HTML file, source control, browser code, or screenshots.</li>
+        </ul>
+        <p>Before any production data operation, verify the active project and bucket explicitly. Local emulator data and cloud Firestore data are separate environments.</p>
+      </section>
+
+      <section id="loans">
+        <h2>5. Loan calculation rules</h2>
+        <p>The loan calculator uses reducing-balance interest. Monthly interest is calculated from the actual opening outstanding principal, not always from the original loan amount.</p>
+        <pre>monthly interest = opening outstanding principal × monthly rate
+closing principal = opening principal − actual principal paid</pre>
+        <p>The schedule keeps scheduled principal separate from carried pending principal. An interest-only payment or missed payment does not reduce closing principal because no principal was actually paid.</p>
+        <table>
+          <tr><th>Situation</th><th>Closing principal</th><th>Pending values</th></tr>
+          <tr><td>Normal EMI</td><td>Reduces by actual principal paid.</td><td>Unpaid dues carry forward.</td></tr>
+          <tr><td>Interest only</td><td>Unchanged.</td><td>Scheduled principal becomes pending.</td></tr>
+          <tr><td>No payment</td><td>Unchanged.</td><td>Interest and principal both carry forward.</td></tr>
+          <tr><td>Partial payment</td><td>Reduces only by allocated principal.</td><td>All unpaid amounts remain pending.</td></tr>
+        </table>
+        <div class="callout"><strong>Example:</strong> A ₹50,000 loan with ₹500 interest-only payment in month 1 correctly remains at ₹50,000 closing principal. It reduces only after a later payment is allocated to principal.</div>
+        <p>Internal calculations use <code>BigDecimal</code>. The normal interface displays whole rupees using half-up rounding.</p>
+      </section>
+
+      <section id="testing">
+        <h2>6. Testing and verification</h2>
+        <h3>Run the full test suite</h3>
+        <pre>mvn test -B</pre>
+        <h3>Run calculator tests only</h3>
+        <pre>mvn -q -Dtest=FinancialCalculatorTest test</pre>
+        <p>Important scenarios include normal repayment, interest-only payment, missed payment, partial payment, final principal adjustment, zero interest, invalid values, duplicate payments, concurrent attempts, and cross-group access.</p>
+        <p>For a manual restart-persistence test, create a local test record, stop the app, start it again with the same emulator, and verify the record remains. Do not use this procedure against production unless a separate approved test record and backup plan exist.</p>
+      </section>
+
+      <section id="cloud">
+        <h2>7. Google Cloud deployment checklist</h2>
+        <ol>
+          <li>Confirm the active project with <code>gcloud config get-value project</code>.</li>
+          <li>Confirm the intended storage bucket and its private access settings.</li>
+          <li>Run <code>mvn test -B</code> locally.</li>
+          <li>Ensure production secrets are stored in Secret Manager and are not printed.</li>
+          <li>Build and push the image through the reviewed Cloud Build configuration.</li>
+          <li>Deploy to Cloud Run with <code>SPRING_PROFILES_ACTIVE=prod</code> and demo data disabled.</li>
+          <li>Check the Cloud Run revision health endpoint and logs.</li>
+          <li>Test login, group isolation, documents, loans, and webhook rejection after deployment.</li>
+        </ol>
+        <div class="callout warning"><strong>Do not copy local settings to production:</strong> production must not use the Firestore emulator, <code>APP_DEMO_DATA_ENABLED=true</code>, localhost CORS, or plaintext secrets.</div>
+      </section>
+
+      <section id="troubleshooting">
+        <h2>8. Common problems</h2>
+        <table>
+          <tr><th>Symptom</th><th>Likely cause</th><th>Action</th></tr>
+          <tr><td>Connection refused on port 8081</td><td>Firestore emulator is not running.</td><td>Start Window 1 and keep it open.</td></tr>
+          <tr><td>JWT key-size error</td><td>JWT secret is missing or too short.</td><td>Use a securely generated local secret of at least 32 bytes.</td></tr>
+          <tr><td>Cloud Run cannot listen on port 8080</td><td>Container startup/configuration failure.</td><td>Inspect revision logs for the first application exception.</td></tr>
+          <tr><td>403 on a document or group</td><td>Authenticated user is not authorized for that group.</td><td>Verify the user’s group assignment; do not disable authorization.</td></tr>
+          <tr><td>Old data is missing locally</td><td>Local emulator is separate from cloud Firestore.</td><td>Verify the active environment before investigating cloud data.</td></tr>
+        </table>
+      </section>
+
+      <section id="new-machine">
+        <h2>9. Complete setup on a new Windows machine</h2>
+        <p>This repeatable path installs the tools, downloads the code from GitHub, verifies the checkout, and runs the first build before local runtime troubleshooting.</p>
+        <h3>9.1 Install prerequisites</h3>
+        <ol>
+          <li>Install Git for Windows from <code>git-scm.com</code>.</li>
+          <li>Install a JDK 21 distribution. A JDK includes the compiler Maven needs; a JRE alone is not enough.</li>
+          <li>Install Apache Maven 3.9 or newer, or use the Maven Wrapper if the repository provides one.</li>
+          <li>Install the Google Cloud CLI and the Cloud Firestore Emulator component.</li>
+          <li>Optional: install IntelliJ IDEA or VS Code. An IDE is not required to run the application.</li>
+        </ol>
+        <h3>9.2 Verify the tools</h3>
+        <pre>git --version
+java -version
+mvn -version
+gcloud version</pre>
+        <p>Expected: Git, Java 21, Maven 3.9+, and a working Google Cloud CLI. If a command is not recognized, repair the Windows PATH before continuing.</p>
+        <h3>9.3 Clone the code from GitHub</h3>
+        <pre>New-Item -ItemType Directory -Force "$env:USERPROFILE\source\repos" | Out-Null
+cd "$env:USERPROFILE\source\repos"
+git clone https://github.com/Harriom1/Bachat_Gat.git BachatGat
+cd .\BachatGat
+git status
+git branch --show-current</pre>
+        <p>Never paste passwords, API keys, JWT secrets, or service-account JSON into GitHub. Verify the clone contains <code>pom.xml</code>, <code>src\main\java</code>, and <code>src\main\resources\static</code>.</p>
+        <h3>9.4 First build</h3>
+        <pre>mvn clean test -B</pre>
+        <p>This downloads dependencies, compiles the backend, runs automated tests, and proves that the checkout is complete before runtime troubleshooting begins.</p>
+        <h3>9.5 Friend-laptop setup: use the cloned folder, not the owner’s path</h3>
+        <p>On another person’s laptop, do not copy your <code>C:\Users\hariom\...</code> path. Each Windows account has a different home directory. The commands below work from any cloned folder.</p>
+        <h4>Window 1 — start the local Firestore emulator</h4>
+        <pre>gcloud emulators firestore start --host-port=127.0.0.1:8081</pre>
+        <h4>Window 2 — clone and run the project</h4>
+        <pre>$repoRoot = Join-Path $env:USERPROFILE "source\repos\BachatGat"
+if (-not (Test-Path $repoRoot)) {
+    New-Item -ItemType Directory -Force (Split-Path $repoRoot) | Out-Null
+    git clone https://github.com/Harriom1/Bachat_Gat.git $repoRoot
+}
+Set-Location $repoRoot
+
+$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8081"
+$env:FIRESTORE_EMULATOR_ENABLED="true"
+$env:GCP_PROJECT_ID="bachat-gat-local"
+$env:APP_DEMO_DATA_ENABLED="true"
+$env:SPRING_PROFILES_ACTIVE="dev"
+
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"</pre>
+        <p>Then open <code>http://localhost:8080</code>. The friend’s local data is stored in that friend’s emulator process, not in your production Firestore project.</p>
+        <h4>First-time checks on the friend’s laptop</h4>
+        <pre>Set-Location $repoRoot
+git status
+java -version
+mvn -version
+gcloud version
+Test-NetConnection 127.0.0.1 -Port 8081
+Test-NetConnection 127.0.0.1 -Port 8080</pre>
+        <div class="callout warning"><strong>Important:</strong> the friend needs their own installed tools and their own approved Google Cloud login only if they are performing cloud administration. Normal local development should use the emulator and must not receive your passwords, JWT secrets, service-account keys, or production credentials.</div>
+        <h4>How to stop and restart</h4>
+        <ol>
+          <li>Press <code>Ctrl+C</code> in Window 2 to stop Spring Boot.</li>
+          <li>Press <code>Ctrl+C</code> in Window 1 to stop the emulator.</li>
+          <li>Start the emulator again first, then run the application again with the same dev variables.</li>
+          <li>Use the same emulator data directory or export/import procedure if persistence between emulator processes is required by the test plan.</li>
+        </ol>
+      </section>
+
+      <section id="inventory">
+        <h2>10. File, page, API, and module map</h2>
+        <p>The application is a Spring Boot backend with a static browser frontend. The browser calls REST endpoints; controllers receive requests, services apply business rules, repositories read or write Firestore, and the response returns as JSON.</p>
+        <table>
+          <tr><th>Area</th><th>Location</th><th>Responsibility</th></tr>
+          <tr><td>Build</td><td><code>pom.xml</code></td><td>Java dependencies, Maven lifecycle, and Spring Boot plugin.</td></tr>
+          <tr><td>Backend</td><td><code>src/main/java</code></td><td>Spring Boot application, REST controllers, services, repositories, models, and security.</td></tr>
+          <tr><td>Controllers</td><td><code>src/main/java/com/bachatgat/controller</code></td><td>Auth, groups, members, collections, income, expenses, loans, transactions, reports, documents, payments, and admin operations.</td></tr>
+          <tr><td>Services</td><td><code>src/main/java/com/bachatgat/service</code></td><td>Business rules and coordination between controllers and persistence.</td></tr>
+          <tr><td>Repositories</td><td><code>src/main/java/com/bachatgat/repository</code></td><td>Firestore read/write boundary and group/member/user persistence.</td></tr>
+          <tr><td>Models</td><td><code>src/main/java/com/bachatgat/model</code></td><td>User, group, member, loan, repayment schedule, transaction, document, and related data objects.</td></tr>
+          <tr><td>Security</td><td><code>src/main/java/com/bachatgat/security</code></td><td>Authentication, JWT parsing, role checks, and group authorization.</td></tr>
+          <tr><td>Browser UI</td><td><code>src/main/resources/static</code></td><td>HTML, CSS, JavaScript, login, dashboards, loans, documents, reports, and guides.</td></tr>
+          <tr><td>Configuration</td><td><code>src/main/resources/application*.properties</code></td><td>Common, development, and production configuration.</td></tr>
+          <tr><td>Deployment</td><td><code>Dockerfile</code>, <code>cloudbuild.yaml</code>, <code>.gcloudignore</code></td><td>Container image, Artifact Registry push, Cloud Run deployment, and source exclusions.</td></tr>
+        </table>
+        <h3>Important browser pages</h3>
+        <p>Use <code>Get-ChildItem src/main/resources/static -Filter *.html</code> to list current pages. The project includes <code>/guide.html</code> and this standalone <code>/PROJECT_GUIDE.html</code>. Open each page and its referenced JavaScript to trace screen-to-API behavior.</p>
+        <h3>Controller families</h3>
+        <p><code>AuthController</code> handles login and account bootstrap/reset flows. Admin controllers cover groups, members, collections, income, expenses, loans, meetings, transactions, documents, dashboards, and reports. <code>PaymentController</code> handles payment orders, webhook processing, and payment history. Controller route annotations are the source of truth when changing a client call.</p>
+      </section>
+
+      <section id="database">
+        <h2>11. Database, emulator, and old-data recovery</h2>
+        <p>Firestore is the application database. <code>FirestoreConfig</code> selects the client configuration, <code>FirestoreDataService</code> provides shared persistence behavior, and repository classes keep data access out of controllers. The local emulator and cloud Firestore are different databases.</p>
+        <pre>gcloud auth list
+gcloud config get-value project
+gcloud projects describe bachat-gat-development
+gcloud firestore databases list --project=bachat-gat-development</pre>
+        <p>These are read-only checks. Run them only when you intentionally want to inspect the cloud project. Never point local demo mode at production Firestore.</p>
+        <div class="callout warning"><strong>Why old records may appear missing:</strong> the app may be connected to the emulator, a different GCP project, a different database, or a different group ID. A changed user ID or group assignment can also make records invisible through authorization even when the records still exist.</div>
+        <h3>Safe investigation sequence</h3>
+        <ol>
+          <li>Record the environment variables and active Spring profile.</li>
+          <li>Confirm the project ID and Firestore database without modifying data.</li>
+          <li>Confirm the authenticated user ID and group ID.</li>
+          <li>Check application logs for the collection/path being queried.</li>
+          <li>Only after approval, export or back up the relevant cloud data before any repair.</li>
+        </ol>
+      </section>
+
+      <section id="credentials">
+        <h2>12. Authentication, authorization, and login troubleshooting</h2>
+        <p>The login flow is: browser form → <code>AuthController</code> → <code>AuthService</code> → user lookup and password-hash verification → JWT creation → JWT filter on later requests. Authentication answers “who are you?” Authorization answers “may this user perform this action?”</p>
+        <table>
+          <tr><th>Symptom</th><th>Meaning</th><th>Safe check</th></tr>
+          <tr><td>401</td><td>Missing or invalid login token.</td><td>Log in again and inspect the active service revision/profile.</td></tr>
+          <tr><td>403</td><td>User is known but not allowed to perform the action, or a proxy/security rule denied it.</td><td>Check role, group membership, route authorization, and Cloud Run logs.</td></tr>
+          <tr><td>Login rejects an old password</td><td>The user record may be in another database, the password may have been reset, or the username may not match.</td><td>Verify the active database and user document through an authorized read-only check.</td></tr>
+          <tr><td>Local login differs from cloud login</td><td>Local emulator data is separate from production data.</td><td>Use the intended profile and seed only the local emulator.</td></tr>
+        </table>
+        <p>This guide intentionally does not contain passwords, password hashes, reset tokens, JWTs, service-account keys, or personal contact details. Store secrets in Secret Manager or an approved local secret mechanism.</p>
+      </section>
+
+      <section id="config">
+        <h2>13. Environment and configuration reference</h2>
+        <table>
+          <tr><th>Variable</th><th>Local use</th><th>Production rule</th></tr>
+          <tr><td><code>FIRESTORE_EMULATOR_HOST</code></td><td><code>127.0.0.1:8081</code> for the local emulator.</td><td>Unset unless a deliberate isolated test environment is being used.</td></tr>
+          <tr><td><code>FIRESTORE_EMULATOR_ENABLED</code></td><td><code>true</code> for local testing.</td><td>Do not enable for production.</td></tr>
+          <tr><td><code>GCP_PROJECT_ID</code></td><td><code>bachat-gat-local</code> for local isolation.</td><td><code>bachat-gat-development</code> only when that is the approved project.</td></tr>
+          <tr><td><code>SPRING_PROFILES_ACTIVE</code></td><td><code>dev</code>.</td><td><code>prod</code>.</td></tr>
+          <tr><td><code>APP_DEMO_DATA_ENABLED</code></td><td><code>true</code> only for an isolated emulator.</td><td><code>false</code>; never reset real production data on startup.</td></tr>
+          <tr><td><code>JWT_SECRET</code></td><td>Use a local secret of sufficient length.</td><td>Use Secret Manager; never commit or print it.</td></tr>
+          <tr><td><code>STORAGE_BUCKET</code></td><td>Usually omitted or pointed at a test bucket.</td><td>Private approved bucket, such as <code>bachat-gat-development-docs-2026</code>.</td></tr>
+          <tr><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Local browser origin.</td><td>Exact approved HTTPS frontend origin; never leave localhost as the production value.</td></tr>
+        </table>
+        <p>There are four different identity concepts: your <strong>gcloud login</strong>, the Cloud Run <strong>service identity</strong>, the Firestore/Storage <strong>permissions</strong>, and the application’s <strong>JWT secret</strong>. A successful gcloud login does not automatically make every application request authorized.</p>
+      </section>
+
+      <section id="audit">
+        <h2>14. Security and reliability audit summary</h2>
+        <table>
+          <tr><th>Area</th><th>Risk to watch</th><th>Required control</th></tr>
+          <tr><td>Secrets</td><td>Passwords, JWT keys, reset tokens, or service-account files in source or logs.</td><td>Secret Manager or local secret input; rotate anything exposed.</td></tr>
+          <tr><td>Startup</td><td>Demo data or reset logic running in production.</td><td>Production profile with demo data disabled and restart-persistence tests.</td></tr>
+          <tr><td>Documents</td><td>Unauthenticated, cross-group, or fake document access.</td><td>Authentication, group authorization, real storage lookup, and 404 for unknown IDs.</td></tr>
+          <tr><td>Webhooks</td><td>Forged payment events.</td><td>Verify the provider signature against the raw request body before updating money.</td></tr>
+          <tr><td>Financial writes</td><td>Duplicate or concurrent payment updates.</td><td>Transactions/idempotency keys, immutable history, and backend-owned allocation.</td></tr>
+          <tr><td>Uploads</td><td>Unsafe names, oversized files, or unexpected content.</td><td>Size/type validation, filename sanitization, private bucket, and authorized download.</td></tr>
+        </table>
+      </section>
+
+      <section id="backup">
+        <h2>15. Backup, restore, and rollback procedure</h2>
+        <ol>
+          <li>Record the active project, Firestore database, storage bucket, Cloud Run service, and current revision.</li>
+          <li>Create an approved backup/export before changing production records or security settings.</li>
+          <li>Test restoration in a separate project or emulator before touching production.</li>
+          <li>Deploy a new Cloud Run revision without deleting the previous revision.</li>
+          <li>Verify health, login, group isolation, documents, loans, and payments.</li>
+          <li>If the new revision is unhealthy, route traffic back to the last known-good revision and investigate logs.</li>
+        </ol>
+        <div class="callout warning"><strong>Never use emulator reset, collection deletion, or recursive bucket deletion as a recovery step.</strong> Resolve the exact environment and obtain approval before any destructive action.</div>
+      </section>
+
+      <section id="status">
+        <h2>17. Audit status and evidence boundary</h2>
+        <p><strong>Generated:</strong> 2026-10-30. Labels in this guide distinguish verified repository facts from operational guidance and unresolved production questions.</p>
+        <p><span class="fact">Verified in the repository:</span> Spring Boot/Maven structure, static frontend, Firestore configuration and repositories, JWT/security classes, loan/payment services, Cloud Build/Run files, and local emulator configuration.</p>
+        <p><span class="fact">Previously executed successfully:</span> the project’s full Maven test run reported 74 tests, 0 failures, 0 errors, and 1 skipped. Targeted loan/calculation tests were also run during the audit.</p>
+        <p><span class="inference">Operational guidance:</span> the new-machine installation sequence, backup sequence, and troubleshooting tables are procedures to follow; they are not claims that a new machine or backup has already been prepared.</p>
+        <p><span class="unknown">Unresolved without a fresh authorized check:</span> complete production database contents, all historical records, current production IAM bindings, and any current credential value. Do not infer these from screenshots or from local emulator data.</p>
+        <h3>Safe next steps</h3>
+        <ol>
+          <li>Commit this guide with the repository documentation.</li>
+          <li>On a new machine, follow section 9 from top to bottom.</li>
+          <li>Run the local emulator and dev profile from section 3.</li>
+          <li>Run the tests before any cloud deployment.</li>
+          <li>Use the cloud checklist only after project, bucket, secrets, IAM, and health checks are confirmed.</li>
+        </ol>
+      </section>
+    </main>
+  </div>
+  <footer>Generated for the existing Bachat Gat application. Treat configuration values and logs as sensitive; never publish secrets.</footer>
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('bachatgat-guide-theme', next);
+    }
+
+    (function restoreTheme() {
+      const saved = localStorage.getItem('bachatgat-guide-theme');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    })();
+
+    function filterGuide() {
+      const query = document.getElementById('search').value.toLowerCase().trim();
+      document.querySelectorAll('main section').forEach(section => {
+        section.hidden = Boolean(query) && !section.textContent.toLowerCase().includes(query);
+      });
+    }
+
+    const guideSections = [...document.querySelectorAll('main section')];
+    const guideLinks = [...document.querySelectorAll('nav a[href^="#"]')];
+    const guideObserver = new IntersectionObserver(entries => {
+      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      guideLinks.forEach(link => link.classList.toggle('active', link.getAttribute('href') === '#' + visible.target.id));
+    }, { rootMargin: '-15% 0px -70% 0px', threshold: [0, .2, .6] });
+    guideSections.forEach(section => guideObserver.observe(section));
+  </script>
+</body>
+</html>

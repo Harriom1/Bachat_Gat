@@ -343,6 +343,33 @@
             </div>
           </div>
 
+          <div id="group-otp-verification" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1rem;">
+            <strong style="display:block; margin-bottom:.75rem; color:#166534;">Email and mobile verification</strong>
+            <div style="display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:end;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" for="inp-president-email-otp">Email OTP</label>
+                <input type="text" id="inp-president-email-otp" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code">
+              </div>
+              <div style="display:flex; gap:.5rem;">
+                <button type="button" class="btn-secondary-custom" id="btn-send-president-email-otp">Send OTP</button>
+                <button type="button" class="btn-primary-custom" id="btn-verify-president-email-otp">Verify</button>
+              </div>
+            </div>
+            <div id="president-email-otp-status" style="font-size:.8rem; margin-top:.5rem;" aria-live="polite"></div>
+            <div style="display:grid; grid-template-columns:1fr auto; gap:.75rem; align-items:end; margin-top:1rem;">
+              <div class="form-group" style="margin:0;">
+                <label class="form-label" for="inp-president-mobile-otp">Mobile OTP</label>
+                <input type="text" id="inp-president-mobile-otp" class="form-control" inputmode="numeric" maxlength="6" placeholder="6-digit code">
+              </div>
+              <div style="display:flex; gap:.5rem;">
+                <button type="button" class="btn-secondary-custom" id="btn-send-president-mobile-otp">Send OTP</button>
+                <button type="button" class="btn-primary-custom" id="btn-verify-president-mobile-otp">Verify</button>
+              </div>
+            </div>
+            <div id="president-mobile-otp-status" style="font-size:.8rem; margin-top:.5rem;" aria-live="polite"></div>
+            <div id="firebase-recaptcha-container"></div>
+          </div>
+
           <div class="form-group" style="margin-bottom: 0.9rem;">
             <label class="form-label" for="inp-president-username" data-i18n="presidentUsername">President Login Identifier / Username *</label>
             <input type="text" id="inp-president-username" class="form-control" placeholder="e.g. shalini_president or mobile" required>
@@ -534,6 +561,8 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
@@ -542,6 +571,13 @@
   <script>
     let allGroups = [];
     let allAdmins = [];
+    let groupCreationSessionId = crypto.randomUUID();
+    let emailOtpChallengeId = null;
+    let mobileOtpChallengeId = null;
+    let emailVerified = false;
+    let mobileVerified = false;
+    let firebaseConfirmationResult = null;
+    let firebaseAuth = null;
 
     document.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.isAuthenticated()) {
@@ -573,6 +609,12 @@
 
       const formGrp = document.getElementById('form-create-group');
       if (formGrp) formGrp.addEventListener('submit', handleCreateGroup);
+      document.getElementById('btn-send-president-email-otp')?.addEventListener('click', sendPresidentEmailOtp);
+      document.getElementById('btn-verify-president-email-otp')?.addEventListener('click', verifyPresidentEmailOtp);
+      document.getElementById('btn-send-president-mobile-otp')?.addEventListener('click', sendPresidentMobileOtp);
+      document.getElementById('btn-verify-president-mobile-otp')?.addEventListener('click', verifyPresidentMobileOtp);
+      document.getElementById('inp-president-email')?.addEventListener('input', resetPresidentEmailVerification);
+      document.getElementById('inp-president-mobile')?.addEventListener('input', resetPresidentMobileVerification);
 
       const formAdm = document.getElementById('form-create-admin');
       if (formAdm) formAdm.addEventListener('submit', handleCreateAdmin);
@@ -692,7 +734,127 @@
 
     function closeCreateModal() {
       Common.closeModal('modal-create-group');
+      resetPresidentRecaptcha();
       document.getElementById('form-create-group')?.reset();
+    }
+
+    function normalizePresidentMobile(value) {
+      const digits = (value || '').replace(/\D/g, '');
+      return digits.length === 10 ? `+91${digits}` : (value || '').trim();
+    }
+
+    function resetPresidentEmailVerification() {
+      emailOtpChallengeId = null;
+      emailVerified = false;
+      const status = document.getElementById('president-email-otp-status');
+      if (status) status.textContent = '';
+    }
+
+    function resetPresidentMobileVerification() {
+      mobileOtpChallengeId = null;
+      mobileVerified = false;
+      firebaseConfirmationResult = null;
+      const status = document.getElementById('president-mobile-otp-status');
+      if (status) status.textContent = '';
+    }
+
+    function ensurePresidentFirebaseAuth() {
+      if (firebaseAuth) return firebaseAuth;
+      const app = firebase.initializeApp({
+        apiKey: 'AIzaSyA6sUPuOsS7uP2O84ZA904IGnpGSQiyuJ8',
+        authDomain: 'bachat-gat-development.firebaseapp.com',
+        projectId: 'bachat-gat-development',
+        storageBucket: 'bachat-gat-development.firebasestorage.app',
+        messagingSenderId: '230889435212',
+        appId: '1:230889435212:web:4772eab09363619ab104e9'
+      });
+      firebaseAuth = firebase.auth(app);
+      return firebaseAuth;
+    }
+
+    function resetPresidentRecaptcha() {
+      if (window.firebaseRecaptchaVerifier) {
+        try { window.firebaseRecaptchaVerifier.clear(); } catch (e) { /* already cleared */ }
+        window.firebaseRecaptchaVerifier = null;
+      }
+      const container = document.getElementById('firebase-recaptcha-container');
+      if (container) container.innerHTML = '';
+    }
+
+    async function sendPresidentEmailOtp() {
+      const email = document.getElementById('inp-president-email').value.trim();
+      if (!email) return Common.showToast('Enter the President email first.', 'warning');
+      const btn = document.getElementById('btn-send-president-email-otp');
+      btn.disabled = true;
+      try {
+        const result = await api.sendEmailVerificationOtp(groupCreationSessionId, email, emailOtpChallengeId);
+        emailOtpChallengeId = result.challengeId;
+        document.getElementById('president-email-otp-status').textContent = 'OTP sent. Check Mailpit.';
+        Common.showToast('Email OTP sent.', 'success');
+      } catch (err) {
+        Common.showToast(err.message || 'Could not send email OTP.', 'danger');
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 30000);
+      }
+    }
+
+    async function verifyPresidentEmailOtp() {
+      const code = document.getElementById('inp-president-email-otp').value.trim();
+      const email = document.getElementById('inp-president-email').value.trim();
+      if (!emailOtpChallengeId || !code) return Common.showToast('Send the email OTP and enter it first.', 'warning');
+      try {
+        await api.verifyEmailVerificationOtp(emailOtpChallengeId, groupCreationSessionId, email, code);
+        emailVerified = true;
+        document.getElementById('president-email-otp-status').textContent = 'Email verified successfully.';
+        document.getElementById('president-email-otp-status').style.color = '#166534';
+        Common.showToast('Email verified.', 'success');
+      } catch (err) {
+        emailVerified = false;
+        Common.showToast(err.message || 'Email verification failed.', 'danger');
+      }
+    }
+
+    async function sendPresidentMobileOtp() {
+      const phone = normalizePresidentMobile(document.getElementById('inp-president-mobile').value);
+      if (!/^\+\d{11,15}$/.test(phone)) return Common.showToast('Enter a valid mobile number.', 'warning');
+      const btn = document.getElementById('btn-send-president-mobile-otp');
+      btn.disabled = true;
+      try {
+        const auth = ensurePresidentFirebaseAuth();
+        if (!window.firebaseRecaptchaVerifier) {
+          const container = document.getElementById('firebase-recaptcha-container');
+          if (container) container.innerHTML = '';
+          window.firebaseRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('firebase-recaptcha-container', { size: 'invisible' });
+        }
+        firebaseConfirmationResult = await auth.signInWithPhoneNumber(phone, window.firebaseRecaptchaVerifier);
+        document.getElementById('president-mobile-otp-status').textContent = 'OTP sent. Enter the code.';
+        Common.showToast('Mobile OTP sent.', 'success');
+      } catch (err) {
+        Common.showToast(err.message || 'Could not send mobile OTP.', 'danger');
+        resetPresidentRecaptcha();
+      } finally {
+        setTimeout(() => { btn.disabled = false; }, 30000);
+      }
+    }
+
+    async function verifyPresidentMobileOtp() {
+      const code = document.getElementById('inp-president-mobile-otp').value.trim();
+      const phone = normalizePresidentMobile(document.getElementById('inp-president-mobile').value);
+      if (!firebaseConfirmationResult || !code) return Common.showToast('Send the mobile OTP and enter it first.', 'warning');
+      try {
+        const credential = await firebaseConfirmationResult.confirm(code);
+        const idToken = await credential.user.getIdToken(true);
+        const result = await api.verifyFirebaseMobile(groupCreationSessionId, phone, idToken);
+        mobileOtpChallengeId = result.challengeId;
+        mobileVerified = true;
+        document.getElementById('president-mobile-otp-status').textContent = 'Mobile verified successfully.';
+        document.getElementById('president-mobile-otp-status').style.color = '#166534';
+        await ensurePresidentFirebaseAuth().signOut();
+        Common.showToast('Mobile verified.', 'success');
+      } catch (err) {
+        mobileVerified = false;
+        Common.showToast(err.message || 'Mobile verification failed.', 'danger');
+      }
     }
 
     async function handleCreateGroup(e) {
@@ -707,6 +869,15 @@
 
       if (pw1.length < 6) {
         Common.showToast('President password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      if (!emailVerified || !emailOtpChallengeId) {
+        Common.showToast('Verify the President email before creating the group.', 'warning');
+        return;
+      }
+      if (!mobileVerified || !mobileOtpChallengeId) {
+        Common.showToast('Verify the President mobile number before creating the group.', 'warning');
         return;
       }
 
@@ -741,6 +912,9 @@
         presidentUsername: document.getElementById('inp-president-username').value.trim(),
         presidentPassword: pw1,
         confirmPresidentPassword: pw2
+        ,verificationSessionId: groupCreationSessionId
+        ,emailVerificationId: emailOtpChallengeId
+        ,mobileVerificationId: mobileOtpChallengeId
       };
 
       try {

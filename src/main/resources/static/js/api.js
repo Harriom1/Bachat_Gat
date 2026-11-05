@@ -349,6 +349,27 @@ class ApiClient {
     });
   }
 
+  sendEmailVerificationOtp(sessionId, target, challengeId = null) {
+    return this.request('/verification/email/send', {
+      method: 'POST',
+      body: { sessionId, target, challengeId }
+    });
+  }
+
+  verifyEmailVerificationOtp(challengeId, sessionId, target, code) {
+    return this.request('/verification/email/verify', {
+      method: 'POST',
+      body: { challengeId, sessionId, target, code }
+    });
+  }
+
+  verifyFirebaseMobile(sessionId, phoneNumber, idToken) {
+    return this.request('/verification/mobile/firebase/verify', {
+      method: 'POST',
+      body: { sessionId, phoneNumber, idToken }
+    });
+  }
+
   resetClientAdminPassword(userId, newPassword) {
     return this.request(`/admin/client-admins/${userId}/reset-password`, {
       method: 'POST',

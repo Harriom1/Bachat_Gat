@@ -758,16 +758,11 @@
       if (status) status.textContent = '';
     }
 
-    function ensurePresidentFirebaseAuth() {
+    async function ensurePresidentFirebaseAuth() {
       if (firebaseAuth) return firebaseAuth;
-      const app = firebase.initializeApp({
-        apiKey: 'AIzaSyA6sUPuOsS7uP2O84ZA904IGnpGSQiyuJ8',
-        authDomain: 'bachat-gat-development.firebaseapp.com',
-        projectId: 'bachat-gat-development',
-        storageBucket: 'bachat-gat-development.firebasestorage.app',
-        messagingSenderId: '230889435212',
-        appId: '1:230889435212:web:4772eab09363619ab104e9'
-      });
+      const response = await fetch('/api/config/firebase', { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('Firebase client configuration is unavailable.');
+      const app = firebase.initializeApp(await response.json());
       firebaseAuth = firebase.auth(app);
       return firebaseAuth;
     }
@@ -820,7 +815,7 @@
       const btn = document.getElementById('btn-send-president-mobile-otp');
       btn.disabled = true;
       try {
-        const auth = ensurePresidentFirebaseAuth();
+        const auth = await ensurePresidentFirebaseAuth();
         if (!window.firebaseRecaptchaVerifier) {
           const container = document.getElementById('firebase-recaptcha-container');
           if (container) container.innerHTML = '';
@@ -849,7 +844,7 @@
         mobileVerified = true;
         document.getElementById('president-mobile-otp-status').textContent = 'Mobile verified successfully.';
         document.getElementById('president-mobile-otp-status').style.color = '#166534';
-        await ensurePresidentFirebaseAuth().signOut();
+        (await ensurePresidentFirebaseAuth()).signOut();
         Common.showToast('Mobile verified.', 'success');
       } catch (err) {
         mobileVerified = false;

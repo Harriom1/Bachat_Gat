@@ -12,6 +12,7 @@ This file intentionally records names and purpose only. It contains no secret va
 | `APP_DEMO_DATA_ENABLED` | Isolated seed data switch | `true` only with emulator | `false` |
 | `STORAGE_BUCKET` | Private document bucket | Test bucket or unset | Approved private bucket |
 | `CORS_ALLOWED_ORIGINS` | Allowed browser origins | Local origin | Exact HTTPS origin |
+| `FIREBASE_WEB_API_KEY` | Firebase web client API identifier | Local environment | Cloud Run environment variable; restrict in Google Cloud |
 | `JWT_SECRET` | JWT signing secret | Local-only secret | Secret Manager |
 | `JWT_EXPIRATION_MS` | JWT lifetime | Local policy | Approved policy |
 | `JWT_ISSUER` | JWT issuer | `bachatgat-api` | `bachatgat-api` |

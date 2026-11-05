@@ -82,7 +82,7 @@ public class SecurityConfig {
                     "/favicon.ico"
                 ).permitAll()
                 // Auth APIs, Webhooks, Actuator Health & Document Viewer
-                .requestMatchers("/api/auth/**", "/api/payments/webhook", "/actuator/health", "/actuator/info", "/api/documents/view/**", "/api/documents/*/view", "/groups/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/config/**", "/api/payments/webhook", "/actuator/health", "/actuator/info", "/api/documents/view/**", "/api/documents/*/view", "/groups/**").permitAll()
                 // Admin specific APIs
                 .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN", "PRESIDENT", "SECRETARY", "TREASURER")
                 // User / Self APIs

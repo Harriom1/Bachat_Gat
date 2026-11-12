@@ -102,6 +102,22 @@ public class AdminGroupController {
         return ResponseEntity.ok(ApiResponse.ok("Group updated successfully", updated));
     }
 
+    @PostMapping("/{id}/archive")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Group>> archiveGroup(@PathVariable String id,
+                                                            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.ok("Group archived successfully",
+                groupService.archiveGroup(id, principal.getId())));
+    }
+
+    @PostMapping("/{id}/restore")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<Group>> restoreGroup(@PathVariable String id,
+                                                            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(ApiResponse.ok("Group restored successfully",
+                groupService.restoreGroup(id, principal.getId())));
+    }
+
     @PostMapping("/{id}/office-bearers")
     public ResponseEntity<ApiResponse<com.bachatgat.model.User>> designateOfficeBearer(
             @PathVariable String id,

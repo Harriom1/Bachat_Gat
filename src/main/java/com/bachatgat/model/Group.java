@@ -77,6 +77,8 @@ public class Group {
     private String upiDetails;
     
     private String status = "ACTIVE";
+    private LocalDateTime deletedAt;
+    private String deletedBy;
     private int activeMembersCount = 0;
     private BigDecimal totalSavingsBalance = BigDecimal.ZERO;
     private BigDecimal totalLoanOutstanding = BigDecimal.ZERO;
@@ -170,6 +172,10 @@ public class Group {
     public void setUpiDetails(String upiDetails) { this.upiDetails = upiDetails; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public String getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
     public int getActiveMembersCount() { return activeMembersCount; }
     public void setActiveMembersCount(int activeMembersCount) { this.activeMembersCount = activeMembersCount; }
     public BigDecimal getTotalSavingsBalance() { return totalSavingsBalance; }

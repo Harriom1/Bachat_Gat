@@ -41,6 +41,41 @@ body {
   }
 }
 
+/* Final loan schedule override: keep all financial columns available inside
+   the schedule's own horizontal scroll area at every viewport width. */
+html body .table-responsive:has(> table.loan-schedule-table) {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+html body table.loan-schedule-table.responsive-scroll-table {
+  display: table !important;
+  width: max-content !important;
+  min-width: 1180px !important;
+  max-width: none !important;
+  table-layout: auto !important;
+}
+
+html body table.loan-schedule-table.responsive-scroll-table th,
+html body table.loan-schedule-table.responsive-scroll-table td {
+  min-width: max-content !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+@media (max-width: 768px) {
+  html body table.loan-schedule-table.responsive-scroll-table th,
+  html body table.loan-schedule-table.responsive-scroll-table td {
+    padding: 0.45rem 0.55rem !important;
+    font-size: 0.7rem !important;
+  }
+}
+
 /* Group profile actions use inline SVGs so icons remain visible when the
    optional Bootstrap Icons webfont is unavailable (including offline laptop use). */
 html body table.group-members-table .group-members-actions {
@@ -1363,6 +1398,40 @@ button {
   .form-select {
     font-size: 0.875rem !important;
     padding: 0.5rem 0.65rem !important;
+  }
+}
+
+/* Loan schedules contain many financial columns. Keep the table readable and
+   make only its wrapper scroll horizontally instead of clipping columns or
+   shrinking the text until it is unreadable. */
+.table-responsive:has(> table.loan-schedule-table) {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+table.loan-schedule-table {
+  width: max-content !important;
+  min-width: 1180px !important;
+  max-width: none !important;
+  table-layout: auto !important;
+}
+
+table.loan-schedule-table th,
+table.loan-schedule-table td {
+  min-width: max-content !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+@media (max-width: 768px) {
+  table.loan-schedule-table th,
+  table.loan-schedule-table td {
+    padding: 0.45rem 0.55rem !important;
+    font-size: 0.7rem !important;
   }
 }
 

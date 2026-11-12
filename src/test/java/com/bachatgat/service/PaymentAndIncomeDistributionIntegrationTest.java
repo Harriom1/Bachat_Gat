@@ -44,6 +44,9 @@ class PaymentAndIncomeDistributionIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Keep this integration test independent from other tests that mutate
+        // the shared emulator's demo master-data rules or payment records.
+        dataService.seedInitialDemoData();
         adminToken = authenticate("admin", "admin123");
         userToken = authenticate("user", "user123");
     }
@@ -234,7 +237,9 @@ class PaymentAndIncomeDistributionIntegrationTest {
     @Test
     @DisplayName("Admin can record Manual Payment and digital receipt is generated")
     void testAdminManualPaymentRecording() throws Exception {
-        LocalDate testPaymentDate = LocalDate.now().plusMonths(2).withDayOfMonth(5);
+        // Keep this manual-payment scenario separate from the online-payment
+        // scenario above, which intentionally uses January 2027.
+        LocalDate testPaymentDate = LocalDate.of(2028, 2, 5);
         Map<String, Object> manualReq = Map.of(
                 "groupId", "bg-001",
                 "memberId", "MPBG-M001",

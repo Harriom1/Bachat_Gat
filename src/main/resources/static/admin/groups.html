@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Group Profile & Member Management - Bachat Gat Platform</title>
+  <meta name="description" content="Manage Bachat Gat group profiles, members, office bearers, banking details, and archived records.">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="stylesheet" href="/css/forms.css">
@@ -1301,6 +1302,7 @@
                 <button class="btn-action-icon remove-action" title="Remove from Group" aria-label="Remove from Group" onclick="handleRemoveMember('${m.memberId}', '${escapeHtml(m.fullName)}')">
                   <svg class="action-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 7h6m-8 0h10m-7 0v10m3-10v10M6 7l1 13h10l1-13M10 4h4l1 3H9l1-3Z"></path><path d="M17 14h4m-2-2v4"></path></svg>
                 </button>
+                ${canArchiveMembers() && m.status === 'ACTIVE' ? `<button class="btn-action-icon" title="Delete member (retain history)" aria-label="Delete member" onclick="softDeleteMember('${m.id || m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-archive-fill text-danger"></i></button>` : ''}
               </div>
             </td>
           </tr>
@@ -1954,6 +1956,23 @@
     function escapeHtml(str) {
       if (!str) return '';
       return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function canArchiveMembers() {
+      const user = Auth.getUser();
+      const role = (user?.role || '').toUpperCase();
+      return role === 'ADMIN' || role === 'PRESIDENT';
+    }
+
+    async function softDeleteMember(id, name) {
+      if (!confirm(`Deactivate member ${name} (${id})? Historical savings, loans, and transactions will be retained.`)) return;
+      try {
+        await api.archiveMember(id);
+        Common.showToast('Member deactivated successfully. Historical records were retained.', 'success');
+        await loadGroupMembers(currentGroup.id);
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
     }
 
     // Reactively re-render tables and badges whenever the user switches language

@@ -90,7 +90,7 @@ public class ReportService {
                 .filter(c -> c.getMonth() == month && c.getYear() == year)
                 .toList();
         report.put("collections", monthCollections);
-        List<Member> groupMembers = dataService.getMembersByGroupId(groupId).stream()
+        List<Member> groupMembers = dataService.getMembersByGroupIdIncludingArchived(groupId).stream()
                 .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
                 .toList();
         report.put("members", groupMembers);
@@ -263,7 +263,7 @@ public class ReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
 
         summary.put("group", group);
-        List<Member> members = dataService.getMembersByGroupId(groupId);
+        List<Member> members = dataService.getMembersByGroupIdIncludingArchived(groupId);
         List<Loan> loans = dataService.getLoansByGroupId(groupId);
         List<GroupExpense> expenses = dataService.getExpensesByGroupId(groupId);
 

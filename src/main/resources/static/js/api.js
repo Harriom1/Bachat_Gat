@@ -402,6 +402,14 @@ class ApiClient {
     });
   }
 
+  archiveGroup(id) {
+    return this.request(`/admin/groups/${encodeURIComponent(id)}/archive`, { method: 'POST' });
+  }
+
+  restoreGroup(id) {
+    return this.request(`/admin/groups/${encodeURIComponent(id)}/restore`, { method: 'POST' });
+  }
+
   getAllMembers() {
     return this.request('/admin/members');
   }
@@ -469,6 +477,14 @@ class ApiClient {
       method: 'PATCH',
       body: { status }
     });
+  }
+
+  archiveMember(id) {
+    return this.request(`/admin/members/${encodeURIComponent(id)}/archive`, { method: 'POST' });
+  }
+
+  restoreMember(id) {
+    return this.request(`/admin/members/${encodeURIComponent(id)}/restore`, { method: 'POST' });
   }
 
   getMemberRefunds(groupId) {

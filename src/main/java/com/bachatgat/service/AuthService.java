@@ -284,6 +284,10 @@ public class AuthService {
                     .orElse(candidates.get(0));
         } else if (request.getMemberId() != null && !request.getMemberId().isBlank()) {
             // Support Member Login via Group + Member Selection
+            if (request.getGroupId() == null || request.getGroupId().isBlank()) {
+                throw new UnauthorizedException("Please select your Bachat Gat before logging in.");
+            }
+
             user = userRepository.findById(request.getMemberId())
                     .or(() -> userRepository.findByUsername(request.getMemberId()))
                     .orElse(null);
@@ -319,6 +323,13 @@ public class AuthService {
 
         if (!user.isActive()) {
             throw new UnauthorizedException("User account is inactive. Please contact your group administrator.");
+        }
+
+        if (user.getGroupId() != null && groupRepository.findById(user.getGroupId()).isEmpty()) {
+            throw new UnauthorizedException("This Bachat Gat is inactive.");
+        }
+        if (user.getMemberId() != null && dataService.findMemberByMemberId(user.getMemberId()).isEmpty()) {
+            throw new UnauthorizedException("This member account is inactive.");
         }
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {

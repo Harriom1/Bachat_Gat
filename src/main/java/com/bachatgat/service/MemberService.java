@@ -61,6 +61,38 @@ public class MemberService {
         return alignMonthlyBachatWithGroupRule(member);
     }
 
+    private Member getMemberIncludingArchived(String id) {
+        return dataService.findMemberByIdIncludingArchived(id)
+                .or(() -> dataService.findMemberByMemberIdIncludingArchived(id))
+                .orElseThrow(() -> new ResourceNotFoundException("Member not found with ID: " + id));
+    }
+
+    public Member archiveMember(String id, String actor) {
+        Member current = getMemberById(id);
+        if (!dataService.findGroupById(current.getGroupId()).isPresent()) {
+            throw new ResourceNotFoundException("Member must belong to an active group.");
+        }
+        Member archived = dataService.archiveMember(id, actor);
+        auditService.log(archived.getGroupId(), actor, actor, "MEMBER_ARCHIVED", "MEMBER",
+                archived.getMemberId(), "ACTIVE", "ARCHIVED", "127.0.0.1");
+        return archived;
+    }
+
+    public Member restoreMember(String id, String actor) {
+        Member current = getMemberIncludingArchived(id);
+        if (!dataService.findGroupById(current.getGroupId()).isPresent()) {
+            throw new ResourceNotFoundException("Member must belong to an active group.");
+        }
+        Member restored = dataService.restoreMember(id);
+        auditService.log(restored.getGroupId(), actor, actor, "MEMBER_RESTORED", "MEMBER",
+                restored.getMemberId(), "ARCHIVED", "ACTIVE", "127.0.0.1");
+        return restored;
+    }
+
+    public Member getMemberForArchiveAction(String id) {
+        return getMemberIncludingArchived(id);
+    }
+
     public Member getMemberByMemberId(String memberId) {
         Member member = memberRepository.findByMemberId(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with Member ID: " + memberId));

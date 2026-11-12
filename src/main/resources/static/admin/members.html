@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Members Management - Bachat Gat Platform</title>
+  <meta name="description" content="Manage Bachat Gat member profiles, savings contributions, exits, refunds, and archived members.">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="stylesheet" href="/css/forms.css">
@@ -861,6 +862,7 @@
                 <i class="bi bi-arrow-left-right"></i>
               </button>
               ${m.status === 'ACTIVE' ? `<button class="btn-action-icon" title="Exit member and reserve refund" onclick="confirmMemberExit('${m.id || m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-person-dash-fill text-danger"></i></button>` : ''}
+              ${canArchiveMembers() && m.status === 'ACTIVE' ? `<button class="btn-action-icon" title="Delete member (retain history)" onclick="softDeleteMember('${m.id || m.memberId}', '${escapeHtml(m.fullName)}')"><i class="bi bi-archive-fill text-danger"></i></button>` : ''}
             </div>
           </td>
         </tr>
@@ -940,6 +942,23 @@
         await loadMembers();
         await loadMemberRefunds();
         Common.showToast(`Exit confirmed. Refund ${refund.refundId || ''} is ${refund.status || 'PENDING'}.`, 'success');
+        await loadMembers();
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
+    }
+
+    function canArchiveMembers() {
+      const user = Auth.getUser();
+      const role = (user?.role || '').toUpperCase();
+      return role === 'ADMIN' || role === 'PRESIDENT';
+    }
+
+    async function softDeleteMember(id, name) {
+      if (!confirm(`Deactivate member ${name} (${id})? Historical savings, loans, and transactions will be retained.`)) return;
+      try {
+        await api.archiveMember(id);
+        Common.showToast('Member deactivated successfully. Historical records were retained.', 'success');
         await loadMembers();
       } catch (err) {
         Common.showToast(err.message, 'danger');

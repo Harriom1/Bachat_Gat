@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login - Bachat Gat Management Portal</title>
+  <meta name="description" content="Secure login portal for Bachat Gat savings, loans, collections, and group financial management.">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/forms.css">
   <link rel="stylesheet" href="/css/responsive.css">
@@ -420,6 +421,13 @@
         const memberId = (!isDirectMode && !isSuper && personSelect && personSelect.value !== 'superadmin') ? personSelect.value : null;
         const cleanGroupId = (isDirectMode || isSuper || groupId === '__DIRECT__' || groupId === '__SUPER_ADMIN__') ? null : (groupId || null);
         const btn = document.getElementById('btn-login-submit');
+
+  if (!isDirectMode && !isSuper && !cleanGroupId) {
+    showAlert('Please choose your Bachat Gat before logging in.', 'warning');
+    const groupSearch = document.getElementById('login-group-search');
+    if (groupSearch) groupSearch.focus();
+    return;
+  }
 
         if (!username) {
           showAlert('Please select your name or enter username.', 'warning');

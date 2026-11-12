@@ -29,6 +29,8 @@ public class FirestoreDataService {
     private final Firestore firestore;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final FirestorePersistenceSupport persistenceSupport;
+    private final FirestoreCollectionLoader collectionLoader;
     private final boolean demoDataEnabled;
     private final boolean normalizeRegistrationIdsOnStartup;
     private final Set<String> loadedCollections = ConcurrentHashMap.newKeySet();
@@ -65,6 +67,9 @@ public class FirestoreDataService {
         this.firestore = firestore;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.persistenceSupport = new FirestorePersistenceSupport(firestore, objectMapper);
+        this.collectionLoader = new FirestoreCollectionLoader(
+                firestore, objectMapper, loadedCollections, collectionLoadLock);
         this.demoDataEnabled = demoDataEnabled;
         this.normalizeRegistrationIdsOnStartup = normalizeRegistrationIdsOnStartup;
     }
@@ -130,27 +135,12 @@ public class FirestoreDataService {
 
     private <T> void loadCollection(String collectionName, Class<T> type,
                                     Map<String, T> target, BiConsumer<T, String> idSetter) {
-        try {
-            for (DocumentSnapshot snapshot : firestore.collection(collectionName).get().get().getDocuments()) {
-                if (!snapshot.exists() || snapshot.getData() == null) continue;
-                T value = objectMapper.convertValue(snapshot.getData(), type);
-                idSetter.accept(value, snapshot.getId());
-                target.put(snapshot.getId(), value);
-            }
-            log.info("Loaded {} persisted {} record(s).", target.size(), collectionName);
-        } catch (Exception ex) {
-            throw new IllegalStateException("Could not load Firestore collection '" + collectionName + "'.", ex);
-        }
+        collectionLoader.loadCollection(collectionName, type, target, idSetter);
     }
 
     private <T> void loadCollectionOnce(String collectionName, Class<T> type,
                                         Map<String, T> target, BiConsumer<T, String> idSetter) {
-        if (firestore == null || loadedCollections.contains(collectionName)) return;
-        synchronized (collectionLoadLock) {
-            if (loadedCollections.contains(collectionName)) return;
-            loadCollection(collectionName, type, target, idSetter);
-            loadedCollections.add(collectionName);
-        }
+        collectionLoader.loadCollectionOnce(collectionName, type, target, idSetter);
     }
 
     private void ensureLoaded(String collectionName) {
@@ -367,11 +357,17 @@ public class FirestoreDataService {
     public List<Group> getAllGroups() {
         ensureLoaded("groups");
         return groups.values().stream()
+                .filter(this::isVisibleGroup)
                 .sorted(Comparator.comparing(Group::getId))
                 .collect(Collectors.toList());
     }
 
     public Optional<Group> findGroupById(String id) {
+        ensureLoaded("groups");
+        return Optional.ofNullable(groups.get(id)).filter(this::isVisibleGroup);
+    }
+
+    public Optional<Group> findGroupByIdIncludingArchived(String id) {
         ensureLoaded("groups");
         return Optional.ofNullable(groups.get(id));
     }
@@ -380,6 +376,7 @@ public class FirestoreDataService {
         ensureLoaded("groups");
         return groups.values().stream()
                 .filter(g -> g.getRegistrationId() != null && g.getRegistrationId().equalsIgnoreCase(regId))
+                .filter(this::isVisibleGroup)
                 .findFirst();
     }
 
@@ -398,6 +395,7 @@ public class FirestoreDataService {
         if (code == null) return Optional.empty();
         return groups.values().stream()
                 .filter(g -> g.getGroupCode() != null && g.getGroupCode().equalsIgnoreCase(code))
+                .filter(this::isVisibleGroup)
                 .findFirst();
     }
 
@@ -415,54 +413,15 @@ public class FirestoreDataService {
     }
 
     public synchronized String generateNextGroupCode() {
-        int year = LocalDate.now().getYear();
-        int maxSeq = 0;
-        for (Group g : groups.values()) {
-            if (g.getGroupCode() != null && g.getGroupCode().startsWith("BG-")) {
-                String[] parts = g.getGroupCode().split("-");
-                if (parts.length >= 3) {
-                    try {
-                        int seq = Integer.parseInt(parts[2]);
-                        if (seq > maxSeq) maxSeq = seq;
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
-        }
-        return String.format("BG-%d-%06d", year, maxSeq + 1);
+        return RegistrationIdGenerator.nextGroupCode(groups.values());
     }
 
     public synchronized String generateNextGroupRegistrationId() {
-        int year = LocalDate.now().getYear();
-        int maxSeq = 0;
-        for (Group g : groups.values()) {
-            if (g.getRegistrationId() != null && g.getRegistrationId().startsWith("GR-")) {
-                String[] parts = g.getRegistrationId().split("-");
-                if (parts.length >= 3) {
-                    try {
-                        int seq = Integer.parseInt(parts[2]);
-                        if (seq > maxSeq) maxSeq = seq;
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
-        }
-        return String.format("GR-%d-%06d", year, maxSeq + 1);
+        return RegistrationIdGenerator.nextGroupRegistrationId(groups.values());
     }
 
     public synchronized String generateNextMemberRegistrationId() {
-        int year = LocalDate.now().getYear();
-        int maxSeq = 0;
-        for (Member m : members.values()) {
-            if (m.getRegistrationId() != null && m.getRegistrationId().startsWith("MEM-")) {
-                String[] parts = m.getRegistrationId().split("-");
-                if (parts.length >= 3) {
-                    try {
-                        int seq = Integer.parseInt(parts[2]);
-                        if (seq > maxSeq) maxSeq = seq;
-                    } catch (NumberFormatException ignored) {}
-                }
-            }
-        }
-        return String.format("MEM-%d-%06d", year, maxSeq + 1);
+        return RegistrationIdGenerator.nextMemberRegistrationId(members.values());
     }
 
     /**
@@ -470,21 +429,7 @@ public class FirestoreDataService {
      * Bachat Gat. A member in every group can therefore start at 000001.
      */
     public synchronized String generateNextMemberRegistrationId(String groupId) {
-        int year = LocalDate.now().getYear();
-        int maxSeq = 0;
-        for (Member m : getMembersByGroupId(groupId)) {
-            String registrationId = m.getRegistrationId();
-            if (registrationId == null || !registrationId.startsWith("MEM-")) continue;
-            String[] parts = registrationId.split("-");
-            if (parts.length >= 3) {
-                try {
-                    maxSeq = Math.max(maxSeq, Integer.parseInt(parts[2]));
-                } catch (NumberFormatException ignored) {
-                    // Ignore legacy/non-numeric registration IDs.
-                }
-            }
-        }
-        return String.format("MEM-%d-%06d", year, maxSeq + 1);
+        return RegistrationIdGenerator.nextMemberRegistrationId(groupId, this::getMembersByGroupId);
     }
 
     // ==========================================
@@ -494,11 +439,26 @@ public class FirestoreDataService {
         ensureLoaded("members");
         return members.values().stream()
                 .filter(m -> groupId == null || m.getGroupId().equals(groupId))
+                .filter(this::isVisibleMember)
                 .sorted(Comparator.comparing(Member::getMemberId))
                 .collect(Collectors.toList());
     }
 
+    /** Historical/reporting path; unlike normal member lists it retains archived members. */
+    public List<Member> getMembersByGroupIdIncludingArchived(String groupId) {
+        ensureLoaded("members");
+        return members.values().stream()
+                .filter(m -> groupId == null || groupId.equals(m.getGroupId()))
+                .sorted(Comparator.comparing(Member::getMemberId, Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
+    }
+
     public Optional<Member> findMemberById(String id) {
+        ensureLoaded("members");
+        return Optional.ofNullable(members.get(id)).filter(this::isVisibleMember);
+    }
+
+    public Optional<Member> findMemberByIdIncludingArchived(String id) {
         ensureLoaded("members");
         return Optional.ofNullable(members.get(id));
     }
@@ -507,6 +467,7 @@ public class FirestoreDataService {
         ensureLoaded("members");
         if (idOrMemberId == null) return null;
         Member m = members.get(idOrMemberId);
+        if (m != null && !isVisibleMember(m)) return null;
         if (m != null) return m;
         return findMemberByMemberId(idOrMemberId).orElse(null);
     }
@@ -514,6 +475,7 @@ public class FirestoreDataService {
     public List<Member> getAllMembers() {
         ensureLoaded("members");
         return members.values().stream()
+                .filter(this::isVisibleMember)
                 .sorted(Comparator.comparing(Member::getFullName))
                 .collect(Collectors.toList());
     }
@@ -538,7 +500,64 @@ public class FirestoreDataService {
         ensureLoaded("members");
         return members.values().stream()
                 .filter(m -> m.getMemberId().equalsIgnoreCase(memberId))
+                .filter(this::isVisibleMember)
                 .findFirst();
+    }
+
+    public Group archiveGroup(String id, String deletedBy) {
+        Group group = findGroupByIdIncludingArchived(id)
+                .orElseThrow(() -> new NoSuchElementException("Group not found with ID: " + id));
+        group.setStatus("ARCHIVED");
+        group.setDeletedAt(LocalDateTime.now());
+        group.setDeletedBy(deletedBy);
+        return saveGroup(group);
+    }
+
+    public Group restoreGroup(String id) {
+        Group group = findGroupByIdIncludingArchived(id)
+                .orElseThrow(() -> new NoSuchElementException("Group not found with ID: " + id));
+        group.setStatus("ACTIVE");
+        group.setDeletedAt(null);
+        group.setDeletedBy(null);
+        return saveGroup(group);
+    }
+
+    public Member archiveMember(String idOrMemberId, String deletedBy) {
+        Member member = findMemberByIdIncludingArchived(idOrMemberId)
+                .or(() -> findMemberByMemberIdIncludingArchived(idOrMemberId))
+                .orElseThrow(() -> new NoSuchElementException("Member not found with ID: " + idOrMemberId));
+        member.setStatus(MemberStatus.ARCHIVED);
+        member.setDeletedAt(LocalDateTime.now());
+        member.setDeletedBy(deletedBy);
+        return saveMember(member);
+    }
+
+    public Member restoreMember(String idOrMemberId) {
+        Member member = findMemberByIdIncludingArchived(idOrMemberId)
+                .or(() -> findMemberByMemberIdIncludingArchived(idOrMemberId))
+                .orElseThrow(() -> new NoSuchElementException("Member not found with ID: " + idOrMemberId));
+        member.setStatus(MemberStatus.ACTIVE);
+        member.setDeletedAt(null);
+        member.setDeletedBy(null);
+        return saveMember(member);
+    }
+
+    public Optional<Member> findMemberByMemberIdIncludingArchived(String memberId) {
+        return members.values().stream()
+                .filter(m -> m.getMemberId() != null && m.getMemberId().equalsIgnoreCase(memberId))
+                .findFirst();
+    }
+
+    private boolean isVisibleGroup(Group group) {
+        return group != null && !isArchivedStatus(group.getStatus());
+    }
+
+    private boolean isVisibleMember(Member member) {
+        return member != null && member.getStatus() != MemberStatus.ARCHIVED;
+    }
+
+    private boolean isArchivedStatus(String status) {
+        return "ARCHIVED".equalsIgnoreCase(status) || "DELETED".equalsIgnoreCase(status);
     }
 
     // ==========================================
@@ -864,43 +883,7 @@ public class FirestoreDataService {
     }
 
     private void reconcileReducingLoanSummary(Loan loan, List<LoanRepaymentSchedule> schedule) {
-        if (loan == null || schedule == null || schedule.isEmpty()) return;
-        BigDecimal principal = loan.getPrincipalAmount() != null ? loan.getPrincipalAmount() : BigDecimal.ZERO;
-        boolean monthlyRate = "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis());
-        List<LoanRepaymentSchedule> contractualSchedule = FinancialCalculator.generateAmortizationSchedule(
-                principal,
-                loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO,
-                monthlyRate,
-                loan.getDurationMonths() > 0 ? loan.getDurationMonths() : schedule.size(),
-                loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now());
-        BigDecimal totalInterest = contractualSchedule.stream()
-                .map(LoanRepaymentSchedule::getInterestAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal paidPrincipal = schedule.stream()
-                .map(LoanRepaymentSchedule::getPaidPrincipalAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal paidInterest = schedule.stream()
-                .map(LoanRepaymentSchedule::getPaidInterestAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal remainingPrincipal = principal.subtract(paidPrincipal).max(BigDecimal.ZERO);
-        BigDecimal remainingInterest = totalInterest.subtract(paidInterest).max(BigDecimal.ZERO);
-        loan.setTotalInterest(totalInterest);
-        loan.setInterestPaid(paidInterest);
-        loan.setOutstandingInterest(remainingInterest);
-        loan.setPendingInterest(remainingInterest);
-        loan.setPrincipalPaid(paidPrincipal);
-        loan.setOutstandingPrincipal(remainingPrincipal);
-        loan.setPendingPrincipal(schedule.stream()
-                .map(LoanRepaymentSchedule::getPendingPrincipal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
-        loan.setTotalOutstanding(remainingPrincipal.add(remainingInterest));
-        loan.setTotalPayable(principal.add(totalInterest));
-        loan.setMonthlyInstallment(contractualSchedule.isEmpty()
-                ? schedule.get(0).getEmiAmount()
-                : contractualSchedule.get(0).getEmiAmount());
-        schedule.stream().filter(item -> item.getOutstandingAmount() != null
-                        && item.getOutstandingAmount().signum() > 0)
-                .findFirst().ifPresent(item -> loan.setNextDueDate(item.getDueDate()));
+        LoanScheduleCalculatorSupport.reconcileReducingLoanSummary(loan, schedule);
     }
 
     private List<LoanRepaymentSchedule> generateFlatSchedule(
@@ -910,41 +893,8 @@ public class FirestoreDataService {
             LocalDate startDate,
             BigDecimal storedTotalInterest,
             BigDecimal storedMonthlyInstallment) {
-        List<LoanRepaymentSchedule> schedule = new ArrayList<>();
-        BigDecimal totalInterest = storedTotalInterest != null && storedTotalInterest.compareTo(BigDecimal.ZERO) > 0
-                ? storedTotalInterest
-                : FinancialCalculator.calculateFlatInterest(principal, rate, duration);
-        BigDecimal monthlyInterest = totalInterest.divide(BigDecimal.valueOf(duration), 2, FinancialCalculator.ROUNDING);
-        BigDecimal monthlyPrincipal = principal.divide(BigDecimal.valueOf(duration), 2, FinancialCalculator.ROUNDING);
-        BigDecimal monthlyInstallment = storedMonthlyInstallment != null && storedMonthlyInstallment.compareTo(BigDecimal.ZERO) > 0
-                ? storedMonthlyInstallment
-                : FinancialCalculator.calculateFlatMonthlyPayment(principal, totalInterest, duration);
-        BigDecimal openingPrincipal = principal;
-
-        for (int i = 1; i <= duration; i++) {
-            BigDecimal principalComponent = i == duration ? openingPrincipal : monthlyPrincipal;
-            BigDecimal interestComponent = i == duration
-                    ? totalInterest.subtract(monthlyInterest.multiply(BigDecimal.valueOf(duration - 1)))
-                    : monthlyInterest;
-            BigDecimal emi = i == duration ? principalComponent.add(interestComponent) : monthlyInstallment;
-
-            LoanRepaymentSchedule item = new LoanRepaymentSchedule();
-            item.setInstallmentNo(i);
-            item.setDueDate(startDate.plusMonths(i));
-            item.setOpeningPrincipal(openingPrincipal);
-            item.setPrincipalAmount(principalComponent);
-            item.setInterestAmount(interestComponent);
-            item.setEmiAmount(emi);
-            item.setPenaltyAmount(BigDecimal.ZERO);
-            item.setTotalDue(emi);
-            item.setPaidAmount(BigDecimal.ZERO);
-            item.setOutstandingAmount(emi);
-            item.setClosingPrincipal(openingPrincipal.subtract(principalComponent).max(BigDecimal.ZERO));
-            item.setStatus(i == 1 ? RepaymentStatus.DUE : RepaymentStatus.UPCOMING);
-            schedule.add(item);
-            openingPrincipal = item.getClosingPrincipal();
-        }
-        return schedule;
+        return LoanScheduleCalculatorSupport.generateFlatSchedule(
+                principal, rate, duration, startDate, storedTotalInterest, storedMonthlyInstallment);
     }
 
     public void saveLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {
@@ -1251,34 +1201,11 @@ public class FirestoreDataService {
     // FIRESTORE DURABLE WRITER
     // ==========================================
     private void persistToFirestore(String collectionName, String documentId, Object object) {
-        if (firestore == null) return;
-        if (documentId == null || documentId.isBlank()) {
-            throw new IllegalArgumentException("Firestore document ID is required for " + collectionName);
-        }
-        try {
-            Map<String, Object> firestoreData = objectMapper.convertValue(
-                    object, new TypeReference<Map<String, Object>>() {});
-            firestore.collection(collectionName).document(documentId).set(firestoreData).get();
-        } catch (Exception ex) {
-            throw new IllegalStateException(
-                    "Could not persist document '" + documentId + "' in Firestore collection '" + collectionName + "'.", ex);
-        }
+        persistenceSupport.persist(collectionName, documentId, object);
     }
 
     private void persistLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {
-        if (firestore == null) return;
-        if (loanId == null || loanId.isBlank()) {
-            throw new IllegalArgumentException("Loan ID is required for a repayment schedule");
-        }
-        try {
-            Map<String, Object> payload = new LinkedHashMap<>();
-            payload.put("loanId", loanId);
-            payload.put("schedule", objectMapper.convertValue(schedule,
-                    new TypeReference<List<Map<String, Object>>>() {}));
-            firestore.collection("loanSchedules").document(loanId).set(payload).get();
-        } catch (Exception ex) {
-            throw new IllegalStateException("Could not persist repayment schedule for loan '" + loanId + "'.", ex);
-        }
+        persistenceSupport.persistLoanSchedule(loanId, schedule);
     }
 
     // ==========================================

@@ -31,6 +31,8 @@ public class Member {
     private String occupation;
     private LocalDate joiningDate = LocalDate.now();
     private MemberStatus status = MemberStatus.ACTIVE;
+    private LocalDateTime deletedAt;
+    private String deletedBy;
     private String designation = "MEMBER"; // PRESIDENT, SECRETARY, TREASURER, MEMBER
     private boolean hasLoginAccount = false;
     private String loginUsername;
@@ -227,6 +229,10 @@ public class Member {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+    public String getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
     public BigDecimal getTotalOtherIncomeDistributed() { return totalOtherIncomeDistributed != null ? totalOtherIncomeDistributed : BigDecimal.ZERO; }
     public void setTotalOtherIncomeDistributed(BigDecimal totalOtherIncomeDistributed) { this.totalOtherIncomeDistributed = totalOtherIncomeDistributed; }
     public BigDecimal getTotalOtherExpenseDistributed() { return totalOtherExpenseDistributed != null ? totalOtherExpenseDistributed : BigDecimal.ZERO; }

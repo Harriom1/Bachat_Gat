@@ -691,6 +691,34 @@ const Common = {
   }
 };
 
+// Give dynamically rendered controls a usable accessible name when a page
+// cannot provide a visible label. Explicit aria-labels and visible text always
+// take precedence over this fallback.
+function applyAccessibilityFallbacks() {
+  const humanize = (value) => String(value || '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+    .trim();
+
+  document.querySelectorAll('button').forEach((button) => {
+    if (button.getAttribute('aria-label') || button.textContent.trim() || button.title) return;
+    const label = humanize(button.id || button.className.split(' ')[0]);
+    if (label) button.setAttribute('aria-label', label);
+  });
+
+  document.querySelectorAll('select').forEach((select) => {
+    if (select.getAttribute('aria-label') || select.labels?.length) return;
+    const label = humanize(select.id || select.className.split(' ')[0] || 'Selection');
+    if (label) select.setAttribute('aria-label', label);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyAccessibilityFallbacks, { once: true });
+} else {
+  applyAccessibilityFallbacks();
+}
+
 window.Common = Common;
 window.escapeHtml = Common.escapeHtml;
 

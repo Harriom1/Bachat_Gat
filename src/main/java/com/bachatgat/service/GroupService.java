@@ -32,6 +32,18 @@ public class GroupService {
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + id));
     }
 
+    public Group archiveGroup(String id, String actor) {
+        Group archived = dataService.archiveGroup(id, actor);
+        auditService.log(id, actor, actor, "GROUP_ARCHIVED", "GROUP", id, "ACTIVE", "ARCHIVED", "127.0.0.1");
+        return archived;
+    }
+
+    public Group restoreGroup(String id, String actor) {
+        Group restored = dataService.restoreGroup(id);
+        auditService.log(id, actor, actor, "GROUP_RESTORED", "GROUP", id, "ARCHIVED", "ACTIVE", "127.0.0.1");
+        return restored;
+    }
+
     public Group createGroup(GroupDTO dto, String createdBy) {
         // Auto-generate Group Code if not provided
         if (dto.getGroupCode() == null || dto.getGroupCode().isBlank()) {

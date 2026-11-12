@@ -152,6 +152,26 @@ public class AdminMemberController {
         return ResponseEntity.ok(ApiResponse.ok("Member status updated to " + status, updated));
     }
 
+    @PostMapping("/members/{id}/archive")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+    public ResponseEntity<ApiResponse<Member>> archiveMember(@PathVariable String id,
+                                                              @AuthenticationPrincipal UserPrincipal principal) {
+        Member member = memberService.getMemberById(id);
+        groupSecurityService.validateGroupAccess(principal, member.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok("Member archived successfully",
+                memberService.archiveMember(id, principal.getId())));
+    }
+
+    @PostMapping("/members/{id}/restore")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PRESIDENT')")
+    public ResponseEntity<ApiResponse<Member>> restoreMember(@PathVariable String id,
+                                                              @AuthenticationPrincipal UserPrincipal principal) {
+        Member member = memberService.getMemberForArchiveAction(id);
+        groupSecurityService.validateGroupAccess(principal, member.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok("Member restored successfully",
+                memberService.restoreMember(id, principal.getId())));
+    }
+
     // ==========================================
     // MEMBER LOGIN MANAGEMENT APIs (Requirements 13, 14, 15)
     // ==========================================

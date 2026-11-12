@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Super Admin Dashboard - Bachat Gat Platform</title>
+  <meta name="description" content="Bachat Gat super administrator dashboard for managing groups, administrators, and platform operations.">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="stylesheet" href="/css/forms.css">
@@ -155,6 +156,7 @@
                   <th>Group Name (Active Lang)</th>
                   <th>Location</th>
                   <th data-i18n="assignedAdmin">Group President / Admin</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody id="groups-table-body">
@@ -673,7 +675,7 @@
       tbody.innerHTML = '';
 
       if (!groups || groups.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">No groups found.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">No groups found.</td></tr>`;
         return;
       }
 
@@ -701,9 +703,23 @@
           </td>
           <td>${Common.text(g.village, '-')}${g.district ? ', ' + g.district : ''}</td>
           <td>${adminCell}</td>
+          <td style="text-align: right;">
+            ${Auth.isSuperAdmin() ? `<button class="btn-action-icon" title="Delete group (deactivate, retain history)" aria-label="Delete group" onclick="softDeleteGroup('${g.id}', '${Common.text(locName)}')"><i class="bi bi-archive-fill text-danger"></i></button>` : ''}
+          </td>
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    async function softDeleteGroup(id, name) {
+      if (!confirm(`Deactivate group ${name} (${id})? Its data and financial history will be retained.`)) return;
+      try {
+        await api.archiveGroup(id);
+        Common.showToast('Group deactivated successfully. Historical data was retained.', 'success');
+        await loadDashboardData();
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
+      }
     }
 
     function filterGroups(query) {

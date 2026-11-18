@@ -152,6 +152,84 @@ public class ReportService {
         report.put("loanPayments", monthTransactions.stream().filter(t -> t.getType() != null && (t.getType().name().contains("LOAN_"))).toList());
         report.put("loansGiven", loansGiven);
         report.put("loansGivenThisMonth", !loansGiven.isEmpty());
+        report.put("rules", applicableRules);
+
+        // These are deliberately derived from the same successful ledger entries
+        // used by the totals above.  They are read-only report rows, not a second
+        // source of financial truth.
+        List<Map<String, Object>> monthlyLoanInstallments = new ArrayList<>();
+        Map<String, List<Transaction>> paymentsByMember = monthTransactions.stream()
+                .filter(this::isLoanPayment)
+                .filter(t -> t.getMemberId() != null)
+                .collect(java.util.stream.Collectors.groupingBy(Transaction::getMemberId,
+                        LinkedHashMap::new, java.util.stream.Collectors.toList()));
+        for (Map.Entry<String, List<Transaction>> entry : paymentsByMember.entrySet()) {
+            List<Transaction> payments = entry.getValue();
+            Map<String, Object> row = new LinkedHashMap<>();
+            Transaction first = payments.get(0);
+            BigDecimal principal = payments.stream()
+                    .filter(t -> t.getType() == TransactionType.LOAN_REPAYMENT
+                            || t.getType() == TransactionType.LOAN_PRINCIPAL_PAYMENT
+                            || t.getType() == TransactionType.LOAN_PRINCIPAL_REPAYMENT
+                            || t.getType() == TransactionType.LOAN_EXTRA_PAYMENT
+                            || t.getType() == TransactionType.EXTRA_LOAN_PAYMENT)
+                    .map(t -> nz(t.getPrincipalAmount()).signum() > 0 ? nz(t.getPrincipalAmount()) : nz(t.getAmount()))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal interest = payments.stream().map(t -> nz(t.getInterestAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal total = payments.stream().map(t -> nz(t.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal penalty = payments.stream()
+                    .filter(t -> t.getType() == TransactionType.LOAN_PENALTY_INCOME || t.getType() == TransactionType.PENALTY_INCOME)
+                    .map(t -> nz(t.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+            row.put("memberId", entry.getKey());
+            row.put("memberName", first.getMemberName());
+            row.put("loanId", first.getLoanId());
+            row.put("installment", total);
+            row.put("principal", principal);
+            row.put("interest", interest);
+            row.put("penalty", penalty);
+            Member member = groupMembers.stream().filter(m -> entry.getKey().equals(m.getMemberId())).findFirst().orElse(null);
+            row.put("loanBalance", member == null ? BigDecimal.ZERO : nz(member.getCurrentLoanOutstanding()));
+            monthlyLoanInstallments.add(row);
+        }
+        report.put("monthlyLoanInstallments", monthlyLoanInstallments);
+
+        report.put("otherIncomeRows", monthIncomes.stream().map(income -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", income.getIncomeDate());
+            row.put("description", income.getDescription() == null || income.getDescription().isBlank() ? income.getSource() : income.getDescription());
+            row.put("category", income.getCategory());
+            row.put("amount", nz(income.getAmount()));
+            return row;
+        }).toList());
+        report.put("otherExpenseRows", monthExpenses.stream().map(expense -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("date", expense.getExpenseDate());
+            row.put("description", expense.getDescription() == null || expense.getDescription().isBlank() ? expense.getCategory() : expense.getDescription());
+            row.put("category", expense.getCategory());
+            row.put("amount", nz(expense.getAmount()));
+            return row;
+        }).toList());
+        report.put("loansGivenRows", loansGiven.stream().map(loan -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("loanId", loan.getLoanId() == null ? loan.getId() : loan.getLoanId());
+            row.put("memberName", loan.getMemberName());
+            row.put("principal", nz(loan.getPrincipalAmount()));
+            row.put("interestRate", nz(loan.getInterestRate()));
+            row.put("date", loan.getDisbursementDate());
+            return row;
+        }).toList());
+
+        Map<String, Object> groupBalanceSheet = new LinkedHashMap<>();
+        groupBalanceSheet.put("previousBalance", groupFundService.getAvailableFundBefore(groupId, start));
+        groupBalanceSheet.put("savingsCollected", collected);
+        groupBalanceSheet.put("interestCollected", interestIncome);
+        groupBalanceSheet.put("loanInstallmentsCollected", principalRecovered);
+        groupBalanceSheet.put("penaltyCollected", penaltyIncome.add(monthlyBachatPenalty));
+        groupBalanceSheet.put("otherIncome", otherIncome.add(monthIncomes.stream().map(i -> nz(i.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add)));
+        groupBalanceSheet.put("otherExpenses", expenses);
+        groupBalanceSheet.put("loansDisbursed", loanDisbursement);
+        groupBalanceSheet.put("closingBalance", groupFundService.getAvailableFund(groupId));
+        report.put("groupBalanceSheet", groupBalanceSheet);
         report.put("savingsPaidMembers", monthCollections.stream().filter(c -> c.getStatus() == CollectionStatus.PAID || c.getStatus() == CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
         report.put("pendingShareMembers", monthCollections.stream().filter(c -> c.getStatus() != CollectionStatus.PAID && c.getStatus() != CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
 

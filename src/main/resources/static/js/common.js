@@ -642,6 +642,9 @@ const Common = {
         <li><button type="button" class="mobile-nav-link mobile-nav-more" aria-label="Open more navigation">
           <i class="bi bi-three-dots" aria-hidden="true"></i><span>More</span>
         </button></li>
+        <li><button type="button" class="mobile-nav-link mobile-nav-logout" aria-label="Log out">
+          <i class="bi bi-box-arrow-right" aria-hidden="true"></i><span>Logout</span>
+        </button></li>
       </ul>`;
     document.body.appendChild(nav);
 
@@ -649,6 +652,10 @@ const Common = {
     const moreButton = nav.querySelector('.mobile-nav-more');
     if (sidebarToggle && moreButton) {
       moreButton.addEventListener('click', () => sidebarToggle.click());
+    }
+    const logoutButton = nav.querySelector('.mobile-nav-logout');
+    if (logoutButton) {
+      logoutButton.addEventListener('click', () => Auth.logout());
     }
   },
 

@@ -2242,6 +2242,7 @@ table.members-register-table .table-actions i { display: inline-block !important
   .mobile-nav-link.active,
   .mobile-nav-link:focus-visible,
   .mobile-nav-link:hover { color: var(--primary) !important; }
+  .mobile-nav-logout { color: var(--danger) !important; }
   .app-topbar {
     position: sticky !important; top: 0; z-index: 1020;
     background: var(--bg-surface) !important;

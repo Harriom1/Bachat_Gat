@@ -591,6 +591,7 @@ const Common = {
 
     // Page scripts often populate tables after shell initialization. The
     // observer below adds labels to those rows when they appear on mobile.
+    this.initMobileBottomNav();
     this.initResponsiveTables();
 
     // Re-render dropdowns & user display when language changes
@@ -607,6 +608,48 @@ const Common = {
         if (roleEl) roleEl.textContent = this.getRoleDisplayName(user, currentLang);
       }
     });
+  },
+
+  /**
+   * Adds a compact mobile shortcut bar while keeping the desktop sidebar as
+   * the full navigation source.
+   */
+  initMobileBottomNav() {
+    if (document.querySelector('.mobile-bottom-nav')) return;
+    const isAdmin = window.location.pathname.startsWith('/admin/');
+    const path = window.location.pathname;
+    const items = isAdmin
+      ? [
+          ['/admin/dashboard.html', 'bi-grid-1x2-fill', 'Dashboard'],
+          ['/admin/collections.html', 'bi-wallet2', 'Collections'],
+          ['/admin/reports.html', 'bi-bar-chart-fill', 'Reports']
+        ]
+      : [
+          ['/user/dashboard.html', 'bi-grid-1x2-fill', 'Home'],
+          ['/user/savings.html', 'bi-piggy-bank-fill', 'Savings'],
+          ['/user/reports.html', 'bi-bar-chart-fill', 'Reports']
+        ];
+
+    const nav = document.createElement('nav');
+    nav.className = 'mobile-bottom-nav';
+    nav.setAttribute('aria-label', 'Mobile navigation');
+    nav.innerHTML = `
+      <ul class="mobile-nav-items">
+        ${items.map(([href, icon, label]) => `
+          <li><a class="mobile-nav-link${path.endsWith(href.split('/').pop()) ? ' active' : ''}" href="${href}">
+            <i class="bi ${icon}" aria-hidden="true"></i><span>${label}</span>
+          </a></li>`).join('')}
+        <li><button type="button" class="mobile-nav-link mobile-nav-more" aria-label="Open more navigation">
+          <i class="bi bi-three-dots" aria-hidden="true"></i><span>More</span>
+        </button></li>
+      </ul>`;
+    document.body.appendChild(nav);
+
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const moreButton = nav.querySelector('.mobile-nav-more');
+    if (sidebarToggle && moreButton) {
+      moreButton.addEventListener('click', () => sidebarToggle.click());
+    }
   },
 
   initResponsiveTables() {

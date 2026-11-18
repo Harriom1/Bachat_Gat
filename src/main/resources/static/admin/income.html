@@ -86,6 +86,7 @@
           <button id="btn-add-income" class="btn-primary-custom corner-action" title="Record Other Income" aria-label="Record Other Income">
             <i class="bi bi-plus-circle-fill"></i><span class="action-label" data-i18n="recordOtherIncome">Record Other Income</span>
           </button>
+          <button id="btn-download-income" class="btn-outline-custom corner-action" title="Download income table"><i class="bi bi-file-earmark-excel"></i><span class="action-label">Download Excel</span></button>
         </div>
 
         <!-- Metrics -->
@@ -127,7 +128,7 @@
         <!-- Table -->
         <div class="content-card">
           <div class="table-responsive">
-            <table class="data-table compact-income-table">
+            <table id="income-table" class="data-table compact-income-table" data-export-name="Other Group Income">
               <thead>
                 <tr>
                   <th data-i18n="incomeId">Income ID</th>
@@ -276,6 +277,7 @@
       });
       document.getElementById('form-record-income').addEventListener('submit', handleSaveIncome);
       document.getElementById('form-distribute-income').addEventListener('submit', handleConfirmDistribution);
+      document.getElementById('btn-download-income').addEventListener('click', () => Common.downloadTablesWorkbook([document.getElementById('income-table')], 'other-group-income.xlsx'));
 
       document.getElementById('dist-method').addEventListener('change', updateDistributionHelp);
       window.addEventListener('languageChanged', () => {

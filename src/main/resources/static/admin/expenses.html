@@ -86,6 +86,7 @@
           <button id="btn-add-expense" class="btn-primary-custom corner-action" title="Record Expense" aria-label="Record Expense">
             <i class="bi bi-plus-circle-fill"></i><span class="action-label">Record Expense</span>
           </button>
+          <button id="btn-download-expenses" class="btn-outline-custom corner-action" title="Download expenses table"><i class="bi bi-file-earmark-excel"></i><span class="action-label">Download Excel</span></button>
         </div>
 
         <!-- Metrics -->
@@ -127,7 +128,7 @@
         <!-- Table -->
         <div class="content-card">
           <div class="table-responsive">
-            <table class="data-table">
+            <table id="expenses-table" class="data-table" data-export-name="Group Expenses">
               <thead>
                 <tr>
                   <th>Expense ID</th>
@@ -274,6 +275,7 @@
       });
       document.getElementById('form-record-expense').addEventListener('submit', handleSaveExpense);
       document.getElementById('form-distribute-expense').addEventListener('submit', handleConfirmExpenseDistribution);
+      document.getElementById('btn-download-expenses').addEventListener('click', () => Common.downloadTablesWorkbook([document.getElementById('expenses-table')], 'group-expenses.xlsx'));
 
       document.getElementById('dist-exp-method').addEventListener('change', (e) => {
         const help = document.getElementById('dist-exp-help');

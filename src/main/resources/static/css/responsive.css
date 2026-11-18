@@ -10,6 +10,17 @@ body {
   overflow-x: hidden;
 }
 
+/* Added report sections: preserve real tables while allowing narrow screens
+   to wrap long Marathi labels and member names cleanly. */
+.rules-list { display: grid; gap: .65rem; }
+.rule-row { display: flex; justify-content: space-between; gap: 1rem; padding: .75rem; border: 1px solid var(--border-color); border-radius: .5rem; }
+.rule-row span { text-align: right; color: var(--text-muted); }
+@media (max-width: 640px) {
+  .rule-row { display: block; }
+  .rule-row span { display: block; margin-top: .25rem; text-align: left; }
+  .compact-report-table th, .compact-report-table td { white-space: normal; word-break: break-word; font-size: .78rem; }
+}
+
 /* Final mobile action sizing: keep four member actions visible without overlap. */
 @media (max-width: 600px) {
   html body table.members-register-table td:last-child .table-actions {

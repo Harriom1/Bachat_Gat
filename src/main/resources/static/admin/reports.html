@@ -108,6 +108,7 @@
         <li class="menu-category">CONFIGURATION & AUDIT</li>
         <li><a href="/admin/master-data.html" class="menu-item"><i class="bi bi-sliders menu-icon"></i><span data-i18n="masterData">Master Data</span></a></li>
         <li><a href="/admin/reports.html" class="menu-item active"><i class="bi bi-bar-chart-line-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/admin/rules.html" class="menu-item"><i class="bi bi-shield-check menu-icon"></i><span>Rules / नियम</span></a></li>
         <li><a href="/admin/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">Documents</span></a></li>
         <li><a href="/admin/audit-logs.html" class="menu-item"><i class="bi bi-shield-lock-fill menu-icon"></i><span data-i18n="auditLogs">Audit Logs</span></a></li>
         <li><a href="/admin/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
@@ -184,6 +185,7 @@
           <button class="report-tab-btn" id="tab-btn-statement" onclick="switchReportTab('statement')">
             <i class="bi bi-person-badge-fill"></i> Member Statement
           </button>
+          <a class="report-tab-btn" href="/admin/rules.html"><i class="bi bi-shield-check"></i> Rules / नियम</a>
         </div>
 
         <!-- Tab 1: Group Financial Summary -->
@@ -384,6 +386,12 @@
             </tbody>
           </table>
 
+          <div class="content-card report-ledger-card no-print" style="margin-top: 1.5rem; border-top: 4px solid #f59e0b;">
+            <h3>Monthly Detailed Tables / मासिक तपशील</h3>
+            <p class="text-muted">These tables are also included as separate sheets in the report workbook.</p>
+            <button type="button" class="btn-outline-custom" onclick="downloadMonthlyDetailedTables()"><i class="bi bi-file-earmark-excel"></i> Download Monthly Details</button>
+          </div>
+
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3 style="color: #16a34a; text-align: center; margin-bottom: 1rem;">Monthly Bachat Paid Members</h3>
             <div class="table-responsive">
@@ -392,6 +400,38 @@
                 <tbody id="monthly-bachat-paid"><tr><td colspan="4" class="text-center text-muted">Load a report to view paid members.</td></tr></tbody>
               </table>
             </div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3>Loan Instalments Collected / कर्जहप्ता जमा केलेले सभासद</h3>
+            <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Loan Instalments Collected">
+              <thead><tr><th>#</th><th>Member / सभासद</th><th>Loan Instalment / कर्जहप्ता</th><th>Interest / व्याज</th><th>Penalty / दंड</th><th>Loan Balance / कर्ज बाकी</th></tr></thead>
+              <tbody id="monthly-loan-installments"><tr><td colspan="6" class="text-center text-muted">Load a report to view loan payments.</td></tr></tbody>
+            </table></div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3>Other Income / इतर उत्पन्न</h3>
+            <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Other Income">
+              <thead><tr><th>#</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
+              <tbody id="monthly-other-income"><tr><td colspan="4" class="text-center text-muted">No other income recorded.</td></tr></tbody>
+            </table></div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3>Other Expenses / इतर खर्च</h3>
+            <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Other Expenses">
+              <thead><tr><th>#</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
+              <tbody id="monthly-other-expenses"><tr><td colspan="4" class="text-center text-muted">No other expenses recorded.</td></tr></tbody>
+            </table></div>
+          </div>
+
+          <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
+            <h3>Loans Disbursed This Month / या महिन्यातील कर्ज वाटप</h3>
+            <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Loans Disbursed">
+              <thead><tr><th>#</th><th>Loan ID</th><th>Member / सभासद</th><th>Loan / कर्ज</th><th>Interest Rate / व्याजदर</th><th>Date</th></tr></thead>
+              <tbody id="monthly-loans-given"><tr><td colspan="6" class="text-center text-muted">No loans disbursed in this month.</td></tr></tbody>
+            </table></div>
           </div>
 
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
@@ -962,6 +1002,38 @@
         <td>${escapeHtml(l.interestRate || 0)}%</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
       `).join('') || '<tr><td colspan="7">No loans recorded.</td></tr>';
 
+      const paymentRows = data.monthlyLoanInstallments || [];
+      document.getElementById('monthly-loan-installments').innerHTML = paymentRows.map((p, i) => `
+        <tr><td>${i + 1}</td><td>${escapeHtml(p.memberName || p.memberId || '-')}</td>
+        <td>${Common.formatIndianCurrency(p.installment || 0)}</td><td>${Common.formatIndianCurrency(p.interest || 0)}</td>
+        <td>${Common.formatIndianCurrency(p.penalty || 0)}</td><td>${Common.formatIndianCurrency(p.loanBalance || 0)}</td></tr>
+      `).join('') || '<tr><td colspan="6" class="text-center text-muted">No loan instalments collected.</td></tr>';
+
+      const incomeRows = data.otherIncomeRows || [];
+      document.getElementById('monthly-other-income').innerHTML = incomeRows.map((r, i) => `
+        <tr><td>${i + 1}</td><td>${escapeHtml(r.description || '-')}</td><td>${escapeHtml(r.category || '-')}</td>
+        <td>${Common.formatIndianCurrency(r.amount || 0)}</td></tr>
+      `).join('') || '<tr><td colspan="4" class="text-center text-muted">No other income recorded.</td></tr>';
+
+      const expenseRows = data.otherExpenseRows || [];
+      document.getElementById('monthly-other-expenses').innerHTML = expenseRows.map((r, i) => `
+        <tr><td>${i + 1}</td><td>${escapeHtml(r.description || '-')}</td><td>${escapeHtml(r.category || '-')}</td>
+        <td>${Common.formatIndianCurrency(r.amount || 0)}</td></tr>
+      `).join('') || '<tr><td colspan="4" class="text-center text-muted">No other expenses recorded.</td></tr>';
+
+      const loanRows = data.loansGivenRows || [];
+      document.getElementById('monthly-loans-given').innerHTML = loanRows.map((l, i) => `
+        <tr><td>${i + 1}</td><td>${escapeHtml(l.loanId || '-')}</td><td>${escapeHtml(l.memberName || '-')}</td>
+        <td>${Common.formatIndianCurrency(l.principal || 0)}</td><td>${escapeHtml(l.interestRate || 0)}%</td><td>${l.date ? Common.formatDate(l.date) : '-'}</td></tr>
+      `).join('') || '<tr><td colspan="6" class="text-center text-muted">No loans disbursed in this month.</td></tr>';
+
+    }
+
+    async function downloadMonthlyDetailedTables() {
+      const tables = ['monthly-bachat-paid','monthly-loan-installments','monthly-other-income','monthly-other-expenses','monthly-loans-given','monthly-bachat-unpaid','monthly-member-ledger','monthly-loan-ledger']
+        .map(id => document.getElementById(id)?.closest('table')).filter(Boolean);
+      if (!tables.length) return;
+      await Common.downloadTablesWorkbook(tables, `monthly-detailed-report-${document.getElementById('monthly-report-month')?.value || ''}-${document.getElementById('monthly-report-year')?.value || ''}.xlsx`);
     }
 
     function renderBachatStatusTable(elementId, members, emptyMessage) {

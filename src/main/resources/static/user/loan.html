@@ -37,9 +37,10 @@
         <li class="menu-category">RECORDS & NOTICES</li>
         <li><a href="/user/transactions.html" class="menu-item"><i class="bi bi-journal-text menu-icon"></i><span data-i18n="transactions">My Transactions</span></a></li>
         <li><a href="/user/reports.html" class="menu-item"><i class="bi bi-bar-chart-fill menu-icon"></i><span data-i18n="reports">Reports</span></a></li>
+        <li><a href="/user/income-expenses.html" class="menu-item"><i class="bi bi-arrow-left-right menu-icon"></i><span>Income &amp; Expenses</span></a></li>
+        <li><a href="/user/rules.html" class="menu-item"><i class="bi bi-shield-check menu-icon"></i><span>Rules / नियम</span></a></li>
         <li><a href="/user/documents.html" class="menu-item"><i class="bi bi-folder-fill menu-icon"></i><span data-i18n="documents">My Documents</span></a></li>
         <li><a href="/user/notifications.html" class="menu-item"><i class="bi bi-bell-fill menu-icon"></i><span data-i18n="notifications">Notifications</span></a></li>
-        <li><a href="/guide.html" target="_blank" class="menu-item" style="color: #38bdf8;"><i class="bi bi-book-half menu-icon"></i><span>Project Guide</span></a></li>
         <li><a href="/user/settings.html" class="menu-item"><i class="bi bi-gear-fill menu-icon"></i><span data-i18n="settings">Settings</span></a></li>
       </ul>
       <div class="sidebar-footer">
@@ -220,6 +221,10 @@
             <i class="bi bi-info-circle-fill" style="color: var(--primary);"></i>
             <span data-i18n="auditNotice">This ledger is strictly view-only for all members and administrators to ensure collective transparency in group fund utilization. No member or external party can modify closed records.</span>
           </div>
+          <div style="margin-top: 1.5rem;">
+            <h3 style="font-size:1.05rem;">Current Month Loan Activity / चालू महिन्यातील कर्ज व्यवहार</h3>
+            <div class="table-responsive"><table class="data-table"><thead><tr><th>#</th><th>Member / सभासद</th><th>Instalment / कर्जहप्ता</th><th>Interest / व्याज</th><th>Penalty / दंड</th><th>Balance / बाकी</th></tr></thead><tbody id="user-monthly-loan-installments"><tr><td colspan="6">Loading...</td></tr></tbody></table></div>
+          </div>
         </div>
       </div>
     </main>
@@ -240,8 +245,18 @@
       await Promise.all([
         loadMyLoans(),
         loadGroupLoans()
+        ,loadMonthlyLoanActivity()
       ]);
     });
+
+    async function loadMonthlyLoanActivity() {
+      const now = new Date();
+      try {
+        const report = await api.getMyMonthlyReport(now.getMonth() + 1, now.getFullYear());
+        const rows = report.monthlyLoanInstallments || [];
+        document.getElementById('user-monthly-loan-installments').innerHTML = rows.map((p, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(p.memberName || p.memberId || '-')}</td><td>${Common.formatIndianCurrency(p.installment || 0)}</td><td>${Common.formatIndianCurrency(p.interest || 0)}</td><td>${Common.formatIndianCurrency(p.penalty || 0)}</td><td>${Common.formatIndianCurrency(p.loanBalance || 0)}</td></tr>`).join('') || '<tr><td colspan="6">No loan instalments collected this month.</td></tr>';
+      } catch (err) { console.warn('Monthly loan activity unavailable:', err.message); }
+    }
 
     async function loadMyLoans() {
       try {

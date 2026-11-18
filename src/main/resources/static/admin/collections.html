@@ -121,7 +121,7 @@
                 <option value="7">July</option>
                 <option value="8">August</option>
                 <option value="9">September</option>
-                <option value="10" selected>October</option>
+                <option value="10">October</option>
                 <option value="11">November</option>
                 <option value="12">December</option>
               </select>
@@ -400,6 +400,7 @@
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
+  <script src="/js/finance-sync.js"></script>
   <script>
     let allCollections = [];
     let memberList = [];
@@ -410,6 +411,7 @@
       let currentGroupId = Common.getSelectedGroupId();
       
       document.getElementById('pay-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('collection-month-select').value = String(new Date().getMonth() + 1);
       generateIdempotencyKey();
 
       await Promise.all([
@@ -461,6 +463,17 @@
       if (btnRefPending) {
         btnRefPending.addEventListener('click', () => loadPendingCollections(currentGroupId));
       }
+
+      const refreshCollectionsView = async () => {
+        await loadCollections(currentGroupId);
+        if (pendingColCard.style.display === 'block') {
+          await loadPendingCollections(currentGroupId);
+        }
+      };
+      FinanceSync.subscribe((update) => {
+        if (!update.groupId || update.groupId === currentGroupId) refreshCollectionsView();
+      });
+      FinanceSync.startPolling(refreshCollectionsView);
 
       // Modal open/close
       const modal = document.getElementById('payment-modal');
@@ -731,6 +744,7 @@
           if (pendingColCard && pendingColCard.style.display === 'block') {
             await loadPendingCollections(activeGId);
           }
+          FinanceSync.publish(activeGId);
         } catch (err) {
           Common.showToast(err.message, 'danger');
         } finally {

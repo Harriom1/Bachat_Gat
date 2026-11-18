@@ -405,7 +405,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3>Loan Instalments Collected / कर्जहप्ता जमा केलेले सभासद</h3>
             <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Loan Instalments Collected">
-              <thead><tr><th>#</th><th>Member / सभासद</th><th>Loan Instalment / कर्जहप्ता</th><th>Interest / व्याज</th><th>Penalty / दंड</th><th>Loan Balance / कर्ज बाकी</th></tr></thead>
+              <thead><tr><th>Sr. No.</th><th>Member / सभासद</th><th>Loan Instalment / कर्जहप्ता</th><th>Interest / व्याज</th><th>Penalty / दंड</th><th>Loan Balance / कर्ज बाकी</th></tr></thead>
               <tbody id="monthly-loan-installments"><tr><td colspan="6" class="text-center text-muted">Load a report to view loan payments.</td></tr></tbody>
             </table></div>
           </div>
@@ -413,7 +413,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3>Other Income / इतर उत्पन्न</h3>
             <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Other Income">
-              <thead><tr><th>#</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
+              <thead><tr><th>Sr. No.</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
               <tbody id="monthly-other-income"><tr><td colspan="4" class="text-center text-muted">No other income recorded.</td></tr></tbody>
             </table></div>
           </div>
@@ -421,7 +421,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3>Other Expenses / इतर खर्च</h3>
             <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Other Expenses">
-              <thead><tr><th>#</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
+              <thead><tr><th>Sr. No.</th><th>Description / वर्णन</th><th>Category / प्रकार</th><th>Amount / रक्कम</th></tr></thead>
               <tbody id="monthly-other-expenses"><tr><td colspan="4" class="text-center text-muted">No other expenses recorded.</td></tr></tbody>
             </table></div>
           </div>
@@ -429,7 +429,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3>Loans Disbursed This Month / या महिन्यातील कर्ज वाटप</h3>
             <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Loans Disbursed">
-              <thead><tr><th>#</th><th>Loan ID</th><th>Member / सभासद</th><th>Loan / कर्ज</th><th>Interest Rate / व्याजदर</th><th>Date</th></tr></thead>
+              <thead><tr><th>Sr. No.</th><th>Loan ID</th><th>Member / सभासद</th><th>Loan / कर्ज</th><th>Interest Rate / व्याजदर</th><th>Date</th></tr></thead>
               <tbody id="monthly-loans-given"><tr><td colspan="6" class="text-center text-muted">No loans disbursed in this month.</td></tr></tbody>
             </table></div>
           </div>
@@ -1287,18 +1287,10 @@
         }
 
         const pdfFile = await buildCurrentReportPdfFile();
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-          if (popup && !popup.closed) popup.close();
-          await navigator.share({
-            title: `${reportLabel} - ${groupName}`,
-            text: message,
-            files: [pdfFile]
-          });
-          Common.showToast('Report PDF shared. Choose WhatsApp from the share sheet.', 'success');
-          closeWhatsAppModal();
-          return;
-        }
-
+        // File generation is asynchronous, so the browser's native share API
+        // no longer has the original click gesture by this point. Use the
+        // reliable download + WhatsApp web fallback instead of triggering a
+        // share request that browsers reject with "must be handling a user gesture".
         await downloadReportFile(pdfFile);
         const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
         if (popup && !popup.closed) popup.location.href = whatsappUrl;

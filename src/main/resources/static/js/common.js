@@ -25,19 +25,18 @@ const Common = {
   },
 
   /**
-   * Whole-rupee formatting for loan amounts. Backend calculations retain
-   * precision, but the normal loan interface follows the application's
-   * accounting policy and does not display paise.
+   * Loan-ledger formatting. Loan calculations retain paise, so the ledger
+   * must show two decimals; whole-rupee cash collection is a separate flow.
    */
   formatLoanCurrency(amount) {
     if (amount === undefined || amount === null || isNaN(amount)) {
-      return '₹0';
+      return '₹0.00';
     }
     return new Intl.NumberFormat(this.getLocale(), {
       style: 'currency',
       currency: 'INR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     }).format(Number(amount));
   },
 

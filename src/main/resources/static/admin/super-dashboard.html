@@ -169,6 +169,22 @@
             </table>
           </div>
         </div>
+
+        <!-- Archived groups are retained here for recovery, never deleted permanently. -->
+        <div class="card" style="background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 1.5rem; margin-top: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem;"><i class="bi bi-archive"></i> Deactivated Bachat Gats</h2>
+              <p style="font-size: 0.8rem; color: var(--text-muted);">Archived groups and their history are kept here. Restore a group to make it active again.</p>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table responsive-scroll-table">
+              <thead><tr><th>Group Code</th><th>Reg ID</th><th>Group Name</th><th>Deactivated On</th><th>Actions</th></tr></thead>
+              <tbody id="archived-groups-table-body"><tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading deactivated groups...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </main>
   </div>
@@ -643,10 +659,11 @@
 
     async function loadDashboardData() {
       try {
-        const [groups, admins, members] = await Promise.all([
+        const [groups, admins, members, archivedGroups] = await Promise.all([
           api.getGroups(),
           api.getClientAdmins().catch(() => []),
-          api.getAllMembers().catch(() => [])
+          api.getAllMembers().catch(() => []),
+          api.getArchivedGroups().catch(() => [])
         ]);
 
         allGroups = groups || [];
@@ -664,9 +681,42 @@
         document.getElementById('stat-total-savings').textContent = Common.formatINR(totalSavings);
 
         renderGroupsTable(allGroups);
+        renderArchivedGroupsTable(archivedGroups || []);
       } catch (err) {
         console.error('Failed to load dashboard data:', err);
         Common.showToast('Failed to load groups: ' + err.message, 'danger');
+      }
+    }
+
+    function renderArchivedGroupsTable(groups) {
+      const tbody = document.getElementById('archived-groups-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      if (!groups.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No deactivated groups found.</td></tr>';
+        return;
+      }
+      groups.forEach(g => {
+        const tr = document.createElement('tr');
+        const when = g.deletedAt ? new Date(g.deletedAt).toLocaleString() : '-';
+        tr.innerHTML = `
+          <td><span style="font-family:monospace; font-weight:700;">${Common.text(g.groupCode, '-')}</span></td>
+          <td><span style="font-family:monospace;">${Common.text(g.registrationId, '-')}</span></td>
+          <td>${Common.text(g.groupName, '-')}</td>
+          <td>${Common.text(when)}</td>
+          <td><button class="btn-action-icon" title="Restore group" aria-label="Restore group" onclick="restoreArchivedGroup('${g.id}', '${Common.text(g.groupName)}')"><i class="bi bi-arrow-counterclockwise" style="color:#059669;"></i></button></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function restoreArchivedGroup(id, name) {
+      if (!confirm(`Restore ${name || id}? Its group and members archived with it will become active again.`)) return;
+      try {
+        await api.restoreGroup(id);
+        Common.showToast('Bachat Gat restored successfully.', 'success');
+        await loadDashboardData();
+      } catch (err) {
+        Common.showToast(err.message, 'danger');
       }
     }
 

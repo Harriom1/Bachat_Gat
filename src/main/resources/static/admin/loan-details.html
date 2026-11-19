@@ -216,7 +216,7 @@
           <label class="form-label required" data-i18n="fullCurrentInstallment">Full Current Installment (₹)</label>
           <div class="input-currency-group">
             <span class="currency-prefix">₹</span>
-            <input type="number" id="inp-repay-amount" class="form-control" min="100" step="50" required readonly>
+            <input type="number" id="inp-repay-amount" class="form-control" min="0.01" step="0.01" required>
           </div>
           <div class="form-help"><span data-i18n="scheduledMonthlyEmi">Scheduled Monthly EMI:</span> <strong id="repay-emi-help">₹0</strong></div>
         </div>
@@ -338,7 +338,7 @@
         });
         const amount = currentInstallment
           ? Number(currentInstallment.outstandingAmount ?? (Number(currentInstallment.totalDue || currentInstallment.emiAmount || 0) - Number(currentInstallment.paidAmount || 0)))
-          : 0;
+          : Number(currentLoan?.monthlyInstallment || schedule?.[0]?.emiAmount || currentLoan?.totalOutstanding || 0);
         document.getElementById('inp-repay-amount').value = amount;
         document.getElementById('repay-emi-help').textContent = Common.formatIndianCurrency(amount);
         Common.openModal('modal-repay');
@@ -352,7 +352,8 @@
       document.querySelectorAll('.partial-component').forEach(box => box.addEventListener('change', () => {
         const input = document.getElementById(box.dataset.target);
         input.disabled = !box.checked;
-        if (!box.checked) input.value = '0';
+        if (!box.checked) input.value = '';
+        else input.value = Number(partialDueDefaults[box.dataset.target.replace('inp-partial-', '')] || 0).toFixed(2);
         updatePartialTotal();
       }));
       document.querySelectorAll('.partial-input').forEach(input => input.addEventListener('input', () => {
@@ -375,13 +376,14 @@
     }
 
     let partialTotalManuallyEdited = false;
+    let partialDueDefaults = { penalty: 0, bachat: 0, principal: 0, interest: 0 };
 
     async function openPartialModal() {
       document.getElementById('inp-partial-date').value = new Date().toISOString().slice(0, 10);
       partialTotalManuallyEdited = false;
       document.querySelectorAll('.partial-component').forEach(box => { box.checked = false; box.disabled = false; });
-      document.querySelectorAll('.partial-input').forEach(input => { input.value = '0'; input.disabled = true; });
-      document.getElementById('inp-partial-total').value = '0.00';
+      document.querySelectorAll('.partial-input').forEach(input => { input.value = ''; input.disabled = true; });
+      document.getElementById('inp-partial-total').value = '';
       Common.openModal('modal-partial');
       await populatePartialDefaults();
       updatePartialTotal();
@@ -429,11 +431,14 @@
         const currentLoanRow = (dueRows.length ? dueRows[dueRows.length - 1] : null)
           || (arrearsRows.length ? arrearsRows[arrearsRows.length - 1] : null)
           || loanRows[0];
-        const setDefault = (id, value) => { document.getElementById(id).value = Math.max(0, Number(value || 0)).toFixed(2); };
-        setDefault('inp-partial-bachat', currentCollection ? (currentCollection.pendingAmount ?? (Number(currentCollection.expectedAmount || 0) - Number(currentCollection.paidAmount || 0))) : (member?.monthlyBachatAmount || member?.monthlySavingsAmount || 0));
-        setDefault('inp-partial-penalty', currentCollection ? (Number(currentCollection.lateFeeAmount || 0) - Number(currentCollection.paidLateFee || 0)) : 0);
-        setDefault('inp-partial-principal', currentLoanRow ? (Number(currentLoanRow.totalPrincipalDue ?? currentLoanRow.principalAmount ?? 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0);
-        setDefault('inp-partial-interest', currentLoanRow ? (Number(currentLoanRow.totalInterestDue ?? currentLoanRow.interestAmount ?? 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0);
+        // Keep component dues hidden until the corresponding checkbox is selected.
+        partialDueDefaults = {
+          bachat: currentCollection ? (currentCollection.pendingAmount ?? (Number(currentCollection.expectedAmount || 0) - Number(currentCollection.paidAmount || 0))) : (member?.monthlyBachatAmount || member?.monthlySavingsAmount || 0),
+          penalty: currentCollection ? (Number(currentCollection.lateFeeAmount || 0) - Number(currentCollection.paidLateFee || 0)) : 0,
+          principal: currentLoanRow ? (Number(currentLoanRow.totalPrincipalDue ?? currentLoanRow.principalAmount ?? 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0,
+          interest: currentLoanRow ? (Number(currentLoanRow.totalInterestDue ?? currentLoanRow.interestAmount ?? 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0
+        };
+        document.querySelectorAll('.partial-input').forEach(input => { input.value = ''; });
       } catch (err) {
         Common.showToast('Could not load current payment dues: ' + err.message, 'warning');
       }
@@ -443,7 +448,7 @@
       const only = document.getElementById('inp-partial-bachat-only').checked;
       ['inp-partial-penalty', 'inp-partial-principal', 'inp-partial-interest'].forEach(id => {
         const input = document.getElementById(id);
-        input.value = '0';
+        input.value = '';
         input.disabled = only;
         const box = document.querySelector(`[data-target="${id}"]`);
         box.checked = false;

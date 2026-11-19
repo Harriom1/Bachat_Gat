@@ -27,6 +27,10 @@ public class GroupService {
         return dataService.getAllGroups();
     }
 
+    public List<Group> getArchivedGroups() {
+        return dataService.getArchivedGroups();
+    }
+
     public Group getGroupById(String id) {
         return dataService.findGroupById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + id));

@@ -168,6 +168,10 @@ public class LoanApplicationService {
                 ? FinancialCalculator.round(request.getApprovedAmount())
                 : FinancialCalculator.round(app.getRequestedAmount());
 
+        if (approvedPrincipal.signum() <= 0) {
+            throw new InvalidFinancialOperationException("Approved loan amount must be greater than zero.");
+        }
+
         Group groupForLimit = dataService.findGroupById(app.getGroupId())
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + app.getGroupId()));
         GroupMasterData activeRules = dataService.getMasterDataForDate(app.getGroupId(), LocalDate.now()).orElse(null);
@@ -194,9 +198,17 @@ public class LoanApplicationService {
         }
         final BigDecimal rate = resolvedRate;
 
+        if (rate == null || rate.signum() < 0 || rate.scale() > 2) {
+            throw new InvalidFinancialOperationException("Interest rate must be non-negative with at most two decimals.");
+        }
+
         int durationMonths = (request.getDurationMonths() != null && request.getDurationMonths() > 0)
                 ? request.getDurationMonths()
                 : (app.getPreferredDurationMonths() > 0 ? app.getPreferredDurationMonths() : 12);
+
+        if (durationMonths <= 0) {
+            throw new InvalidFinancialOperationException("Loan duration must be greater than zero months.");
+        }
 
         String rawInterestType = request.getInterestType();
         if (rawInterestType == null || rawInterestType.isBlank()) {

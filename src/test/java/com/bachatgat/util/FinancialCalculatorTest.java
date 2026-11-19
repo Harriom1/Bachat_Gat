@@ -11,6 +11,71 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class FinancialCalculatorTest {
 
     @Test
+    @DisplayName("Reference fixed EMI schedule: ₹65,000 at 12% for 12 months")
+    void testReferenceFixedEmiSchedule() {
+        var schedule = FinancialCalculator.generateAmortizationSchedule(
+                new BigDecimal("65000"), new BigDecimal("12"), false, 12,
+                java.time.LocalDate.of(2026, 1, 1));
+
+        assertEquals(new BigDecimal("5775.00"), schedule.get(0).getEmiAmount());
+        assertEquals(new BigDecimal("650.00"), schedule.get(0).getInterestAmount());
+        assertEquals(new BigDecimal("5125.00"), schedule.get(0).getPrincipalAmount());
+        assertEquals(new BigDecimal("59875.00"), schedule.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("57.03"), schedule.get(11).getInterestAmount());
+        assertEquals(new BigDecimal("5777.00"), schedule.get(11).getEmiAmount());
+        assertEquals(new BigDecimal("0.00"), schedule.get(11).getClosingPrincipal());
+        assertEquals(new BigDecimal("4302.00"), schedule.stream()
+                .map(com.bachatgat.model.LoanRepaymentSchedule::getInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    @Test
+    @DisplayName("Arbitrary principal uses the same final-installment reconciliation")
+    void testArbitraryPrincipalFinalInstallment() {
+        var schedule = FinancialCalculator.generateAmortizationSchedule(
+                new BigDecimal("55000"), new BigDecimal("12"), false, 12,
+                java.time.LocalDate.of(2026, 1, 1));
+
+        assertEquals(new BigDecimal("4887.00"), schedule.get(0).getEmiAmount());
+        assertEquals(new BigDecimal("3640.00"), schedule.stream()
+                .map(com.bachatgat.model.LoanRepaymentSchedule::getInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        assertEquals(new BigDecimal("58640.00"), schedule.stream()
+                .map(com.bachatgat.model.LoanRepaymentSchedule::getTotalDue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        assertEquals(new BigDecimal("0.00"), schedule.get(11).getClosingPrincipal());
+    }
+
+    @Test
+    @DisplayName("Whole-rupee EMI collection reconciles the final installment")
+    void testWholeRupeeFinalInstallmentReconciliation() {
+        var schedule = FinancialCalculator.generateAmortizationSchedule(
+                new BigDecimal("70000"), new BigDecimal("12"), false, 12,
+                java.time.LocalDate.of(2026, 1, 1));
+
+        assertEquals(new BigDecimal("6219.00"), schedule.get(0).getEmiAmount());
+        assertEquals(new BigDecimal("6219.00"), schedule.get(10).getEmiAmount());
+        assertEquals(new BigDecimal("6224.00"), schedule.get(11).getEmiAmount());
+        assertEquals(new BigDecimal("74633.00"), schedule.stream()
+                .map(com.bachatgat.model.LoanRepaymentSchedule::getTotalDue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        assertEquals(new BigDecimal("4633.00"), schedule.stream()
+                .map(com.bachatgat.model.LoanRepaymentSchedule::getInterestAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    @Test
+    @DisplayName("Cash collection uses ceiling and preserves rounding credit")
+    void testCashRoundingCredit() {
+        assertEquals(new BigDecimal("5776.00"),
+                FinancialCalculator.cashToCollect(new BigDecimal("5775.17"), BigDecimal.ZERO));
+        assertEquals(new BigDecimal("0.83"),
+                FinancialCalculator.cashCreditAfterCollection(new BigDecimal("5775.17"), BigDecimal.ZERO, new BigDecimal("5776")));
+        assertEquals(new BigDecimal("5775.00"),
+                FinancialCalculator.cashToCollect(new BigDecimal("5775.17"), new BigDecimal("0.83")));
+    }
+
+    @Test
     void displayRoundingUsesWholeRupeeHalfUpPolicy() {
         assertEquals(new BigDecimal("100"), FinancialCalculator.roundDisplay(new BigDecimal("100.49")));
         assertEquals(new BigDecimal("101"), FinancialCalculator.roundDisplay(new BigDecimal("100.50")));
@@ -86,9 +151,9 @@ class FinancialCalculatorTest {
                 .map(com.bachatgat.model.LoanRepaymentSchedule::getInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        assertEquals(new BigDecimal("3309.27"), totalInterest);
-        assertEquals(new BigDecimal("4442.44"), schedule.get(0).getEmiAmount());
-        assertEquals(new BigDecimal("4442.43"), schedule.get(11).getEmiAmount());
+        assertEquals(new BigDecimal("3310.00"), totalInterest);
+        assertEquals(new BigDecimal("4442.00"), schedule.get(0).getEmiAmount());
+        assertEquals(new BigDecimal("4448.00"), schedule.get(11).getEmiAmount());
     }
 
     @Test
@@ -108,16 +173,16 @@ class FinancialCalculatorTest {
         assertEquals(1, m1.getInstallmentNo());
         assertEquals(new BigDecimal("10000.00"), m1.getOpeningPrincipal());
         assertEquals(new BigDecimal("200.00"), m1.getInterestAmount());
-        assertEquals(new BigDecimal("745.60"), m1.getPrincipalAmount());
-        assertEquals(new BigDecimal("9254.40"), m1.getClosingPrincipal());
+        assertEquals(new BigDecimal("746.00"), m1.getPrincipalAmount());
+        assertEquals(new BigDecimal("9254.00"), m1.getClosingPrincipal());
 
         // Month 2 verification: interest calculated on 9254.40 * 2%
         com.bachatgat.model.LoanRepaymentSchedule m2 = schedule.get(1);
         assertEquals(2, m2.getInstallmentNo());
-        assertEquals(new BigDecimal("9254.40"), m2.getOpeningPrincipal());
-        assertEquals(new BigDecimal("185.09"), m2.getInterestAmount()); // 9254.40 * 0.02 = 185.088 -> 185.09
-        assertEquals(new BigDecimal("760.51"), m2.getPrincipalAmount()); // 945.60 - 185.09 = 760.51
-        assertEquals(new BigDecimal("8493.89"), m2.getClosingPrincipal());
+        assertEquals(new BigDecimal("9254.00"), m2.getOpeningPrincipal());
+        assertEquals(new BigDecimal("185.08"), m2.getInterestAmount());
+        assertEquals(new BigDecimal("760.92"), m2.getPrincipalAmount());
+        assertEquals(new BigDecimal("8493.08"), m2.getClosingPrincipal());
 
         // Month 12 verification: final closing principal must be exactly ₹0.00
         com.bachatgat.model.LoanRepaymentSchedule m12 = schedule.get(11);
@@ -249,10 +314,10 @@ class FinancialCalculatorTest {
         BigDecimal totalInterest = forecast.stream()
                 .map(com.bachatgat.model.LoanRepaymentSchedule::getInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        assertEquals(new BigDecimal("3309.27"), totalInterest);
-        assertEquals(new BigDecimal("4442.44"), forecast.get(0).getEmiAmount());
-        assertEquals(new BigDecimal("46057.56"), forecast.get(0).getClosingPrincipal());
-        assertEquals(new BigDecimal("42075.70"), forecast.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("3310.00"), totalInterest);
+        assertEquals(new BigDecimal("4442.00"), forecast.get(0).getEmiAmount());
+        assertEquals(new BigDecimal("46058.00"), forecast.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("42076.58"), forecast.get(1).getClosingPrincipal());
         forecast.forEach(item -> assertEquals(new BigDecimal("0.00"), item.getOutstandingAmount()));
     }
 
@@ -269,11 +334,11 @@ class FinancialCalculatorTest {
         var recalculated = FinancialCalculator.generateReducingScheduleWithPayments(
                 new BigDecimal("50000"), new BigDecimal("12"), false, 12, futureStart, recorded);
 
-        assertEquals(new BigDecimal("46057.56"), recalculated.get(0).getClosingPrincipal());
-        assertEquals(new BigDecimal("46057.56"), recalculated.get(1).getOpeningPrincipal());
+        assertEquals(new BigDecimal("46058.00"), recalculated.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("46058.00"), recalculated.get(1).getOpeningPrincipal());
         assertEquals(new BigDecimal("460.58"), recalculated.get(1).getInterestAmount());
-        assertEquals(new BigDecimal("42075.70"), recalculated.get(1).getClosingPrincipal());
-        assertEquals(new BigDecimal("42075.70"), recalculated.get(2).getOpeningPrincipal());
+        assertEquals(new BigDecimal("42076.58"), recalculated.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("42076.58"), recalculated.get(2).getOpeningPrincipal());
         assertEquals(new BigDecimal("0.00"), recalculated.get(1).getOutstandingAmount());
     }
 
@@ -298,9 +363,9 @@ class FinancialCalculatorTest {
 
         assertEquals(new BigDecimal("50000.00"), recalculated.get(0).getClosingPrincipal());
         assertEquals(new BigDecimal("50000.00"), recalculated.get(1).getOpeningPrincipal());
-        assertEquals(new BigDecimal("42075.70"), recalculated.get(1).getClosingPrincipal());
-        assertEquals(new BigDecimal("42075.70"), recalculated.get(2).getOpeningPrincipal());
-        assertEquals(new BigDecimal("420.76"), recalculated.get(2).getInterestAmount());
+        assertEquals(new BigDecimal("42076.58"), recalculated.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("42076.58"), recalculated.get(2).getOpeningPrincipal());
+        assertEquals(new BigDecimal("420.77"), recalculated.get(2).getInterestAmount());
     }
 
     @Test
@@ -326,20 +391,20 @@ class FinancialCalculatorTest {
         // principal. The exact result is ₹10,951.59 (the user's approximate
         // ₹10,900.34 expectation differs only because month-2 principal is
         // slightly higher under reducing-balance amortization).
-        assertEquals(new BigDecimal("10951.59"), afterInterestOnly.get(1).getEmiAmount());
+        assertEquals(new BigDecimal("10951.25"), afterInterestOnly.get(1).getEmiAmount());
 
         // Month 2: settle the carried principal, current principal, and
         // current interest. The following month must use the new balance.
         recorded.get(1).setPaidInterestAmount(new BigDecimal("650.00"));
-        recorded.get(1).setPaidPrincipalAmount(new BigDecimal("10301.59"));
-        recorded.get(1).setPaidAmount(new BigDecimal("10951.59"));
+        recorded.get(1).setPaidPrincipalAmount(new BigDecimal("10301.25"));
+        recorded.get(1).setPaidAmount(new BigDecimal("10951.25"));
 
         var afterPrincipalPayment = FinancialCalculator.generateReducingScheduleWithPayments(
                 new BigDecimal("65000"), new BigDecimal("12"), false, 12, start, recorded);
 
-        assertEquals(new BigDecimal("54698.41"), afterPrincipalPayment.get(1).getClosingPrincipal());
-        assertEquals(new BigDecimal("54698.41"), afterPrincipalPayment.get(2).getOpeningPrincipal());
-        assertEquals(new BigDecimal("546.98"), afterPrincipalPayment.get(2).getInterestAmount());
+        assertEquals(new BigDecimal("54698.75"), afterPrincipalPayment.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("54698.75"), afterPrincipalPayment.get(2).getOpeningPrincipal());
+        assertEquals(new BigDecimal("546.99"), afterPrincipalPayment.get(2).getInterestAmount());
     }
 
     @Test
@@ -500,10 +565,10 @@ class FinancialCalculatorTest {
         var afterCatchUp = FinancialCalculator.generateReducingScheduleWithPayments(
                 principal, new BigDecimal("12"), false, tenure, start, recorded);
 
-        assertEquals(new BigDecimal("46057.56"), afterCatchUp.get(0).getClosingPrincipal());
-        assertEquals(new BigDecimal("46057.56"), afterCatchUp.get(1).getOpeningPrincipal());
-        assertEquals(new BigDecimal("42075.70"), afterCatchUp.get(1).getClosingPrincipal());
-        assertEquals(new BigDecimal("42075.70"), afterCatchUp.get(2).getOpeningPrincipal());
-        assertEquals(new BigDecimal("420.76"), afterCatchUp.get(2).getInterestAmount());
+        assertEquals(new BigDecimal("46058.00"), afterCatchUp.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("46058.00"), afterCatchUp.get(1).getOpeningPrincipal());
+        assertEquals(new BigDecimal("42076.58"), afterCatchUp.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("42076.58"), afterCatchUp.get(2).getOpeningPrincipal());
+        assertEquals(new BigDecimal("420.77"), afterCatchUp.get(2).getInterestAmount());
     }
 }

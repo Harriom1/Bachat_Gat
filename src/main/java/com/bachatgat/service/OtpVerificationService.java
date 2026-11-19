@@ -10,6 +10,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class OtpVerificationService {
     public OtpVerificationService(FirestoreDataService dataService,
                                   ObjectProvider<JavaMailSender> mailSenderProvider,
                                   ObjectProvider<FirebaseAuth> firebaseAuthProvider,
-                                  @Value("${app.mail.from:${spring.mail.username:localhost@bachatgat.local}}") String fromAddress) {
+                                  @Value("${report.delivery.email.from:${app.mail.from:${spring.mail.username:localhost@bachatgat.local}}}") String fromAddress) {
         this.dataService = dataService;
         this.mailSenderProvider = mailSenderProvider;
         this.firebaseAuthProvider = firebaseAuthProvider;
@@ -126,8 +127,6 @@ public class OtpVerificationService {
         challenge.setSendCount(challenge.getSendCount() + 1);
         challenge.setVerified(false);
         challenge.setConsumed(false);
-        dataService.saveOtpChallenge(challenge);
-
         JavaMailSender sender = mailSenderProvider.getIfAvailable();
         if (sender == null) throw new InvalidFinancialOperationException("Email OTP is not configured. Start Mailpit and configure SMTP first.");
         SimpleMailMessage message = new SimpleMailMessage();
@@ -136,7 +135,17 @@ public class OtpVerificationService {
         message.setSubject("Bachat Gat – Email Verification OTP");
         message.setText("Your Bachat Gat email verification OTP is: " + code
                 + "\n\nThis OTP expires in 5 minutes and can be used only once.\nPlease do not share it.");
-        sender.send(message);
+        try {
+            sender.send(message);
+        } catch (MailException ex) {
+            log.error("Email OTP delivery failed for {} via configured SMTP host", email, ex);
+            throw new InvalidFinancialOperationException("Email OTP could not be sent. Check the SMTP host, username, password, authorized sender, and Brevo IP restrictions.");
+        }
+
+        // Persist only after SMTP accepted the message. A failed send must not
+        // consume the resend cooldown or leave a challenge that can never be
+        // delivered.
+        dataService.saveOtpChallenge(challenge);
 
         return Map.of("challengeId", challenge.getId(), "expiresInSeconds", OTP_TTL.toSeconds(),
                 "resendAfterSeconds", RESEND_COOLDOWN.toSeconds());

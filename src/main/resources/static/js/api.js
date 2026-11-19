@@ -331,6 +331,10 @@ class ApiClient {
     return this.request('/admin/groups');
   }
 
+  getArchivedGroups() {
+    return this.request('/admin/groups/archived');
+  }
+
   getGroupDropdown() {
     return this.request('/admin/groups/dropdown', { cacheTtlMs: 10 * 60 * 1000 });
   }

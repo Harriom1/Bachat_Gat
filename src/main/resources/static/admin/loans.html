@@ -279,7 +279,7 @@
             <label class="form-label">Full Current Installment (₹) *</label>
             <div class="input-currency-group">
               <span class="currency-prefix">₹</span>
-              <input type="number" id="repay-amount" class="form-control" required min="100" readonly>
+            <input type="number" id="repay-amount" class="form-control" required min="0.01" step="0.01">
             </div>
             <div class="form-help">Scheduled regular monthly payment: <strong id="repay-suggestedEmi">₹0</strong></div>
           </div>
@@ -762,7 +762,7 @@
       });
       const amount = currentInstallment
         ? Number(currentInstallment.outstandingAmount ?? (Number(currentInstallment.totalDue || 0) - Number(currentInstallment.paidAmount || 0)))
-        : 0;
+        : Number(loan.monthlyInstallment || schedule?.[0]?.emiAmount || loan.totalOutstanding || 0);
       document.getElementById('repay-suggestedEmi').textContent = Common.formatINR(amount);
       document.getElementById('repay-amount').value = amount;
 
@@ -953,19 +953,25 @@
         totEl.textContent = Common.formatINR(totalPayable);
       } else {
         const r = annualRate / 12 / 100;
-        let emi = 0;
+        const round2 = value => Math.round((value + Number.EPSILON) * 100) / 100;
+        let emi = r > 0
+          ? (P * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1)
+          : P / months;
+        emi = Math.round(emi);
+        let opening = round2(P);
         let totalInt = 0;
-        if (r > 0) {
-          const factor = Math.pow(1 + r, months);
-          emi = Math.round((P * r * factor) / (factor - 1));
-          totalInt = Math.max(0, (emi * months) - P);
-        } else {
-          emi = Math.round(P / months);
-          totalInt = 0;
+        let totalPayable = 0;
+        for (let i = 1; i <= months; i++) {
+          let interest = round2(opening * r);
+          const due = i === months ? Math.round(opening + interest) : emi;
+          if (i === months) interest = round2(due - opening);
+          totalInt = round2(totalInt + interest);
+          totalPayable = round2(totalPayable + due);
+          opening = round2(Math.max(0, opening - round2(due - interest)));
         }
         emiEl.textContent = Common.formatINR(emi) + '/mo';
         intEl.textContent = Common.formatINR(totalInt);
-        totEl.textContent = Common.formatINR(P + totalInt);
+        totEl.textContent = Common.formatINR(totalPayable);
       }
     }
 

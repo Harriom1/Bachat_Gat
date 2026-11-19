@@ -23,6 +23,42 @@ public final class FinancialCalculator {
         return value.setScale(MONEY_SCALE, ROUNDING);
     }
 
+    /**
+     * Returns the whole-rupee cash amount required for an actual ledger due
+     * after applying an available member credit.  The loan ledger remains at
+     * paisa precision; this method is only for cash collection.
+     */
+    public static BigDecimal cashToCollect(BigDecimal actualDue, BigDecimal availableCredit) {
+        BigDecimal due = moneyValue(actualDue);
+        BigDecimal credit = moneyValue(availableCredit).min(due);
+        BigDecimal netDue = due.subtract(credit);
+        return netDue.setScale(0, RoundingMode.CEILING).setScale(MONEY_SCALE, ROUNDING);
+    }
+
+    /**
+     * Calculates the new credit created by a whole-rupee cash collection.
+     * Existing credit is consumed before a new credit is created.
+     */
+    public static BigDecimal cashCreditAfterCollection(BigDecimal actualDue,
+                                                       BigDecimal availableCredit,
+                                                       BigDecimal cashReceived) {
+        BigDecimal due = moneyValue(actualDue);
+        BigDecimal credit = moneyValue(availableCredit).min(due);
+        BigDecimal cash = moneyValue(cashReceived);
+        BigDecimal settled = credit.add(cash).min(due);
+        return cash.subtract(settled).max(BigDecimal.ZERO).setScale(MONEY_SCALE, ROUNDING);
+    }
+
+    private static BigDecimal moneyValue(BigDecimal value) {
+        if (value == null || value.signum() < 0) {
+            throw new IllegalArgumentException("Money values must be non-negative.");
+        }
+        if (value.scale() > MONEY_SCALE) {
+            throw new IllegalArgumentException("Money values may have at most two decimals.");
+        }
+        return round(value);
+    }
+
     /** Whole-rupee display policy used by all loan screens and reports. */
     public static BigDecimal roundDisplay(BigDecimal value) {
         return value == null ? BigDecimal.ZERO.setScale(DISPLAY_SCALE, ROUNDING)
@@ -119,7 +155,11 @@ public final class FinancialCalculator {
             return schedule;
         }
 
-        BigDecimal emi = calculateReducingBalanceEMI(principal, ratePercent, isMonthlyRate, durationMonths);
+        BigDecimal exactEmi = calculateReducingBalanceEMI(principal, ratePercent, isMonthlyRate, durationMonths);
+        // Cash collection uses whole rupees for the regular installments.
+        // The final installment is reconciled separately so rounding never
+        // changes the total amount payable.
+        BigDecimal regularCashEmi = roundDisplay(exactEmi).setScale(MONEY_SCALE, ROUNDING);
         BigDecimal currentPrincipal = round(principal);
         java.time.LocalDate baseDate = startDate != null ? startDate : java.time.LocalDate.now();
 
@@ -138,11 +178,15 @@ public final class FinancialCalculator {
                 // Final month adjustment: principal portion pays off all remaining principal
                 principalPortion = currentPrincipal;
                 closingPrincipal = BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING);
-                totalDue = principalPortion.add(interest);
+                // The member pays whole rupees. Round the final settlement as
+                // well so the visible cash schedule adds up exactly; the
+                // final interest component absorbs the paise reconciliation.
+                totalDue = roundDisplay(principalPortion.add(interest)).setScale(MONEY_SCALE, ROUNDING);
+                interest = totalDue.subtract(principalPortion).max(BigDecimal.ZERO);
             } else {
-                principalPortion = emi.subtract(interest).min(currentPrincipal);
+                principalPortion = regularCashEmi.subtract(interest).min(currentPrincipal);
                 closingPrincipal = currentPrincipal.subtract(principalPortion).max(BigDecimal.ZERO);
-                totalDue = emi;
+                totalDue = regularCashEmi;
             }
 
             entry.setEmiAmount(totalDue);

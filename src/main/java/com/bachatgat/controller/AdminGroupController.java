@@ -44,6 +44,12 @@ public class AdminGroupController {
         return ResponseEntity.ok(ApiResponse.ok(groups));
     }
 
+    @GetMapping("/archived")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<ApiResponse<List<Group>>> getArchivedGroups() {
+        return ResponseEntity.ok(ApiResponse.ok(groupService.getArchivedGroups()));
+    }
+
     @GetMapping("/dropdown")
     public ResponseEntity<ApiResponse<List<GroupDropdownDTO>>> getGroupDropdown(@AuthenticationPrincipal UserPrincipal principal) {
         List<Group> groups;

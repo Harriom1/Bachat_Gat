@@ -33,6 +33,8 @@ public class Member {
     private MemberStatus status = MemberStatus.ACTIVE;
     private LocalDateTime deletedAt;
     private String deletedBy;
+    /** True when this member was archived automatically because its group was archived. */
+    private boolean archivedWithGroup = false;
     private String designation = "MEMBER"; // PRESIDENT, SECRETARY, TREASURER, MEMBER
     private boolean hasLoginAccount = false;
     private String loginUsername;
@@ -233,6 +235,8 @@ public class Member {
     public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
     public String getDeletedBy() { return deletedBy; }
     public void setDeletedBy(String deletedBy) { this.deletedBy = deletedBy; }
+    public boolean isArchivedWithGroup() { return archivedWithGroup; }
+    public void setArchivedWithGroup(boolean archivedWithGroup) { this.archivedWithGroup = archivedWithGroup; }
     public BigDecimal getTotalOtherIncomeDistributed() { return totalOtherIncomeDistributed != null ? totalOtherIncomeDistributed : BigDecimal.ZERO; }
     public void setTotalOtherIncomeDistributed(BigDecimal totalOtherIncomeDistributed) { this.totalOtherIncomeDistributed = totalOtherIncomeDistributed; }
     public BigDecimal getTotalOtherExpenseDistributed() { return totalOtherExpenseDistributed != null ? totalOtherExpenseDistributed : BigDecimal.ZERO; }

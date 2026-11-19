@@ -362,6 +362,15 @@ public class FirestoreDataService {
                 .collect(Collectors.toList());
     }
 
+    /** Super-admin recovery view; archived groups are intentionally retained. */
+    public List<Group> getArchivedGroups() {
+        ensureLoaded("groups");
+        return groups.values().stream()
+                .filter(g -> g != null && isArchivedStatus(g.getStatus()))
+                .sorted(Comparator.comparing(Group::getDeletedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+    }
+
     public Optional<Group> findGroupById(String id) {
         ensureLoaded("groups");
         return Optional.ofNullable(groups.get(id)).filter(this::isVisibleGroup);
@@ -510,6 +519,20 @@ public class FirestoreDataService {
         group.setStatus("ARCHIVED");
         group.setDeletedAt(LocalDateTime.now());
         group.setDeletedBy(deletedBy);
+        saveGroup(group);
+
+        // A deactivated group must not leave active members in global member lists.
+        ensureLoaded("members");
+        for (Member member : members.values()) {
+            if (id.equals(member.getGroupId()) && member.getStatus() != MemberStatus.ARCHIVED) {
+                member.setStatus(MemberStatus.ARCHIVED);
+                member.setDeletedAt(group.getDeletedAt());
+                member.setDeletedBy(deletedBy);
+                member.setArchivedWithGroup(true);
+                saveMember(member);
+            }
+        }
+        group.setActiveMembersCount(0);
         return saveGroup(group);
     }
 
@@ -519,6 +542,20 @@ public class FirestoreDataService {
         group.setStatus("ACTIVE");
         group.setDeletedAt(null);
         group.setDeletedBy(null);
+        saveGroup(group);
+
+        // Restore only members archived by the group archive operation. Members
+        // archived manually before that operation remain archived.
+        ensureLoaded("members");
+        for (Member member : members.values()) {
+            if (id.equals(member.getGroupId()) && member.isArchivedWithGroup()) {
+                member.setStatus(MemberStatus.ACTIVE);
+                member.setDeletedAt(null);
+                member.setDeletedBy(null);
+                member.setArchivedWithGroup(false);
+                saveMember(member);
+            }
+        }
         return saveGroup(group);
     }
 
@@ -529,6 +566,7 @@ public class FirestoreDataService {
         member.setStatus(MemberStatus.ARCHIVED);
         member.setDeletedAt(LocalDateTime.now());
         member.setDeletedBy(deletedBy);
+        member.setArchivedWithGroup(false);
         return saveMember(member);
     }
 
@@ -539,6 +577,7 @@ public class FirestoreDataService {
         member.setStatus(MemberStatus.ACTIVE);
         member.setDeletedAt(null);
         member.setDeletedBy(null);
+        member.setArchivedWithGroup(false);
         return saveMember(member);
     }
 
@@ -553,7 +592,9 @@ public class FirestoreDataService {
     }
 
     private boolean isVisibleMember(Member member) {
-        return member != null && member.getStatus() != MemberStatus.ARCHIVED;
+        return member != null
+                && member.getStatus() != MemberStatus.ARCHIVED
+                && Optional.ofNullable(groups.get(member.getGroupId())).map(g -> !isArchivedStatus(g.getStatus())).orElse(false);
     }
 
     private boolean isArchivedStatus(String status) {

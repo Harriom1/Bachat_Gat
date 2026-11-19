@@ -42,11 +42,14 @@ public class OtpVerificationService {
     public OtpVerificationService(FirestoreDataService dataService,
                                   ObjectProvider<JavaMailSender> mailSenderProvider,
                                   ObjectProvider<FirebaseAuth> firebaseAuthProvider,
-                                  @Value("${report.delivery.email.from:${app.mail.from:${spring.mail.username:localhost@bachatgat.local}}}") String fromAddress) {
+                                  @Value("${report.delivery.email.from:}") String configuredFromAddress,
+                                  @Value("${spring.mail.username:}") String smtpUsername) {
         this.dataService = dataService;
         this.mailSenderProvider = mailSenderProvider;
         this.firebaseAuthProvider = firebaseAuthProvider;
-        this.fromAddress = fromAddress;
+        String configured = configuredFromAddress == null ? "" : configuredFromAddress.trim();
+        String smtpLogin = smtpUsername == null ? "" : smtpUsername.trim();
+        this.fromAddress = configured.isBlank() ? smtpLogin : configured;
     }
 
     public Map<String, Object> verifyFirebaseMobile(String sessionId, String phoneNumber, String idToken) {
@@ -129,6 +132,9 @@ public class OtpVerificationService {
         challenge.setConsumed(false);
         JavaMailSender sender = mailSenderProvider.getIfAvailable();
         if (sender == null) throw new InvalidFinancialOperationException("Email OTP is not configured. Start Mailpit and configure SMTP first.");
+        if (fromAddress.isBlank()) {
+            throw new InvalidFinancialOperationException("Email OTP is not configured. Set REPORT_EMAIL_FROM to a verified Brevo sender address.");
+        }
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(email);

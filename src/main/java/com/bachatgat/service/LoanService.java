@@ -98,15 +98,24 @@ public class LoanService {
         if (loanPayment.signum() > 0) {
             BigDecimal requestedInterest = money(request.getLoanInterestAmount());
             BigDecimal requestedPrincipal = money(request.getLoanPrincipalAmount());
-            boolean explicitInterestOnly = requestedInterest.signum() > 0
-                    && requestedPrincipal.signum() == 0
-                    && loanPayment.compareTo(requestedInterest) == 0;
-            if (explicitInterestOnly) {
-                // The browser may request an interest-only arrangement, but
-                // the backend still caps it at the actual outstanding interest
-                // and never accepts a client-supplied principal allocation.
-                interest = loanPayment.min(loan.getOutstandingInterest());
-                principal = BigDecimal.ZERO.setScale(2);
+            boolean hasExplicitAllocation = requestedInterest.signum() > 0 || requestedPrincipal.signum() > 0;
+            if (hasExplicitAllocation) {
+                // The component checkboxes represent an approved arrangement:
+                // principal-only payments must not be silently redirected to
+                // interest, and interest-only payments must not reduce
+                // principal. Validate the requested split against the amount
+                // received and cap it at the actual outstanding balances.
+                if (requestedInterest.add(requestedPrincipal).compareTo(loanPayment) != 0) {
+                    throw new InvalidFinancialOperationException("Selected loan principal and interest must add up to the amount received.");
+                }
+                BigDecimal principalDue = loan.getOutstandingPrincipal()
+                        .add(loan.getPendingPrincipal() != null ? loan.getPendingPrincipal() : BigDecimal.ZERO);
+                if (requestedInterest.compareTo(loan.getOutstandingInterest()) > 0
+                        || requestedPrincipal.compareTo(principalDue) > 0) {
+                    throw new InvalidFinancialOperationException("Selected loan component exceeds the outstanding balance.");
+                }
+                interest = requestedInterest;
+                principal = requestedPrincipal;
             } else {
                 BigDecimal[] allocated = allocateLoanPayment(loan, loanPayment);
                 principal = allocated[0];
@@ -127,13 +136,20 @@ public class LoanService {
             loan.setPrincipalPaid(loan.getPrincipalPaid().add(principal));
             loan.setInterestPaid(loan.getInterestPaid().add(interest));
             loan.setTotalPaid(loan.getTotalPaid().add(loanPayment));
-            BigDecimal originalPrincipal = money(loan.getPrincipalAmount());
-            loan.setOutstandingPrincipal(originalPrincipal.subtract(loan.getPrincipalPaid()).max(BigDecimal.ZERO));
-            loan.setOutstandingInterest(calculateProjectedInterest(loan, schedule)
-                    .subtract(loan.getInterestPaid()).max(BigDecimal.ZERO));
-            loan.setPendingInterest(loan.getOutstandingInterest());
-            loan.setPendingPrincipal(loan.getOutstandingPrincipal());
-            loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(loan.getOutstandingInterest()));
+            if (!"FLAT".equalsIgnoreCase(loan.getInterestType())) {
+                // Reconcile from the updated schedule so Option B keeps the
+                // contractual balance reduction and the separately pending
+                // principal in sync after a partial payment.
+                com.bachatgat.repository.LoanScheduleCalculatorSupport.reconcileReducingLoanSummary(loan, schedule);
+            } else {
+                BigDecimal originalPrincipal = money(loan.getPrincipalAmount());
+                loan.setOutstandingPrincipal(originalPrincipal.subtract(loan.getPrincipalPaid()).max(BigDecimal.ZERO));
+                loan.setOutstandingInterest(calculateProjectedInterest(loan, schedule)
+                        .subtract(loan.getInterestPaid()).max(BigDecimal.ZERO));
+                loan.setPendingInterest(loan.getOutstandingInterest());
+                loan.setPendingPrincipal(loan.getOutstandingPrincipal());
+                loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(loan.getOutstandingInterest()));
+            }
             loan.setStatus(loan.getTotalOutstanding().signum() <= 0 ? LoanStatus.COMPLETED : LoanStatus.PARTIALLY_PAID);
             schedule.stream().filter(s -> s.getStatus() != RepaymentStatus.PAID).findFirst()
                     .ifPresent(next -> loan.setNextDueDate(next.getDueDate()));
@@ -171,7 +187,11 @@ public class LoanService {
         BigDecimal remainingInterest = interest;
         BigDecimal remainingPrincipal = principal;
         for (LoanRepaymentSchedule item : schedule) {
-            BigDecimal scheduledInterest = item.getInterestAmount() != null ? item.getInterestAmount() : BigDecimal.ZERO;
+            BigDecimal scheduledInterest = item.getTotalInterestDue() != null
+                    ? item.getTotalInterestDue() : BigDecimal.ZERO;
+            if (scheduledInterest.signum() == 0 && item.getInterestAmount() != null) {
+                scheduledInterest = item.getInterestAmount();
+            }
             BigDecimal scheduledPrincipal = item.getPrincipalAmount() != null ? item.getPrincipalAmount() : BigDecimal.ZERO;
             BigDecimal alreadyPaidInterest = item.getPaidInterestAmount();
             BigDecimal alreadyPaidPrincipal = item.getPaidPrincipalAmount();
@@ -352,14 +372,18 @@ public class LoanService {
         // unpaid balance is received.
 
         BigDecimal scheduledInterestDue;
-        if (currentInst != null && currentInst.getInterestAmount() != null && currentInst.getInterestAmount().compareTo(BigDecimal.ZERO) > 0) {
+        BigDecimal currentInterestDue = currentInst == null ? BigDecimal.ZERO : currentInst.getTotalInterestDue();
+        if (currentInst != null && currentInterestDue.signum() == 0 && currentInst.getInterestAmount() != null) {
+            currentInterestDue = currentInst.getInterestAmount();
+        }
+        if (currentInst != null && currentInterestDue != null && currentInterestDue.compareTo(BigDecimal.ZERO) > 0) {
             // A partially paid installment may already have paid some of its interest.
             // Charge only the unpaid interest for this installment; using the full
             // scheduled interest here makes the loan summary disagree with the schedule.
             BigDecimal alreadyPaid = currentInst.getPaidAmount() != null
                     ? currentInst.getPaidAmount() : BigDecimal.ZERO;
-            BigDecimal interestAlreadyPaid = alreadyPaid.min(currentInst.getInterestAmount());
-            scheduledInterestDue = currentInst.getInterestAmount()
+            BigDecimal interestAlreadyPaid = alreadyPaid.min(currentInterestDue);
+            scheduledInterestDue = currentInterestDue
                     .subtract(interestAlreadyPaid)
                     .max(BigDecimal.ZERO)
                     .min(loan.getOutstandingInterest());
@@ -476,7 +500,10 @@ public class LoanService {
         BigDecimal principal = BigDecimal.ZERO;
         List<LoanRepaymentSchedule> schedule = dataService.getLoanSchedule(loan.getId());
         for (LoanRepaymentSchedule item : schedule) {
-            BigDecimal interestDue = item.getInterestAmount() == null ? BigDecimal.ZERO : item.getInterestAmount();
+            BigDecimal interestDue = item.getTotalInterestDue() == null ? BigDecimal.ZERO : item.getTotalInterestDue();
+            if (interestDue.signum() == 0 && item.getInterestAmount() != null) {
+                interestDue = item.getInterestAmount();
+            }
             BigDecimal principalDue = item.getPrincipalAmount() == null ? BigDecimal.ZERO : item.getPrincipalAmount();
             BigDecimal paidInterest = item.getPaidInterestAmount();
             BigDecimal paidPrincipal = item.getPaidPrincipalAmount();

@@ -397,7 +397,7 @@ class FinancialCalculatorTest {
         // current interest. The following month must use the new balance.
         recorded.get(1).setPaidInterestAmount(new BigDecimal("650.00"));
         recorded.get(1).setPaidPrincipalAmount(new BigDecimal("10301.25"));
-        recorded.get(1).setPaidAmount(new BigDecimal("10951.25"));
+        recorded.get(1).setPaidAmount(new BigDecimal("10900.00"));
 
         var afterPrincipalPayment = FinancialCalculator.generateReducingScheduleWithPayments(
                 new BigDecimal("65000"), new BigDecimal("12"), false, 12, start, recorded);
@@ -405,6 +405,32 @@ class FinancialCalculatorTest {
         assertEquals(new BigDecimal("54698.75"), afterPrincipalPayment.get(1).getClosingPrincipal());
         assertEquals(new BigDecimal("54698.75"), afterPrincipalPayment.get(2).getOpeningPrincipal());
         assertEquals(new BigDecimal("546.99"), afterPrincipalPayment.get(2).getInterestAmount());
+    }
+
+    @Test
+    @DisplayName("Missed principal keeps the closing balance unchanged until collection")
+    void testMissedPrincipalKeepsClosingBalanceUnchangedUntilCollected() {
+        BigDecimal principal = new BigDecimal("65000");
+        int tenure = 12;
+        java.time.LocalDate start = java.time.LocalDate.now().minusMonths(tenure + 1L);
+        var recorded = FinancialCalculator.generateAmortizationSchedule(
+                principal, new BigDecimal("12"), false, tenure, start);
+
+        // Month 1: interest is paid, but the principal is missed. No later
+        // principal payment is recorded yet.
+        recorded.get(0).setPaidInterestAmount(recorded.get(0).getInterestAmount());
+        recorded.get(0).setPaidAmount(recorded.get(0).getInterestAmount());
+
+        var recalculated = FinancialCalculator.generateReducingScheduleWithPayments(
+                principal, new BigDecimal("12"), false, tenure, start, recorded);
+
+        for (var row : recalculated) {
+            assertEquals(0, principal.compareTo(row.getClosingPrincipal()),
+                    "Closing principal must stay unchanged while principal arrears remain unpaid");
+        }
+        assertEquals(new BigDecimal("5125.00"), recalculated.get(0).getPendingPrincipal());
+        assertTrue(recalculated.get(1).getPendingPrincipal().compareTo(
+                recalculated.get(0).getPendingPrincipal()) > 0);
     }
 
     @Test
@@ -435,7 +461,7 @@ class FinancialCalculatorTest {
         var afterCatchUp = FinancialCalculator.generateReducingScheduleWithPayments(
                 principal, new BigDecimal("12"), false, 12, start, recorded);
 
-        BigDecimal expectedClosing = principal.subtract(monthTwoPrincipal);
+        BigDecimal expectedClosing = principal.subtract(afterCatchUp.get(1).getPrincipalAmount());
         assertEquals(expectedClosing, afterCatchUp.get(1).getClosingPrincipal());
         assertEquals(expectedClosing, afterCatchUp.get(2).getOpeningPrincipal());
         assertTrue(afterCatchUp.get(2).getInterestAmount().compareTo(new BigDecimal("750.00")) < 0,
@@ -527,11 +553,43 @@ class FinancialCalculatorTest {
                 new BigDecimal("50000"), new BigDecimal("12"), false, tenure, start, catchUp);
 
         BigDecimal expectedClosing = afterCatchUp.get(1).getOpeningPrincipal()
-                .subtract(afterCatchUp.get(1).getPaidPrincipalAmount());
+                .subtract(afterCatchUp.get(1).getPrincipalAmount());
         assertEquals(expectedClosing, afterCatchUp.get(1).getClosingPrincipal());
         assertEquals(afterCatchUp.get(1).getClosingPrincipal(), afterCatchUp.get(2).getOpeningPrincipal());
         assertTrue(afterCatchUp.get(2).getInterestAmount().compareTo(new BigDecimal("500.00")) < 0);
         assertEquals(tenure, afterCatchUp.size());
+    }
+
+    @Test
+    @DisplayName("Principal-only payment carries that month's interest into the next installment")
+    void testPrincipalOnlyPaymentCarriesInterestForward() {
+        int tenure = 12;
+        java.time.LocalDate start = java.time.LocalDate.now().minusMonths(tenure + 1L);
+        var recorded = FinancialCalculator.generateAmortizationSchedule(
+                new BigDecimal("65000"), new BigDecimal("12"), false, tenure, start);
+
+        // Settle months 1-4 so month 5 is the only deferred-interest case.
+        for (int i = 0; i < 4; i++) {
+            var prior = recorded.get(i);
+            prior.setPaidPrincipalAmount(prior.getPrincipalAmount());
+            prior.setPaidInterestAmount(prior.getInterestAmount());
+            prior.setPaidAmount(prior.getTotalDue());
+        }
+
+        // Month 5: principal is paid, but the month's interest is deferred.
+        var monthFive = recorded.get(4);
+        monthFive.setPaidPrincipalAmount(monthFive.getPrincipalAmount());
+        monthFive.setPaidAmount(monthFive.getPrincipalAmount());
+
+        var afterPrincipalOnly = FinancialCalculator.generateReducingScheduleWithPayments(
+                new BigDecimal("65000"), new BigDecimal("12"), false, tenure, start, recorded);
+        var monthSix = afterPrincipalOnly.get(5);
+
+        assertTrue(monthSix.getPreviousPendingInterest().signum() > 0);
+        assertTrue(monthSix.getInterestAmount().compareTo(monthFive.getInterestAmount()) < 0);
+        assertTrue(monthSix.getTotalInterestDue().compareTo(monthSix.getInterestAmount()) > 0);
+        assertEquals(monthFive.getClosingPrincipal(), monthSix.getOpeningPrincipal());
+        assertEquals(tenure, afterPrincipalOnly.size());
     }
 
     @Test
@@ -556,6 +614,7 @@ class FinancialCalculatorTest {
         // settled first, followed by the current month's principal and
         // interest. The payment is represented on the individual rows.
         monthOne.setPaidPrincipalAmount(monthOne.getPrincipalAmount());
+        monthOne.setPaidDate(monthTwo.getDueDate());
         monthOne.setPaidAmount(monthOne.getPaidInterestAmount().add(monthOne.getPaidPrincipalAmount()));
         var recordedMonthTwo = recorded.get(1);
         recordedMonthTwo.setPaidPrincipalAmount(monthTwo.getScheduledPrincipalAmount());
@@ -565,10 +624,13 @@ class FinancialCalculatorTest {
         var afterCatchUp = FinancialCalculator.generateReducingScheduleWithPayments(
                 principal, new BigDecimal("12"), false, tenure, start, recorded);
 
-        assertEquals(new BigDecimal("46058.00"), afterCatchUp.get(0).getClosingPrincipal());
-        assertEquals(new BigDecimal("46058.00"), afterCatchUp.get(1).getOpeningPrincipal());
-        assertEquals(new BigDecimal("42076.58"), afterCatchUp.get(1).getClosingPrincipal());
-        assertEquals(new BigDecimal("42076.58"), afterCatchUp.get(2).getOpeningPrincipal());
-        assertEquals(new BigDecimal("420.77"), afterCatchUp.get(2).getInterestAmount());
+        assertEquals(new BigDecimal("50000.00"), afterCatchUp.get(0).getClosingPrincipal());
+        assertEquals(new BigDecimal("50000.00"), afterCatchUp.get(1).getOpeningPrincipal());
+        BigDecimal expectedCatchUpClosing = afterCatchUp.get(1).getOpeningPrincipal()
+                .subtract(afterCatchUp.get(1).getPaidPrincipalAmount())
+                .subtract(afterCatchUp.get(0).getPaidPrincipalAmount());
+        assertEquals(expectedCatchUpClosing, afterCatchUp.get(1).getClosingPrincipal());
+        assertEquals(expectedCatchUpClosing, afterCatchUp.get(2).getOpeningPrincipal());
+        assertTrue(afterCatchUp.get(2).getInterestAmount().compareTo(new BigDecimal("500.00")) < 0);
     }
 }

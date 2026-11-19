@@ -136,7 +136,7 @@
                 <span data-i18n="scheduleCalculationHelp">Calculated strictly in Java backend using BigDecimal reducing balance formula</span>
               </p>
               <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0.35rem 0 0 0;">
-                Closing principal is the actual principal still outstanding after payments. It remains equal to opening principal for unpaid or interest-only rows; scheduled principal is carried as pending until actually paid.
+                Closing principal remains unchanged while scheduled principal is unpaid. Once the pending principal is collected, the balance reduces once and later interest uses the reduced balance.
               </p>
             </div>
           </div>

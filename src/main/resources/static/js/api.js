@@ -101,9 +101,17 @@ class ApiClient {
       ...options.headers
     };
 
-    // Attach JWT Bearer Token if available
+    // Login and other authentication endpoints must start a fresh session.
+    // Reusing an old browser token here can make a public login request look
+    // like an already-authenticated request and result in a misleading 403.
+    const isAuthEndpoint = url.includes('/api/auth/login')
+      || url.includes('/api/auth/member-login')
+      || url.includes('/api/auth/member-first-login-setup')
+      || url.includes('/api/auth/change-password');
+
+    // Attach JWT Bearer Token only to non-authenticated API calls.
     const token = this.getToken();
-    if (token) {
+    if (token && !isAuthEndpoint) {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
@@ -118,7 +126,6 @@ class ApiClient {
       const response = await fetch(url, requestOptions);
 
       if (response.status === 401) {
-        const isAuthEndpoint = url.includes('/api/auth/login') || url.includes('/api/auth/member-login') || url.includes('/api/auth/member-first-login-setup') || url.includes('/api/auth/change-password');
         if (!isAuthEndpoint) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -139,7 +146,10 @@ class ApiClient {
       }
 
       if (response.status === 403) {
-        const accessDeniedMessage = window.Common?.t('apiAccessDenied', 'Access denied: You do not have permission to view or execute this action.');
+        let errData;
+        try { errData = await response.clone().json(); } catch (e) {}
+        const accessDeniedMessage = errData?.message
+          || window.Common?.t('apiAccessDenied', 'Access denied: You do not have permission to view or execute this action.');
         if (window.Common && window.Common.showToast) {
           window.Common.showToast(accessDeniedMessage, 'danger');
         } else {

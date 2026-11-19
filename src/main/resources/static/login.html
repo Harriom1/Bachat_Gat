@@ -157,7 +157,7 @@
     }
   </style>
 </head>
-<body>
+<body class="login-page">
   <div class="login-card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
       <a href="/guide.html" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 700; color: #0284c7; background: #e0f2fe; padding: 0.25rem 0.6rem; border-radius: 4px; border: 1px solid #bae6fd;">
@@ -405,6 +405,11 @@
 
       // Toggle Direct Mode button
       document.getElementById('btn-toggle-direct-mode').addEventListener('click', () => {
+        const username = document.getElementById('login-username').value.trim().toLowerCase();
+        if (!isDirectMode && username && username !== 'superadmin') {
+          showAlert('Only Super Admin can use Direct Login. Please choose your Bachat Gat and name.', 'warning');
+          return;
+        }
         enableDirectMode(!isDirectMode);
       });
 

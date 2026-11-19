@@ -614,15 +614,22 @@ const Common = {
    * the full navigation source.
    */
   initMobileBottomNav() {
+    if (/\/(login\.html)?$/.test(window.location.pathname)) return;
     if (document.querySelector('.mobile-bottom-nav')) return;
     const isAdmin = window.location.pathname.startsWith('/admin/');
     const path = window.location.pathname;
+    const currentUser = window.Auth?.getUser?.() || {};
+    const isSuperAdmin = String(currentUser.role || '').toUpperCase() === 'SUPER_ADMIN';
     const items = isAdmin
-      ? [
+      ? (isSuperAdmin ? [
+          ['/admin/super-dashboard.html', 'bi-grid-1x2-fill', 'Dashboard'],
+          ['/admin/groups.html', 'bi-buildings-fill', 'Groups'],
+          ['/admin/admins.html', 'bi-person-badge-fill', 'Presidents']
+        ] : [
           ['/admin/dashboard.html', 'bi-grid-1x2-fill', 'Dashboard'],
           ['/admin/collections.html', 'bi-wallet2', 'Collections'],
           ['/admin/reports.html', 'bi-bar-chart-fill', 'Reports']
-        ]
+        ])
       : [
           ['/user/dashboard.html', 'bi-grid-1x2-fill', 'Home'],
           ['/user/savings.html', 'bi-piggy-bank-fill', 'Savings'],

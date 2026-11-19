@@ -2304,3 +2304,14 @@ table.members-register-table .table-actions i { display: inline-block !important
   .mobile-nav-link { font-size: .62rem; }
   .mobile-nav-link i { font-size: .95rem; }
 }
+
+@media (max-width: 768px) {
+  body.login-page { padding-bottom: 1rem !important; }
+  body.login-page .mobile-bottom-nav { display: none !important; }
+  table.responsive-scroll-table th,
+  table.responsive-scroll-table td {
+    padding: .32rem .38rem !important;
+    font-size: .64rem !important;
+    line-height: 1.15 !important;
+  }
+}

@@ -26,7 +26,10 @@ public final class LoanScheduleCalculatorSupport {
                 monthlyRate,
                 loan.getDurationMonths() > 0 ? loan.getDurationMonths() : schedule.size(),
                 loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now());
-        BigDecimal totalInterest = contractualSchedule.stream()
+        // Use the recalculated schedule's current-month interest. If a
+        // principal installment was missed, the next month's interest is
+        // correctly calculated on the temporarily higher opening balance.
+        BigDecimal totalInterest = schedule.stream()
                 .map(LoanRepaymentSchedule::getInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal paidPrincipal = schedule.stream()
@@ -35,7 +38,15 @@ public final class LoanScheduleCalculatorSupport {
         BigDecimal paidInterest = schedule.stream()
                 .map(LoanRepaymentSchedule::getPaidInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal remainingPrincipal = principal.subtract(paidPrincipal).max(BigDecimal.ZERO);
+        BigDecimal pendingPrincipal = schedule.stream()
+                .map(item -> item.getPendingPrincipal() != null ? item.getPendingPrincipal() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal remainingPrincipal = schedule.stream()
+                .filter(item -> item.getStatus() == RepaymentStatus.UPCOMING)
+                .findFirst()
+                .map(LoanRepaymentSchedule::getOpeningPrincipal)
+                .orElseGet(() -> schedule.get(schedule.size() - 1).getClosingPrincipal())
+                .max(BigDecimal.ZERO);
         BigDecimal remainingInterest = totalInterest.subtract(paidInterest).max(BigDecimal.ZERO);
         loan.setTotalInterest(totalInterest);
         loan.setInterestPaid(paidInterest);
@@ -43,9 +54,9 @@ public final class LoanScheduleCalculatorSupport {
         loan.setPendingInterest(remainingInterest);
         loan.setPrincipalPaid(paidPrincipal);
         loan.setOutstandingPrincipal(remainingPrincipal);
-        loan.setPendingPrincipal(schedule.stream()
-                .map(LoanRepaymentSchedule::getPendingPrincipal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        loan.setPendingPrincipal(pendingPrincipal);
+        // remainingPrincipal already includes any unpaid scheduled principal;
+        // adding pendingPrincipal again would double-count it.
         loan.setTotalOutstanding(remainingPrincipal.add(remainingInterest));
         loan.setTotalPayable(principal.add(totalInterest));
         loan.setMonthlyInstallment(contractualSchedule.isEmpty()

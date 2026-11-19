@@ -313,6 +313,18 @@ public class AuthService {
             throw new UnauthorizedException("Please provide username or select a member.");
         }
 
+        // Direct login is intentionally restricted to Super Admin. Every
+        // group-level user must first choose the Bachat Gat and the person
+        // selected in that group, so an account cannot be chosen ambiguously
+        // when the same identifier exists in multiple groups.
+        boolean directIdentifierLogin = request.getUsername() != null && !request.getUsername().isBlank();
+        boolean superAdmin = user.getRole() == Role.SUPER_ADMIN;
+        if (directIdentifierLogin && !superAdmin
+                && (request.getGroupId() == null || request.getGroupId().isBlank()
+                || request.getMemberId() == null || request.getMemberId().isBlank())) {
+            throw new UnauthorizedException("Please choose your Bachat Gat and name before logging in.");
+        }
+
         // The group is a server-side authorization boundary. Even when the
         // client sends a username, never authenticate that account for a
         // different group supplied in the request.

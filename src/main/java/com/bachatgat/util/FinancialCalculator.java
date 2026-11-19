@@ -272,8 +272,9 @@ public final class FinancialCalculator {
      * Rebuilds a reducing-balance schedule from the standard EMI forecast and
      * overlays recorded payments. Future rows remain forecasts (and therefore
      * have no pending amount) until their due date. Once a due installment is
-     * missed, the actual balance is carried forward and the final installment
-     * becomes the original-maturity balloon settlement.
+     * missed, the balance stays unchanged until the deferred principal is
+     * actually collected. The next paid installment can therefore contain
+     * both the carried principal and the current scheduled principal.
      */
     public static java.util.List<com.bachatgat.model.LoanRepaymentSchedule> generateReducingScheduleWithPayments(
             BigDecimal principal, BigDecimal ratePercent, boolean isMonthlyRate, int durationMonths,
@@ -354,14 +355,21 @@ public final class FinancialCalculator {
             }
             paidInterest = paidInterest.min(interestDue).max(BigDecimal.ZERO);
             paidPrincipal = paidPrincipal.min(principalDue).max(BigDecimal.ZERO);
+            BigDecimal latePriorPrincipal = latePriorPrincipalPaid(recordedSchedule, installment, projected.getDueDate());
             BigDecimal paid = round(paidInterest.add(paidPrincipal));
             BigDecimal totalDue = round(principalDue.add(interestDue));
             BigDecimal outstanding = totalDue.subtract(paid).max(BigDecimal.ZERO);
+            BigDecimal latePaidOnThisRow = isLatePaymentForMonth(source, projected)
+                    ? paidPrincipal : BigDecimal.ZERO;
 
             entry.setOpeningPrincipal(opening);
             entry.setPrincipalAmount(round(principalDue));
             entry.setScheduledPrincipalAmount(round(scheduledPrincipal));
-            entry.setInterestAmount(round(interestDue));
+            // Display only this month's interest here. Any unpaid interest from
+            // earlier months remains in totalInterestDue/pendingInterest so it
+            // is still collected, but it must not be compounded into the next
+            // month's current-interest display.
+            entry.setInterestAmount(round(currentInterest));
             entry.setEmiAmount(totalDue);
             entry.setTotalDue(totalDue);
             entry.setPaidAmount(paid);
@@ -370,7 +378,13 @@ public final class FinancialCalculator {
             entry.setOutstandingAmount(due || hasRecordedPayment ? outstanding : BigDecimal.ZERO);
             entry.setPendingInterest(round(interestDue.subtract(paidInterest).max(BigDecimal.ZERO)));
             entry.setPendingPrincipal(round(principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO)));
-            entry.setClosingPrincipal(round(opening.subtract(paidPrincipal).max(BigDecimal.ZERO)));
+            // A missed principal installment does not reduce the outstanding
+            // balance. When the member catches up, paidPrincipal contains the
+            // carried principal plus the current principal, so both amounts
+            // reduce the balance in the catch-up month exactly once.
+            BigDecimal principalReduction = paidPrincipal.subtract(latePaidOnThisRow)
+                    .add(latePriorPrincipal).max(BigDecimal.ZERO);
+            entry.setClosingPrincipal(round(opening.subtract(principalReduction).max(BigDecimal.ZERO)));
             setScheduleCalculationFields(entry, ratePercent, isMonthlyRate,
                     projected.getEmiAmount(), unpaidInterest, unpaidPrincipal,
                     interestDue, principalDue,
@@ -400,6 +414,42 @@ public final class FinancialCalculator {
             result.add(entry);
         }
         return result;
+    }
+
+    /**
+     * The payment allocator records an overdue principal payment on the old
+     * installment that it settles. That payment must reduce the balance in the
+     * month it is actually received, not in the old missed month. This helper
+     * moves only late principal payments into the matching catch-up month for
+     * closing-balance purposes; the original row still keeps its audit trail.
+     */
+    private static BigDecimal latePriorPrincipalPaid(
+            java.util.List<com.bachatgat.model.LoanRepaymentSchedule> recordedSchedule,
+            int currentInstallment,
+            java.time.LocalDate currentDueDate) {
+        if (recordedSchedule == null || currentDueDate == null) return BigDecimal.ZERO;
+        BigDecimal latePaid = BigDecimal.ZERO;
+        for (com.bachatgat.model.LoanRepaymentSchedule prior : recordedSchedule) {
+            if (prior == null || prior.getInstallmentNo() >= currentInstallment
+                    || prior.getPaidDate() == null || prior.getDueDate() == null
+                    || prior.getPaidPrincipalAmount().signum() == 0) continue;
+            boolean sameCatchUpMonth = prior.getPaidDate().getYear() == currentDueDate.getYear()
+                    && prior.getPaidDate().getMonthValue() == currentDueDate.getMonthValue();
+            if (prior.getPaidDate().isAfter(prior.getDueDate()) && sameCatchUpMonth) {
+                latePaid = latePaid.add(prior.getPaidPrincipalAmount());
+            }
+        }
+        return round(latePaid);
+    }
+
+    private static boolean isLatePaymentForMonth(
+            com.bachatgat.model.LoanRepaymentSchedule source,
+            com.bachatgat.model.LoanRepaymentSchedule projected) {
+        if (source == null || projected == null || source.getPaidDate() == null
+                || projected.getDueDate() == null || source.getPaidPrincipalAmount().signum() == 0) {
+            return false;
+        }
+        return source.getPaidDate().isAfter(projected.getDueDate());
     }
 
     /**

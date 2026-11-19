@@ -26,23 +26,33 @@ public class UserPrincipal implements UserDetails {
         this.username = user.getUsername();
         this.password = user.getPassword();
         this.fullName = user.getFullName();
-        this.role = user.getRole();
+        // Older production records may have SUPER_ADMIN in designation while
+        // the legacy role field is ADMIN. The UI already treats that account
+        // as a super admin, so the server must derive the same effective role
+        // before evaluating @PreAuthorize rules.
+        this.role = isSuperAdminDesignation(user.getDesignation())
+                ? Role.SUPER_ADMIN
+                : user.getRole();
         this.groupId = user.getGroupId();
         this.memberId = user.getMemberId();
         this.active = user.isActive();
         this.designation = user.getDesignation();
         java.util.List<GrantedAuthority> auths = new java.util.ArrayList<>();
-        auths.add(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
-        if (user.getRole() == Role.PRESIDENT || user.getRole() == Role.SECRETARY || user.getRole() == Role.TREASURER || user.getRole() == Role.SUPER_ADMIN) {
+        auths.add(new SimpleGrantedAuthority("ROLE_" + this.role.name()));
+        if (this.role == Role.PRESIDENT || this.role == Role.SECRETARY || this.role == Role.TREASURER || this.role == Role.SUPER_ADMIN) {
             auths.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
         }
-        if (user.getRole() == Role.MEMBER) {
+        if (this.role == Role.MEMBER) {
             auths.add(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        if (user.getRole() == Role.USER) {
+        if (this.role == Role.USER) {
             auths.add(new SimpleGrantedAuthority("ROLE_MEMBER"));
         }
         this.authorities = java.util.Collections.unmodifiableList(auths);
+    }
+
+    private static boolean isSuperAdminDesignation(String designation) {
+        return designation != null && "SUPER_ADMIN".equalsIgnoreCase(designation.trim());
     }
 
     public UserPrincipal(String id, String username, String password, Role role, String groupId, String memberId) {

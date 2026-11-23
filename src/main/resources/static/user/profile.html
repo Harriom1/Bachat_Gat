@@ -366,10 +366,10 @@
         const commEl = document.getElementById('prof-committed-amount');
         if (commEl) commEl.textContent = Common.formatIndianCurrency(m.monthlyBachatAmount || 0);
         document.getElementById('prof-target-savings').textContent = Common.formatIndianCurrency(m.totalSavingsTarget || 60000);
-        const startStr = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : Common.formatDate(m.joiningDate);
+        const startStr = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : 'Group start date';
         const endStr = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
         document.getElementById('prof-bachat-timeline').textContent = `${startStr} → ${endStr}`;
-        document.getElementById('prof-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of Month';
+        document.getElementById('prof-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '—';
 
         if (m.activeLoanId && parseFloat(m.currentLoanOutstanding || 0) > 0) {
           document.getElementById('prof-standing-badge').innerHTML = `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight: 600;"><i class="bi bi-cash"></i> LOAN: ${Common.formatIndianCurrency(m.currentLoanOutstanding)}</span>`;

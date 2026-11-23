@@ -341,9 +341,9 @@
           document.getElementById('m-committed-share').textContent = Common.formatIndianCurrency(monthlyCommitted);
         }
         document.getElementById('m-savings-target').textContent = Common.formatIndianCurrency(m.totalSavingsTarget || 60000);
-        document.getElementById('m-start-date').textContent = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : Common.formatDate(m.joiningDate);
+        document.getElementById('m-start-date').textContent = m.bachatStartDate ? Common.formatDate(m.bachatStartDate) : 'See group start date';
         document.getElementById('m-end-date').textContent = m.bachatEndDate ? Common.formatDate(m.bachatEndDate) : '-';
-        document.getElementById('m-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '10th of every month';
+        document.getElementById('m-next-due').textContent = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '—';
 
         // Identity & Bank
         document.getElementById('m-pan-num').textContent = m.panNumber || '-';

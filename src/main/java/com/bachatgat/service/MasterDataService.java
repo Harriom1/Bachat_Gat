@@ -37,7 +37,7 @@ public class MasterDataService {
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
         GroupMasterData rules = new GroupMasterData(groupId, 1, group.getMonthlyShareAmount(),
                 BigDecimal.valueOf(4100), group.getDefaultInterestRate(), group.getMaxLoanAmount(),
-                group.getLateFeeAmount(), 10, group.getGracePeriodDays(), "AUTO_INITIALIZED");
+                group.getLateFeeAmount(), group.getCollectionDueDay(), group.getGracePeriodDays(), "AUTO_INITIALIZED");
         rules.setLoanInterestType(group.getLoanInterestType());
         rules.setMaxLoanAmountPerMember(group.getMaxLoanAmountPerMember());
         rules.setMaxOutstandingLoanAmount(group.getMaxOutstandingLoanAmount());
@@ -65,6 +65,7 @@ public class MasterDataService {
     }
 
     public GroupMasterData updateMasterData(String groupId, MasterDataDTO dto, String adminUsername) {
+        MonthlyBachatCalendar.validateDueDay(dto.getCollectionDueDay());
         GroupMasterData current = getLatestMasterData(groupId);
         int nextVersion = current.getVersion() + 1;
 

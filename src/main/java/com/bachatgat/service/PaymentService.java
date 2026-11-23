@@ -123,6 +123,8 @@ public class PaymentService {
         // Monthly Bachat is controlled by the group's Master Data rule.
         // Never trust a stale amount sent by an older member-page/browser.
         if ("MONTHLY_SAVINGS".equalsIgnoreCase(request.getPaymentType())) {
+            collectionService.requireEligibleMonthlyPayment(effectiveGroupId, member, java.time.YearMonth.of(year, month),
+                    BigDecimal.ONE, lateFee);
             String businessKey = effectiveGroupId + "_" + member.getMemberId() + "_" + month + "_" + year;
             CollectionRecord collection = dataService.findCollectionByBusinessKey(businessKey).orElse(null);
             GroupMasterData rules = masterDataService.getMasterDataForDate(
@@ -186,6 +188,8 @@ public class PaymentService {
             shareAmount = totalRequested.subtract(loanPrincipal).subtract(loanInterest).subtract(extraLoanPayment).subtract(lateFee).subtract(otherAmount).max(BigDecimal.ZERO);
         }
 
+        collectionService.requireEligibleMonthlyPayment(effectiveGroupId, member, java.time.YearMonth.of(year, month),
+                shareAmount, lateFee);
         String orderId = "ORD-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         String signatureToken = generateSignatureToken(orderId, totalRequested, effectiveMemberId);
 

@@ -349,8 +349,9 @@
         try {
           const curMonth = new Date().getMonth() + 1;
           const curYear = new Date().getFullYear();
-          await api.generateMonthlyCollections(currentGroupId, curMonth, curYear);
-          Common.showToast('Monthly expected collection records generated successfully!', 'success');
+          const generated = await api.generateMonthlyCollections(currentGroupId, curMonth, curYear);
+          Common.showToast(generated.length ? `Generated ${generated.length} monthly collection records.`
+            : 'No new monthly collections are due for this period.', generated.length ? 'success' : 'info');
           await loadDashboardData(currentGroupId);
         } catch (err) {
           Common.showToast(err.message, 'danger');
@@ -426,7 +427,7 @@
           // Populate Group Overview Pending Cards (Requirements 17 & 18)
           const curMonth = new Date().getMonth() + 1;
           const curYear = new Date().getFullYear();
-          const pendingShareList = (collections || []).filter(c => c.month === curMonth && c.year === curYear && c.status !== 'PAID');
+          const pendingShareList = (collections || []).filter(c => c.month === curMonth && c.year === curYear && Number(c.pendingAmount || 0) > 0);
           const pendingShareCount = pendingShareList.length;
           const pendingShareTotal = pendingShareList.reduce((sum, c) => sum + (Number(c.pendingAmount) || (Number(c.expectedAmount) - Number(c.paidAmount || 0))), 0);
 
@@ -493,8 +494,8 @@
 
         const totalDue = share + emi;
         const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const curMonthStr = monthNamesShort[curMonth - 1] || 'Oct';
-        const dueDate = m.nextDueDate ? Common.formatDate(m.nextDueDate) : `10 ${curMonthStr} ${curYear}`;
+
+        const dueDate = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '—';
 
         return `
           <tr>

@@ -25,10 +25,11 @@ public class MemberService {
     private final TransactionService transactionService;
     private final AuditService auditService;
     private final PasswordEncoder passwordEncoder;
+    private final CollectionService collectionService;
 
     public MemberService(FirestoreDataService dataService, MemberRepository memberRepository, GroupRepository groupRepository,
                          MasterDataRepository masterDataRepository, TransactionService transactionService,
-                         AuditService auditService, PasswordEncoder passwordEncoder) {
+                         AuditService auditService, PasswordEncoder passwordEncoder, CollectionService collectionService) {
         this.dataService = dataService;
         this.memberRepository = memberRepository;
         this.groupRepository = groupRepository;
@@ -36,6 +37,7 @@ public class MemberService {
         this.transactionService = transactionService;
         this.auditService = auditService;
         this.passwordEncoder = passwordEncoder;
+        this.collectionService = collectionService;
     }
 
     public List<Member> getAllMembers() {
@@ -138,6 +140,7 @@ public class MemberService {
         BigDecimal groupMonthlyBachat = getEffectiveGroupMonthlyBachat(group);
         member.setMonthlyBachatAmount(groupMonthlyBachat);
         member.setTotalSavingsTarget(groupMonthlyBachat.multiply(BigDecimal.valueOf(12)));
+        alignMonthlySchedule(member, group);
 
         // Initial financial setup
         BigDecimal initialShare = dto.getInitialShareAmount() != null ? dto.getInitialShareAmount() : BigDecimal.ZERO;
@@ -246,7 +249,7 @@ public class MemberService {
         if (endDate != null) {
             member.setBachatEndDate(endDate);
         }
-        member.setNextDueDate(LocalDate.now().withDayOfMonth(10));
+        alignMonthlySchedule(member, group);
 
         Member updated = memberRepository.save(member);
 
@@ -381,9 +384,22 @@ public class MemberService {
                 BigDecimal groupMonthlyBachat = getEffectiveGroupMonthlyBachat(group);
                 member.setMonthlyBachatAmount(groupMonthlyBachat);
                 member.setTotalSavingsTarget(groupMonthlyBachat.multiply(BigDecimal.valueOf(12)));
+                alignMonthlySchedule(member, group);
             });
         }
         return member;
+    }
+
+    private void alignMonthlySchedule(Member member, Group group) {
+        var today = MonthlyBachatCalendar.today();
+        var current = java.time.YearMonth.from(today);
+        var collections = collectionService.getMemberHistory(member.getMemberId());
+        member.setNextDueDate(collectionService.getNextBachatDueDate(group, member, collections, today));
+        member.setPendingSavings(collections.stream()
+                .filter(record -> group.getId().equals(record.getGroupId()))
+                .filter(record -> !java.time.YearMonth.of(record.getYear(), record.getMonth()).isAfter(current))
+                .map(CollectionRecord::getPendingAmount).filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     public Member updateStatus(String id, MemberStatus newStatus, String updatedBy) {
@@ -532,9 +548,8 @@ public class MemberService {
         member.setMonthlyCommittedAmount(dto.getMonthlyCommittedAmount() != null ? dto.getMonthlyCommittedAmount() : member.getMonthlyShareAmount());
         member.setMembershipFee(dto.getMembershipFee() != null ? dto.getMembershipFee() : BigDecimal.valueOf(200));
         member.setTotalSavingsTarget(dto.getTotalSavingsTarget() != null ? dto.getTotalSavingsTarget() : BigDecimal.valueOf(60000));
-        member.setBachatStartDate(dto.getBachatStartDate() != null ? dto.getBachatStartDate() : LocalDate.now());
+        member.setBachatStartDate(dto.getBachatStartDate());
         member.setBachatEndDate(dto.getBachatEndDate() != null ? dto.getBachatEndDate() : LocalDate.now().plusMonths(12));
-        member.setNextDueDate(dto.getNextDueDate() != null ? dto.getNextDueDate() : LocalDate.now().withDayOfMonth(10));
 
         member.setPanNumber(dto.getPanNumber());
         member.setAadhaarReference(dto.getAadhaarReference());

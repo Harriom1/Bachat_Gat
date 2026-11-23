@@ -34,6 +34,13 @@ public class CollectionRecord {
 
     public CollectionRecord() {}
 
+    public boolean canVoidPreStart() {
+        return (status == CollectionStatus.PENDING || status == CollectionStatus.UPCOMING || status == CollectionStatus.OVERDUE)
+                && (paidAmount == null || paidAmount.signum() == 0) && getPaidLateFee().signum() == 0
+                && getWaivedLateFee().signum() == 0 && paymentDate == null
+                && (referenceNumber == null || referenceNumber.isBlank());
+    }
+
     public CollectionRecord(String groupId, String memberId, String memberName, int month, int year, BigDecimal expectedAmount) {
         this.businessKey = groupId + "_" + memberId + "_" + month + "_" + year;
         this.id = this.businessKey;

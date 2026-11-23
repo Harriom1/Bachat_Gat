@@ -31,6 +31,8 @@ public class DashboardUserDTO {
     private BigDecimal totalInterestPaid = BigDecimal.ZERO;
     private BigDecimal nextPaymentAmount = BigDecimal.ZERO;
     private LocalDate nextPaymentDueDate;
+    private LocalDate nextBachatDueDate;
+    private boolean bachatStarted;
     private BigDecimal currentEmi = BigDecimal.ZERO;
     private BigDecimal currentPrincipal = BigDecimal.ZERO;
     private BigDecimal currentInterest = BigDecimal.ZERO;
@@ -86,6 +88,10 @@ public class DashboardUserDTO {
     public BigDecimal getNextPaymentAmount() { return nextPaymentAmount; }
     public void setNextPaymentAmount(BigDecimal nextPaymentAmount) { this.nextPaymentAmount = nextPaymentAmount; }
     public LocalDate getNextPaymentDueDate() { return nextPaymentDueDate; }
+    public LocalDate getNextBachatDueDate() { return nextBachatDueDate; }
+    public void setNextBachatDueDate(LocalDate nextBachatDueDate) { this.nextBachatDueDate = nextBachatDueDate; }
+    public boolean isBachatStarted() { return bachatStarted; }
+    public void setBachatStarted(boolean bachatStarted) { this.bachatStarted = bachatStarted; }
     public void setNextPaymentDueDate(LocalDate nextPaymentDueDate) { this.nextPaymentDueDate = nextPaymentDueDate; }
     public BigDecimal getCurrentEmi() { return currentEmi; }
     public void setCurrentEmi(BigDecimal currentEmi) { this.currentEmi = currentEmi; }

@@ -101,8 +101,9 @@ public class CurrentUserController {
         if (groupId == null || groupId.isBlank()) {
             throw new ResourceNotFoundException("User is not assigned to any Bachat Gat group.");
         }
-        int month = java.time.LocalDate.now().getMonthValue();
-        int year = java.time.LocalDate.now().getYear();
+        var today = com.bachatgat.service.MonthlyBachatCalendar.today();
+        int month = today.getMonthValue();
+        int year = today.getYear();
         Map<String, Object> result = new java.util.LinkedHashMap<>();
         result.put("month", month);
         result.put("year", year);

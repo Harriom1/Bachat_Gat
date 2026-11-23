@@ -611,6 +611,7 @@ public class FirestoreDataService {
     }
 
     public Optional<Member> findMemberByMemberIdIncludingArchived(String memberId) {
+        ensureLoaded("members");
         return members.values().stream()
                 .filter(m -> m.getMemberId() != null && m.getMemberId().equalsIgnoreCase(memberId))
                 .findFirst();
@@ -709,7 +710,79 @@ public class FirestoreDataService {
 
     public Optional<CollectionRecord> findCollectionByBusinessKey(String businessKey) {
         ensureLoaded("collections");
-        return Optional.ofNullable(collections.get(businessKey));
+        CollectionRecord record = collections.get(businessKey);
+        if (record == null) {
+            record = collections.values().stream().filter(c -> businessKey.equals(c.getBusinessKey()))
+                    .findFirst().orElse(null);
+        }
+        return Optional.ofNullable(record).filter(c -> c.getStatus() != CollectionStatus.VOID_PRE_START);
+    }
+
+    /** Create a deterministic monthly record without overwriting another instance's record or payment. */
+    public synchronized boolean createMonthlyCollection(CollectionRecord record) {
+        if (findCollectionByBusinessKey(record.getBusinessKey()).isPresent()) return false;
+        if (firestore == null) {
+            saveCollection(record);
+            return true;
+        }
+        var document = firestore.collection("collections").document(record.getId());
+        try {
+            boolean created = firestore.runTransaction(tx -> {
+                var snapshot = tx.get(document).get();
+                if (snapshot.exists() && !CollectionStatus.VOID_PRE_START.name().equals(snapshot.getString("status"))) {
+                    return false;
+                }
+                tx.set(document, objectMapper.convertValue(record, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {}));
+                return true;
+            }).get();
+            if (created) {
+                collections.put(record.getId(), record);
+            } else {
+                var snapshot = document.get().get();
+                if (snapshot.exists()) {
+                    CollectionRecord existing = objectMapper.convertValue(snapshot.getData(), CollectionRecord.class);
+                    existing.setId(snapshot.getId());
+                    collections.put(existing.getId(), existing);
+                }
+            }
+            return created;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while generating monthly Bachat.", ex);
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new IllegalStateException("Could not generate monthly Bachat.", ex);
+        }
+    }
+
+    /** Persist the correction only if the authoritative document still has no payment evidence. */
+    public synchronized boolean voidPreStartCollection(CollectionRecord record) {
+        if (!record.canVoidPreStart()) return false;
+        if (firestore != null) {
+            var document = firestore.collection("collections").document(record.getId());
+            try {
+                boolean updated = firestore.runTransaction(tx -> {
+                    var snapshot = tx.get(document).get();
+                    if (!snapshot.exists()) return false;
+                    CollectionRecord current = objectMapper.convertValue(snapshot.getData(), CollectionRecord.class);
+                    if (!current.canVoidPreStart()) return false;
+                    tx.update(document, Map.of("status", CollectionStatus.VOID_PRE_START.name(),
+                            "expectedAmount", 0, "pendingAmount", 0, "lateFeeAmount", 0, "daysLate", 0));
+                    return true;
+                }).get();
+                if (!updated) return false;
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while correcting a pre-start collection.", ex);
+            } catch (java.util.concurrent.ExecutionException ex) {
+                throw new IllegalStateException("Could not correct a pre-start collection.", ex);
+            }
+        }
+        record.setStatus(CollectionStatus.VOID_PRE_START);
+        record.setExpectedAmount(BigDecimal.ZERO);
+        record.setPendingAmount(BigDecimal.ZERO);
+        record.setLateFeeAmount(BigDecimal.ZERO);
+        record.setDaysLate(0);
+        return true;
     }
 
     public CollectionRecord saveCollection(CollectionRecord record) {

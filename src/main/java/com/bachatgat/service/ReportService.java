@@ -34,6 +34,7 @@ public class ReportService {
 
     private final FirestoreDataService dataService;
     private final GroupFundService groupFundService;
+    private final CollectionService collectionService;
     private final JavaMailSender mailSender;
     private final ObjectMapper objectMapper;
 
@@ -58,9 +59,10 @@ public class ReportService {
 
     public ReportService(FirestoreDataService dataService, GroupFundService groupFundService,
                          ObjectProvider<JavaMailSender> mailSenderProvider,
-                         ObjectMapper objectMapper) {
+                         ObjectMapper objectMapper, CollectionService collectionService) {
         this.dataService = dataService;
         this.groupFundService = groupFundService;
+        this.collectionService = collectionService;
         this.mailSender = mailSenderProvider.getIfAvailable();
         this.objectMapper = objectMapper;
     }
@@ -86,7 +88,7 @@ public class ReportService {
         LocalDate start = selected.atDay(1);
         LocalDate endExclusive = selected.plusMonths(1).atDay(1);
 
-        List<CollectionRecord> monthCollections = dataService.getCollectionsByGroupId(groupId).stream()
+        List<CollectionRecord> monthCollections = collectionService.getGroupCollections(groupId).stream()
                 .filter(c -> c.getMonth() == month && c.getYear() == year)
                 .toList();
         report.put("collections", monthCollections);
@@ -231,7 +233,7 @@ public class ReportService {
         groupBalanceSheet.put("closingBalance", groupFundService.getAvailableFund(groupId));
         report.put("groupBalanceSheet", groupBalanceSheet);
         report.put("savingsPaidMembers", monthCollections.stream().filter(c -> c.getStatus() == CollectionStatus.PAID || c.getStatus() == CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
-        report.put("pendingShareMembers", monthCollections.stream().filter(c -> c.getStatus() != CollectionStatus.PAID && c.getStatus() != CollectionStatus.LATE).map(CollectionRecord::getMemberId).toList());
+        report.put("pendingShareMembers", monthCollections.stream().filter(c -> nz(c.getPendingAmount()).signum() > 0).map(CollectionRecord::getMemberId).toList());
 
         Map<String, CollectionRecord> monthlyCollectionsByMember = monthCollections.stream()
                 .filter(c -> c.getMemberId() != null)
@@ -255,7 +257,7 @@ public class ReportService {
         report.put("memberLoanLedger", groupMembers.stream()
                 .map(m -> {
                     Map<String, Object> row = new java.util.LinkedHashMap<>();
-                    List<CollectionRecord> memberCollections = dataService.getCollectionsByMemberId(m.getMemberId());
+                    List<CollectionRecord> memberCollections = collectionService.getMemberHistory(m.getMemberId());
                     CollectionRecord selectedCollection = memberCollections.stream()
                             .filter(c -> c.getMonth() == month && c.getYear() == year)
                             .findFirst()
@@ -280,7 +282,7 @@ public class ReportService {
         // Keep historical members visible unless they explicitly exited the group.
         List<Map<String, Object>> memberReports = groupMembers.stream().map(member -> {
             Map<String, Object> memberReport = new java.util.LinkedHashMap<>();
-            List<CollectionRecord> memberCollections = dataService.getCollectionsByMemberId(member.getMemberId());
+            List<CollectionRecord> memberCollections = collectionService.getMemberHistory(member.getMemberId());
             List<Loan> memberLoans = dataService.getLoansByMemberId(member.getMemberId()).stream()
                     .filter(l -> l.getStatus() != LoanStatus.CANCELLED).toList();
             List<Map<String, Object>> loanReports = memberLoans.stream().map(loan -> {
@@ -379,7 +381,7 @@ public class ReportService {
         statement.put("group", group);
         statement.put("member", member);
 
-        List<CollectionRecord> collections = dataService.getCollectionsByMemberId(member.getMemberId());
+        List<CollectionRecord> collections = collectionService.getMemberHistory(member.getMemberId());
         statement.put("collections", collections);
 
         List<Loan> loans = dataService.getLoansByMemberId(member.getMemberId());
@@ -400,7 +402,7 @@ public class ReportService {
         report.put("group", group);
         report.put("year", year);
 
-        List<CollectionRecord> yearCollections = dataService.getCollectionsByGroupId(groupId).stream()
+        List<CollectionRecord> yearCollections = collectionService.getGroupCollections(groupId).stream()
                 .filter(c -> c.getYear() == year)
                 .toList();
 

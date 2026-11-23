@@ -44,8 +44,9 @@ public class AdminCollectionController {
             @RequestParam(required = false) Integer year,
             @AuthenticationPrincipal UserPrincipal principal) {
         groupSecurityService.validateGroupAccess(principal, groupId);
-        int m = (month != null && month > 0) ? month : java.time.LocalDate.now().getMonthValue();
-        int y = (year != null && year > 0) ? year : java.time.LocalDate.now().getYear();
+        var today = com.bachatgat.service.MonthlyBachatCalendar.today();
+        int m = (month != null && month > 0) ? month : today.getMonthValue();
+        int y = (year != null && year > 0) ? year : today.getYear();
         List<java.util.Map<String, Object>> pending = collectionService.getPendingSavingsMembers(groupId, m, y);
         return ResponseEntity.ok(ApiResponse.ok(pending));
     }

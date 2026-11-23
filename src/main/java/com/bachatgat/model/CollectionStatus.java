@@ -10,6 +10,7 @@ public enum CollectionStatus {
     WAIVED,
     FAILED,
     REFUNDED,
-    ADJUSTED
+    ADJUSTED,
+    VOID_PRE_START
 }
 

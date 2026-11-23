@@ -3,6 +3,7 @@ package com.bachatgat.scheduler;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
 import com.bachatgat.service.CollectionService;
+import com.bachatgat.service.MonthlyBachatCalendar;
 import com.bachatgat.service.NotificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +34,12 @@ public class ScheduledJobsService {
      * Triggers on 1st of every month at 00:05 AM (or Cloud Scheduler cron trigger).
      * Idempotently creates expected monthly bachat collection records for all active members.
      */
-    @Scheduled(cron = "0 5 0 1 * ?")
+    @Scheduled(cron = "0 5 0 1 * ?", zone = "Asia/Kolkata")
     public void runMonthlyCollectionGeneration() {
         log.info("Executing scheduled monthly collection generation job...");
-        int currentMonth = LocalDate.now().getMonthValue();
-        int currentYear = LocalDate.now().getYear();
+        LocalDate today = MonthlyBachatCalendar.today();
+        int currentMonth = today.getMonthValue();
+        int currentYear = today.getYear();
 
         for (Group group : dataService.getAllGroups()) {
             if ("ACTIVE".equalsIgnoreCase(group.getStatus())) {

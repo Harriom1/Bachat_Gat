@@ -36,6 +36,7 @@ public class GroupDTO {
     @JsonAlias("monthlyShareAmount")
     private BigDecimal monthlyBachatAmount;
     private Integer collectionDueDay; // Configurable due date (e.g. 5, 10)
+    private BigDecimal initialContributionAmount;
     
     private BigDecimal defaultInterestRate;
     private String loanInterestType;
@@ -180,8 +181,10 @@ public class GroupDTO {
     public String getMobileVerificationId() { return mobileVerificationId; }
     public void setMobileVerificationId(String mobileVerificationId) { this.mobileVerificationId = mobileVerificationId; }
 
-    public Integer getCollectionDueDay() { return collectionDueDay != null && collectionDueDay > 0 ? collectionDueDay : 10; }
+    public Integer getCollectionDueDay() { return collectionDueDay; }
     public void setCollectionDueDay(Integer collectionDueDay) { this.collectionDueDay = collectionDueDay; }
+    public BigDecimal getInitialContributionAmount() { return initialContributionAmount; }
+    public void setInitialContributionAmount(BigDecimal initialContributionAmount) { this.initialContributionAmount = initialContributionAmount; }
     public Boolean getAllowMultipleLoans() { return allowMultipleLoans != null ? allowMultipleLoans : false; }
     public Boolean isAllowMultipleLoans() { return Boolean.TRUE.equals(allowMultipleLoans); }
     public void setAllowMultipleLoans(Boolean allowMultipleLoans) { this.allowMultipleLoans = allowMultipleLoans; }

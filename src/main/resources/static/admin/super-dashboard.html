@@ -239,12 +239,16 @@
               <input type="number" id="inp-monthly-share" class="form-control" value="5000" min="50" step="50" required>
             </div>
             <div class="form-group">
-              <label class="form-label" for="inp-due-day">Collection Due Day (1-28)</label>
-              <input type="number" id="inp-due-day" class="form-control" value="10" min="1" max="28">
+              <label class="form-label" for="inp-due-day">Collection Due Day (1–31)</label>
+              <input type="number" id="inp-due-day" class="form-control" value="10" min="1" max="31">
             </div>
             <div class="form-group">
-              <label class="form-label" for="inp-formation-date">Formation Date</label>
-              <input type="date" id="inp-formation-date" class="form-control">
+              <label class="form-label" for="inp-formation-date">Official Group Start Date</label>
+              <input type="date" id="inp-formation-date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="inp-initial-contribution">Initial contribution (₹)</label>
+              <input type="number" id="inp-initial-contribution" class="form-control" min="0" step="0.01">
             </div>
           </div>
 
@@ -518,7 +522,7 @@
                 </div>
                 <div class="form-group">
                   <label class="form-label">Due Date (Day of Month)</label>
-                  <input type="number" id="inp-new-group-duedate" class="form-control" value="10" min="1" max="28">
+                  <input type="number" id="inp-new-group-duedate" class="form-control" value="10" min="1" max="31">
                 </div>
               </div>
             </div>
@@ -968,6 +972,7 @@
         maxLoanAmountPerMember: Number(document.getElementById('inp-max-loan-per-member').value),
         collectionDueDay: parseInt(document.getElementById('inp-due-day')?.value) || 10,
         formationDate: document.getElementById('inp-formation-date').value || null,
+        initialContributionAmount: Number(document.getElementById('inp-initial-contribution').value || 0),
         president: document.getElementById('inp-president-name').value.trim(),
         presidentNameMr: document.getElementById('inp-president-name-mr').value.trim(),
         presidentNameHi: document.getElementById('inp-president-name-hi').value.trim(),

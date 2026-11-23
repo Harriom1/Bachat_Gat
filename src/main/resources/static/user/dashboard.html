@@ -235,7 +235,7 @@
             <div style="background: #f8fafc; border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--border-color); margin-bottom: 1rem;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                 <span style="font-size: 0.85rem; font-weight: 700; color: var(--primary);" id="u-upcoming-month-year">October 2026</span>
-                <span style="font-size: 0.8rem; color: #64748b;">Due Date: <strong id="u-upcoming-due-date">10 Oct 2026</strong></span>
+                <span style="font-size: 0.8rem; color: #64748b;">Due Date: <strong id="u-upcoming-due-date">—</strong></span>
               </div>
 
               <table style="width: 100%; font-size: 0.875rem;">
@@ -675,7 +675,7 @@
         
         // The group's configured Monthly Bachat is the only source of truth.
         // Never use a page-level fallback amount here.
-        const shareAmt = parseFloat(d.monthlyBachatAmount || 0);
+        const shareAmt = parseFloat(d.pendingCollection || 0);
         document.getElementById('u-upcoming-share').textContent = Common.formatIndianCurrency(shareAmt);
 
         let emiAmt = 0;
@@ -717,16 +717,16 @@
           memberId: d.memberId
         };
 
-        const nextDueDateStr = d.nextPaymentDueDate ? Common.formatDate(d.nextPaymentDueDate) : `10 ${currentMonthName.substring(0, 3)} ${currentYear}`;
+        const nextDueDateStr = (d.nextBachatDueDate || d.nextPaymentDueDate) ? Common.formatDate(d.nextBachatDueDate || d.nextPaymentDueDate) : '—';
         document.getElementById('u-upcoming-due-date').textContent = nextDueDateStr;
 
-        const isCleared = parseFloat(d.pendingCollection || 0) <= 0;
+        const isCleared = shareAmt <= 0 && (d.bachatStarted || emiAmt <= 0);
         const statusBadge = document.getElementById('u-upcoming-status-badge');
         if (isCleared) {
-          statusBadge.textContent = 'PAID';
+          statusBadge.textContent = d.bachatStarted ? 'PAID' : 'NOT STARTED';
           statusBadge.className = 'status-badge badge-active';
           document.getElementById('btn-pay-now').disabled = true;
-          document.getElementById('btn-pay-now').innerHTML = '<i class="bi bi-check-circle-fill"></i> Paid for this Month';
+          document.getElementById('btn-pay-now').textContent = d.bachatStarted ? 'Paid for this Month' : 'Monthly Bachat not started';
           document.getElementById('btn-pay-now').style.opacity = '0.6';
         } else {
           statusBadge.textContent = 'UPCOMING';

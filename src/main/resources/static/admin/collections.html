@@ -676,7 +676,8 @@
         const activeGId = currentGroupId || Common.getSelectedGroupId();
         try {
           const res = await api.generateMonthlyCollections(activeGId, Number(month), Number(year));
-          Common.showToast(`Generated ${res.length} expected collection records successfully!`, 'success');
+          Common.showToast(res.length ? `Generated ${res.length} monthly collection records.`
+            : 'No new monthly collections are due for this period.', res.length ? 'success' : 'info');
           await loadCollections(activeGId);
         } catch (err) {
           Common.showToast(err.message, 'danger');
@@ -770,6 +771,10 @@
         return Math.max(0, expected - paid);
       }
       const member = memberList.find(m => m.memberId === memberId);
+      const selectedMonth = `${year}-${String(month).padStart(2, '0')}`;
+      const startMonths = [collectionGroup?.formationDate, member?.bachatStartDate]
+        .filter(Boolean).map(date => date.slice(0, 7));
+      if (startMonths.some(start => selectedMonth < start)) return 0;
       return Math.max(0, Number(member?.monthlyBachatAmount || 0));
     }
 
@@ -848,7 +853,7 @@
 
     async function loadMemberDropdown(groupId) {
       try {
-        memberList = await api.getMembers(groupId);
+        [memberList, collectionGroup] = await Promise.all([api.getMembers(groupId), api.getGroupById(groupId)]);
         const sel = document.getElementById('pay-memberId');
         sel.innerHTML = '<option value="">-- Choose Member --</option>' +
           memberList.map(m => `<option value="${m.memberId}">${m.memberId} - ${m.fullName}</option>`).join('');

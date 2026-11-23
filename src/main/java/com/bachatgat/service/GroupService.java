@@ -8,10 +8,13 @@ import com.bachatgat.model.Group;
 import com.bachatgat.model.Member;
 import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Role;
+import com.bachatgat.model.Transaction;
+import com.bachatgat.model.TransactionType;
 import com.bachatgat.model.User;
 import com.bachatgat.repository.FirestoreDataService;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 
@@ -55,6 +58,11 @@ public class GroupService {
     }
 
     public Group createGroup(GroupDTO dto, String createdBy) {
+        MonthlyBachatCalendar.validateDueDay(dto.getCollectionDueDay());
+        BigDecimal contribution = dto.getInitialContributionAmount();
+        if (contribution != null && (contribution.signum() < 0 || contribution.stripTrailingZeros().scale() > 2)) {
+            throw new com.bachatgat.exception.InvalidFinancialOperationException("Initial contribution must be a non-negative currency amount.");
+        }
         // Auto-generate Group Code if not provided
         if (dto.getGroupCode() == null || dto.getGroupCode().isBlank()) {
             dto.setGroupCode(dataService.generateNextGroupCode());
@@ -77,6 +85,7 @@ public class GroupService {
 
         Group group = new Group();
         mapDtoToGroup(dto, group);
+        if (group.getFormationDate() == null) group.setFormationDate(MonthlyBachatCalendar.today());
         if (dto.getMaxLoanAmountPerMember() == null) {
             group.setMaxLoanAmountPerMember(Group.DEFAULT_LOAN_LIMIT.min(group.getMaxLoanAmount()));
         }
@@ -187,6 +196,17 @@ public class GroupService {
         md.setMaxLoanAmountPerMember(saved.getMaxLoanAmountPerMember());
         dataService.saveMasterData(md);
 
+        if (contribution != null && contribution.signum() > 0) {
+            Transaction openingContribution = new Transaction("GROUP-INIT-" + saved.getId(),
+                    saved.getId(), null, null, null, TransactionType.SHARE_CONTRIBUTION,
+                    contribution, contribution, BigDecimal.ZERO, MonthlyBachatCalendar.today(),
+                    "INIT-CONTRIB", "Initial group contribution", "CASH", createdBy);
+            openingContribution.setCategory("INITIAL_CONTRIBUTION");
+            dataService.saveTransaction(openingContribution);
+            saved.setTotalSavingsBalance(contribution);
+            dataService.saveGroup(saved);
+        }
+
         auditService.log(saved.getId(), createdBy, createdBy, "GROUP_CREATED", "GROUP",
                 saved.getId(), null, saved.getGroupName(), "127.0.0.1");
 
@@ -194,6 +214,7 @@ public class GroupService {
     }
 
     public Group updateGroup(String id, GroupDTO dto, String updatedBy) {
+        MonthlyBachatCalendar.validateDueDay(dto.getCollectionDueDay());
         Group group = getGroupById(id);
         var currentRules = dataService.getCurrentLoanRules(id);
         currentRules.ifPresent(rules -> {
@@ -214,6 +235,7 @@ public class GroupService {
         // A profile edit applies immediately and leaves scheduled versions in place.
         currentRules.ifPresent(md -> {
             if (updated.getMonthlyShareAmount() != null) md.setMonthlyShareAmount(updated.getMonthlyShareAmount());
+            if (dto.getCollectionDueDay() != null) md.setCollectionDueDay(updated.getCollectionDueDay());
             if (updated.getDefaultInterestRate() != null) md.setLoanInterestRate(updated.getDefaultInterestRate());
             if (updated.getLoanInterestType() != null) md.setLoanInterestType(updated.getLoanInterestType());
             if (updated.getMaxLoanAmount() != null) md.setMaxLoanAmount(updated.getMaxLoanAmount());
@@ -320,7 +342,7 @@ public class GroupService {
         group.setBachatGatRegNumber(dto.getBachatGatRegNumber());
         if (dto.getGroupCode() != null) group.setGroupCode(dto.getGroupCode());
         group.setOrganizationId(dto.getOrganizationId());
-        group.setFormationDate(dto.getFormationDate());
+        if (dto.getFormationDate() != null) group.setFormationDate(dto.getFormationDate());
         group.setRegistrationDate(dto.getRegistrationDate());
         group.setVillage(dto.getVillage());
         group.setTaluka(dto.getTaluka());

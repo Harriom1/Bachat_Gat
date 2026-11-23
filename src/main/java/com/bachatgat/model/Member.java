@@ -48,9 +48,9 @@ public class Member {
     private BigDecimal totalSavingsBalance = BigDecimal.ZERO;
     private BigDecimal pendingSavings = BigDecimal.ZERO;
     private BigDecimal totalSavingsTarget = BigDecimal.valueOf(60000); // 12 months @ 5000
-    private LocalDate bachatStartDate = LocalDate.now();
+    private LocalDate bachatStartDate;
     private LocalDate bachatEndDate = LocalDate.now().plusMonths(12);
-    private LocalDate nextDueDate = LocalDate.now().withDayOfMonth(10);
+    private LocalDate nextDueDate;
 
     // Identity (Secured / Masked where required)
     private String panNumber;
@@ -223,7 +223,7 @@ public class Member {
     public void setMonthlyCommittedAmount(BigDecimal monthlyCommittedAmount) { this.monthlyBachatAmount = monthlyCommittedAmount; }
     public BigDecimal getTotalSavingsTarget() { return totalSavingsTarget; }
     public void setTotalSavingsTarget(BigDecimal totalSavingsTarget) { this.totalSavingsTarget = totalSavingsTarget; }
-    public LocalDate getBachatStartDate() { return bachatStartDate != null ? bachatStartDate : joiningDate; }
+    public LocalDate getBachatStartDate() { return bachatStartDate; }
     public void setBachatStartDate(LocalDate bachatStartDate) { this.bachatStartDate = bachatStartDate; }
     public LocalDate getBachatEndDate() { return bachatEndDate; }
     public void setBachatEndDate(LocalDate bachatEndDate) { this.bachatEndDate = bachatEndDate; }

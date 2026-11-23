@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -65,236 +66,289 @@ public class CollectionService {
         return dailyPenalty.multiply(BigDecimal.valueOf(daysLate)).setScale(2, RoundingMode.HALF_UP);
     }
 
-    public List<CollectionRecord> getGroupCollections(String groupId) {
-        List<CollectionRecord> records = dataService.getCollectionsByGroupId(groupId);
-        Group group = dataService.findGroupById(groupId).orElse(null);
-        int dueDay = (group != null && group.getCollectionDueDay() > 0) ? group.getCollectionDueDay() : 10;
-        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.ZERO;
-        int graceDays = (group != null && group.getGracePeriodDays() > 0) ? group.getGracePeriodDays() : 5;
-        LocalDate today = LocalDate.now();
+    private Group group(String groupId) {
+        return dataService.findGroupById(groupId).orElse(null);
+    }
 
-        for (CollectionRecord cr : records) {
-            alignOpenRecordToGroupRule(cr, groupId, today);
-            enrichAndNormalizeCollection(cr, dueDay, lateFeeConfig, graceDays, today);
-        }
-        return records;
+    private GroupMasterData rules(String groupId, YearMonth period, LocalDate today) {
+        LocalDate date = period.equals(YearMonth.from(today)) ? today : period.atDay(1);
+        return dataService.getMasterDataForDate(groupId, date).orElse(null);
+    }
+
+    private BigDecimal lateFee(Group group, GroupMasterData rules) {
+        return rules != null && rules.getLatePaymentFee() != null ? rules.getLatePaymentFee()
+                : group != null && group.getLateFeeAmount() != null ? group.getLateFeeAmount() : BigDecimal.ZERO;
+    }
+
+    private BigDecimal remaining(CollectionRecord record) {
+        return zero(record.getExpectedAmount()).subtract(zero(record.getPaidAmount())).max(BigDecimal.ZERO);
+    }
+
+    private BigDecimal zero(BigDecimal amount) {
+        return amount == null ? BigDecimal.ZERO : amount;
+    }
+
+    private LocalDate dueDate(CollectionRecord record, Group group, Member member, GroupMasterData rules, LocalDate today) {
+        YearMonth period = YearMonth.of(record.getYear(), record.getMonth());
+        return record.getDueDate() != null && period.isBefore(YearMonth.from(today))
+                ? record.getDueDate() : MonthlyBachatCalendar.dueDate(group, member, rules, period);
+    }
+
+    public List<CollectionRecord> getGroupCollections(String groupId) {
+        return getGroupCollections(groupId, MonthlyBachatCalendar.today());
+    }
+
+    private List<CollectionRecord> getGroupCollections(String groupId, LocalDate today) {
+        if (groupId == null) return List.of();
+        Group group = group(groupId);
+        var members = dataService.getMembersByGroupIdIncludingArchived(groupId).stream().collect(
+                java.util.stream.Collectors.toMap(Member::getMemberId, member -> member, (first, second) -> first));
+        return dataService.getCollectionsByGroupId(groupId).stream()
+                .map(record -> collectionForRead(record, group, members.get(record.getMemberId()), today))
+                .filter(java.util.Objects::nonNull).toList();
+    }
+
+    public List<CollectionRecord> getMemberHistory(String memberId) {
+        Member member = dataService.findMemberByMemberIdIncludingArchived(memberId).orElse(null);
+        Group group = member == null ? null : group(member.getGroupId());
+        LocalDate today = MonthlyBachatCalendar.today();
+        return dataService.getCollectionsByMemberId(memberId).stream()
+                .map(record -> member != null && record.getGroupId().equals(member.getGroupId())
+                        ? collectionForRead(record, group, member, today)
+                        : collectionForRead(record, group(record.getGroupId()), null, today))
+                .filter(java.util.Objects::nonNull)
+                .sorted(java.util.Comparator.comparingInt(CollectionRecord::getYear)
+                        .thenComparingInt(CollectionRecord::getMonth).reversed()).toList();
     }
 
     public List<CollectionRecord> getMemberCollections(String memberId) {
         Member member = dataService.findMemberByMemberId(memberId).orElse(null);
-        if (member == null) {
-            return dataService.getCollectionsByMemberId(memberId);
-        }
-
-        String groupId = member.getGroupId();
-        Group group = dataService.findGroupById(groupId).orElse(null);
-        int dueDay = (group != null && group.getCollectionDueDay() > 0) ? group.getCollectionDueDay() : 10;
-        BigDecimal lateFeeConfig = (group != null && group.getLateFeeAmount() != null) ? group.getLateFeeAmount() : BigDecimal.ZERO;
-        int graceDays = (group != null && group.getGracePeriodDays() > 0) ? group.getGracePeriodDays() : 5;
-        LocalDate today = LocalDate.now();
-        GroupMasterData currentRules = dataService.getMasterDataForDate(groupId, today).orElse(null);
-        BigDecimal monthlyBachat = resolveMonthlyBachat(groupId, today, currentRules);
-
-        // Ensure Current Month record exists
-        int curMonth = today.getMonthValue();
-        int curYear = today.getYear();
-        String curKey = groupId + "_" + member.getMemberId() + "_" + curMonth + "_" + curYear;
-        if (dataService.findCollectionByBusinessKey(curKey).isEmpty()) {
-            CollectionRecord curCr = new CollectionRecord(groupId, member.getMemberId(), member.getFullName(), curMonth, curYear, monthlyBachat);
-            int maxDays = java.time.YearMonth.of(curYear, curMonth).lengthOfMonth();
-            curCr.setDueDate(LocalDate.of(curYear, curMonth, Math.min(dueDay, maxDays)));
-            dataService.saveCollection(curCr);
-        }
-
-        // Ensure Upcoming Month record exists
-        LocalDate upcomingDate = today.plusMonths(1);
-        int upMonth = upcomingDate.getMonthValue();
-        int upYear = upcomingDate.getYear();
-        String upKey = groupId + "_" + member.getMemberId() + "_" + upMonth + "_" + upYear;
-        if (dataService.findCollectionByBusinessKey(upKey).isEmpty()) {
-            BigDecimal nextBachat = dataService.getMasterDataForDate(groupId, upcomingDate).map(GroupMasterData::getMonthlyBachatAmount).orElse(monthlyBachat);
-            CollectionRecord upCr = new CollectionRecord(groupId, member.getMemberId(), member.getFullName(), upMonth, upYear, nextBachat);
-            int maxDays = java.time.YearMonth.of(upYear, upMonth).lengthOfMonth();
-            upCr.setDueDate(LocalDate.of(upYear, upMonth, Math.min(dueDay, maxDays)));
-            upCr.setStatus(CollectionStatus.UPCOMING);
-            dataService.saveCollection(upCr);
-        }
-
-        List<CollectionRecord> records = dataService.getCollectionsByMemberId(memberId);
-        for (CollectionRecord cr : records) {
-            alignOpenRecordToGroupRule(cr, groupId, today);
-            enrichAndNormalizeCollection(cr, dueDay, lateFeeConfig, graceDays, today);
-        }
-
-        // Sort records by year desc, month desc
-        records.sort((a, b) -> {
-            if (b.getYear() != a.getYear()) return Integer.compare(b.getYear(), a.getYear());
-            return Integer.compare(b.getMonth(), a.getMonth());
-        });
-
-        return records;
-    }
-
-    /** Keep current/upcoming unpaid records aligned with the President's group rule. */
-    private void alignOpenRecordToGroupRule(CollectionRecord record, String groupId, LocalDate today) {
-        LocalDate period = LocalDate.of(record.getYear(), record.getMonth(), 1);
-        BigDecimal paid = record.getPaidAmount() != null ? record.getPaidAmount() : BigDecimal.ZERO;
-        if (!period.isBefore(today.withDayOfMonth(1)) && paid.signum() == 0) {
-            GroupMasterData rules = dataService.getMasterDataForDate(groupId, period).orElse(null);
-            BigDecimal configured = resolveMonthlyBachat(groupId, period, rules);
-            if (configured != null && configured.signum() > 0
-                    && (record.getExpectedAmount() == null || record.getExpectedAmount().compareTo(configured) != 0)) {
-                record.setExpectedAmount(configured);
-                record.setPendingAmount(configured);
-                dataService.saveCollection(record);
+        if (member != null && member.getStatus() == MemberStatus.ACTIVE) {
+            LocalDate today = MonthlyBachatCalendar.today();
+            YearMonth current = YearMonth.from(today);
+            Group group = group(member.getGroupId());
+            if (MonthlyBachatCalendar.eligible(group, member, current)) {
+                ensureMonthlyRecord(group, member, current, today, null);
+                ensureMonthlyRecord(group, member, current.plusMonths(1), today, null);
             }
         }
+        return getMemberHistory(memberId);
     }
 
-    private void enrichAndNormalizeCollection(CollectionRecord cr, int dueDay, BigDecimal lateFeeConfig, int graceDays, LocalDate today) {
-        if (cr.getDueDate() == null) {
-            int maxDays = java.time.YearMonth.of(cr.getYear(), cr.getMonth()).lengthOfMonth();
-            cr.setDueDate(LocalDate.of(cr.getYear(), cr.getMonth(), Math.min(dueDay, maxDays)));
-        }
-
-        // Check if fully paid
-        if (cr.getPaidAmount() != null && cr.getExpectedAmount() != null && cr.getPaidAmount().compareTo(cr.getExpectedAmount()) >= 0) {
-            cr.setStatus(CollectionStatus.PAID);
-            return;
-        }
-
-        LocalDate dueDate = cr.getDueDate();
-        // Check if upcoming month
-        if (today.getYear() < cr.getYear() || (today.getYear() == cr.getYear() && today.getMonthValue() < cr.getMonth())) {
-            cr.setStatus(CollectionStatus.UPCOMING);
-            cr.setDaysLate(0);
-        } else if (today.isAfter(dueDate)) {
-            cr.setStatus(CollectionStatus.OVERDUE);
-            int daysLate = (int) java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);
-            cr.setDaysLate(daysLate);
-            BigDecimal accruedPenalty = calculateAccruedPenalty(lateFeeConfig, dueDate, today);
-            // Keep the amount already paid historically, but expose the
-            // current accrued amount for every still-open collection.
-            BigDecimal paidShare = cr.getPaidAmount() != null ? cr.getPaidAmount() : BigDecimal.ZERO;
-            BigDecimal expectedShare = cr.getExpectedAmount() != null ? cr.getExpectedAmount() : BigDecimal.ZERO;
-            if (paidShare.compareTo(expectedShare) < 0 || cr.getPaidLateFee().signum() == 0) {
-                cr.setLateFeeAmount(accruedPenalty);
+    private CollectionRecord collectionForRead(CollectionRecord stored, Group group, Member member, LocalDate today) {
+        if (stored.getStatus() == CollectionStatus.VOID_PRE_START) return null;
+        YearMonth period = YearMonth.of(stored.getYear(), stored.getMonth());
+        if (!MonthlyBachatCalendar.eligible(group, member, period)) {
+            if (stored.canVoidPreStart() && !hasHistoricalPayment(stored, period)) {
+                if (dataService.voidPreStartCollection(stored)) {
+                    auditService.log(stored.getGroupId(), "SYSTEM", "SYSTEM", "PRE_START_COLLECTION_VOIDED",
+                            "COLLECTION", stored.getBusinessKey(), null, "Unpaid collection before Bachat start", "127.0.0.1");
+                }
             }
+            if (zero(stored.getPaidAmount()).signum() <= 0 && stored.getPaidLateFee().signum() <= 0) return null;
+            CollectionRecord historical = copyCollection(stored);
+            historical.setExpectedAmount(zero(stored.getPaidAmount()));
+            historical.setPendingAmount(BigDecimal.ZERO);
+            historical.setLateFeeAmount(stored.getPaidLateFee());
+            return historical;
+        }
+
+        if (remaining(stored).signum() == 0 && zero(stored.getPaidAmount()).signum() > 0) {
+            CollectionRecord historical = copyCollection(stored);
+            historical.setPendingAmount(BigDecimal.ZERO);
+            if (historical.getStatus() != CollectionStatus.LATE) historical.setStatus(CollectionStatus.PAID);
+            return historical;
+        }
+
+        CollectionRecord view = copyCollection(stored);
+        GroupMasterData rules = rules(stored.getGroupId(), period, today);
+        alignOpenRecordToGroupRule(view, group, member, rules, today);
+        view.setPendingAmount(remaining(view));
+        if (period.isAfter(YearMonth.from(today))) {
+            view.setStatus(CollectionStatus.UPCOMING);
+            view.setDaysLate(0);
+            view.setLateFeeAmount(BigDecimal.ZERO);
         } else {
-            cr.setStatus(CollectionStatus.PENDING);
-            cr.setDaysLate(0);
+            int days = MonthlyBachatCalendar.daysLate(view.getDueDate(), today);
+            view.setDaysLate(days);
+            view.setLateFeeAmount(calculateAccruedPenalty(lateFee(group, rules), view.getDueDate(), today));
+            view.setStatus(days > 0 ? CollectionStatus.OVERDUE
+                    : zero(view.getPaidAmount()).signum() > 0 ? CollectionStatus.PARTIAL : CollectionStatus.PENDING);
+        }
+        return view;
+    }
+
+    private CollectionRecord copyCollection(CollectionRecord source) {
+        CollectionRecord copy = new CollectionRecord();
+        org.springframework.beans.BeanUtils.copyProperties(source, copy);
+        return copy;
+    }
+
+    private boolean hasHistoricalPayment(CollectionRecord record, YearMonth period) {
+        return dataService.getTransactionsByGroupId(record.getGroupId()).stream()
+                .filter(t -> record.getMemberId().equalsIgnoreCase(t.getMemberId()))
+                .filter(t -> t.getType() == TransactionType.SHARE_CONTRIBUTION
+                        || t.getType() == TransactionType.SHARE_COLLECTION || t.getType() == TransactionType.MEMBER_SAVING
+                        || t.getType() == TransactionType.PENALTY_INCOME || t.getType() == TransactionType.SHARE_LATE_FEE)
+                .filter(t -> !"INIT-CONTRIB".equalsIgnoreCase(t.getReference()))
+                .anyMatch(t -> storedReferenceMatches(record, t.getReference())
+                        || (t.getDate() != null && period.equals(YearMonth.from(t.getDate())))
+                        || (t.getDescription() != null
+                        && t.getDescription().contains(" for " + period.getMonthValue() + "/" + period.getYear())));
+    }
+
+    private boolean storedReferenceMatches(CollectionRecord record, String reference) {
+        return reference != null && (reference.equalsIgnoreCase(record.getId())
+                || reference.equalsIgnoreCase(record.getBusinessKey()));
+    }
+
+    private void alignOpenRecordToGroupRule(CollectionRecord record, Group group, Member member,
+                                            GroupMasterData rules, LocalDate today) {
+        YearMonth period = YearMonth.of(record.getYear(), record.getMonth());
+        record.setDueDate(dueDate(record, group, member, rules, today));
+        if (!period.isBefore(YearMonth.from(today)) && zero(record.getPaidAmount()).signum() == 0) {
+            BigDecimal configured = resolveMonthlyBachat(record.getGroupId(), period.atDay(1), rules);
+            if (configured.signum() > 0) record.setExpectedAmount(configured);
         }
     }
 
-    /**
-     * Monthly Savings Pending Members
-     * Lists active members who have not yet cleared their monthly savings share for the month/year.
-     */
-    public List<java.util.Map<String, Object>> getPendingSavingsMembers(String groupId, int month, int year) {
-        List<Member> activeMembers = dataService.getMembersByGroupId(groupId).stream()
-                .filter(m -> m.getStatus() == MemberStatus.ACTIVE)
-                .toList();
-
-        List<CollectionRecord> collections = dataService.getCollectionsByGroupId(groupId);
-        GroupMasterData masterData = dataService.getMasterDataForDate(groupId, LocalDate.of(year, month, 1)).orElse(null);
-        int dueDay = masterData != null ? masterData.getCollectionDueDay() : 10;
-        int graceDays = masterData != null ? masterData.getGracePeriodDays() : 5;
-        BigDecimal lateFeeConfig = masterData != null && masterData.getLatePaymentFee() != null
-                ? masterData.getLatePaymentFee()
-                : dataService.findGroupById(groupId).map(Group::getLateFeeAmount).orElse(BigDecimal.ZERO);
-
-        int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
-        LocalDate dueDate = LocalDate.of(year, month, Math.min(dueDay, maxDaysInMonth));
-        LocalDate today = LocalDate.now();
-        List<java.util.Map<String, Object>> result = new java.util.ArrayList<>();
-        for (Member m : activeMembers) {
-            String bKey = groupId + "_" + m.getMemberId() + "_" + month + "_" + year;
-            CollectionRecord cr = collections.stream()
-                    .filter(c -> bKey.equalsIgnoreCase(c.getBusinessKey()))
-                    .findFirst()
-                    .orElse(null);
-
-            BigDecimal bachatAmt = (cr != null && cr.getExpectedAmount() != null)
-                    ? cr.getExpectedAmount()
-                    : resolveMonthlyBachat(groupId, LocalDate.of(year, month, 1), masterData);
-            BigDecimal paid = (cr != null && cr.getPaidAmount() != null) ? cr.getPaidAmount() : BigDecimal.ZERO;
-            BigDecimal remainingDue = bachatAmt.subtract(paid).max(BigDecimal.ZERO);
-            LocalDate effectiveDueDate = cr != null && cr.getDueDate() != null ? cr.getDueDate() : dueDate;
-            int daysOverdue = today.isAfter(effectiveDueDate)
-                    ? (int) java.time.temporal.ChronoUnit.DAYS.between(effectiveDueDate, today) : 0;
-            BigDecimal accruedPenalty = calculateAccruedPenalty(lateFeeConfig, effectiveDueDate, today);
-            BigDecimal alreadyPaidPenalty = cr != null ? cr.getPaidLateFee() : BigDecimal.ZERO;
-            BigDecimal penalty = accruedPenalty.subtract(alreadyPaidPenalty).max(BigDecimal.ZERO);
-            BigDecimal totalPayable = remainingDue.add(penalty);
-
-            String status = remainingDue.signum() > 0 && daysOverdue > 0 ? "OVERDUE" : "PENDING";
-            if (cr != null && cr.getStatus() == CollectionStatus.PAID) {
-                continue; // Only pending / partial / overdue
-            }
-
-            java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
-            map.put("memberId", m.getMemberId());
-            map.put("memberName", m.getFullName());
-            map.put("monthlyBachatAmount", bachatAmt);
-            map.put("paidAmount", paid);
-            map.put("amountPaid", paid);
-            map.put("remainingDue", remainingDue);
-            map.put("remainingAmount", remainingDue);
-            map.put("penalty", penalty);
-            map.put("currentPenalty", penalty);
-            map.put("totalPayable", totalPayable);
-            map.put("dueDate", (cr != null && cr.getDueDate() != null) ? cr.getDueDate().toString() : dueDate.toString());
-            map.put("daysLate", daysOverdue);
-            map.put("daysOverdue", daysOverdue);
-            map.put("status", status);
-            result.add(map);
+    public BigDecimal getCurrentPenalty(Member member) {
+        LocalDate today = MonthlyBachatCalendar.today();
+        YearMonth month = YearMonth.from(today);
+        Group group = group(member.getGroupId());
+        if (member.getStatus() != MemberStatus.ACTIVE || !MonthlyBachatCalendar.eligible(group, member, month)) {
+            return BigDecimal.ZERO;
         }
+        CollectionRecord current = getMemberHistory(member.getMemberId()).stream()
+                .filter(record -> record.getGroupId().equals(member.getGroupId())
+                        && record.getMonth() == month.getMonthValue() && record.getYear() == month.getYear())
+                .findFirst().orElse(null);
+        if (current != null) {
+            return remaining(current).signum() > 0
+                    ? current.getLateFeeAmount().subtract(current.getPaidLateFee()).max(BigDecimal.ZERO) : BigDecimal.ZERO;
+        }
+        GroupMasterData rules = rules(member.getGroupId(), month, today);
+        return resolveMonthlyBachat(member.getGroupId(), month.atDay(1), rules).signum() > 0
+                ? calculateAccruedPenalty(lateFee(group, rules), MonthlyBachatCalendar.dueDate(group, member, rules, month), today)
+                : BigDecimal.ZERO;
+    }
 
+    LocalDate getNextBachatDueDate(Group group, Member member, List<CollectionRecord> records, LocalDate today) {
+        YearMonth current = YearMonth.from(today);
+        YearMonth next = MonthlyBachatCalendar.nextEligibleMonth(group, member, current);
+        if (next.equals(current) && records.stream().anyMatch(record ->
+                group.getId().equals(record.getGroupId())
+                        && record.getMonth() == current.getMonthValue() && record.getYear() == current.getYear()
+                        && (record.getStatus() == CollectionStatus.PAID || record.getStatus() == CollectionStatus.LATE))) {
+            next = next.plusMonths(1);
+        }
+        return MonthlyBachatCalendar.dueDate(group, member, rules(group.getId(), next, today), next);
+    }
+
+    public List<java.util.Map<String, Object>> getPendingSavingsMembers(String groupId, int month, int year) {
+        return getPendingSavingsMembers(groupId, YearMonth.of(year, month), MonthlyBachatCalendar.today());
+    }
+
+    List<java.util.Map<String, Object>> getPendingSavingsMembers(String groupId, YearMonth period, LocalDate today) {
+        Group group = group(groupId);
+        var records = getGroupCollections(groupId, today);
+        if (!MonthlyBachatCalendar.eligible(group, null, period) || period.isAfter(YearMonth.from(today))) return List.of();
+
+        GroupMasterData rules = rules(groupId, period, today);
+        BigDecimal monthlyBachat = resolveMonthlyBachat(groupId, period.atDay(1), rules);
+        var result = new ArrayList<java.util.Map<String, Object>>();
+        for (Member member : dataService.getMembersByGroupId(groupId)) {
+            if (member.getStatus() != MemberStatus.ACTIVE || !MonthlyBachatCalendar.eligible(group, member, period)) continue;
+            CollectionRecord record = records.stream()
+                    .filter(c -> member.getMemberId().equalsIgnoreCase(c.getMemberId())
+                            && c.getMonth() == period.getMonthValue() && c.getYear() == period.getYear())
+                    .findFirst().orElse(null);
+            BigDecimal expected = record != null ? zero(record.getExpectedAmount()) : monthlyBachat;
+            BigDecimal paid = record != null ? zero(record.getPaidAmount()) : BigDecimal.ZERO;
+            BigDecimal remaining = expected.subtract(paid).max(BigDecimal.ZERO);
+            if (remaining.signum() == 0 || (record != null
+                    && (record.getStatus() == CollectionStatus.PAID || record.getStatus() == CollectionStatus.LATE))) continue;
+
+            LocalDate due = record != null ? dueDate(record, group, member, rules, today)
+                    : MonthlyBachatCalendar.dueDate(group, member, rules, period);
+            int days = MonthlyBachatCalendar.daysLate(due, today);
+            BigDecimal alreadyPaid = record != null ? record.getPaidLateFee() : BigDecimal.ZERO;
+            BigDecimal penalty = calculateAccruedPenalty(lateFee(group, rules), due, today)
+                    .subtract(alreadyPaid).max(BigDecimal.ZERO);
+            var row = new java.util.LinkedHashMap<String, Object>();
+            row.put("memberId", member.getMemberId());
+            row.put("memberName", member.getFullName());
+            row.put("monthlyBachatAmount", expected);
+            row.put("paidAmount", paid);
+            row.put("amountPaid", paid);
+            row.put("remainingDue", remaining);
+            row.put("remainingAmount", remaining);
+            row.put("penalty", penalty);
+            row.put("currentPenalty", penalty);
+            row.put("totalPayable", remaining.add(penalty));
+            row.put("dueDate", due.toString());
+            row.put("daysLate", days);
+            row.put("daysOverdue", days);
+            row.put("status", days > 0 ? "OVERDUE" : paid.signum() > 0 ? "PARTIAL" : "PENDING");
+            result.add(row);
+        }
         return result;
     }
 
-    /**
-     * Generates expected monthly collections for all active group members.
-     * Guaranteed idempotent: skips any record with existing business key.
-     */
-    public List<CollectionRecord> generateMonthlyCollections(String groupId, int month, int year, String recordedBy) {
-        List<Member> activeMembers = dataService.getMembersByGroupId(groupId).stream()
-                .filter(m -> m.getStatus() == MemberStatus.ACTIVE)
-                .toList();
+    private CollectionRecord ensureMonthlyRecord(Group group, Member member, YearMonth period, LocalDate today, String actor) {
+        if (!MonthlyBachatCalendar.eligible(group, member, period)
+                || !MonthlyBachatCalendar.eligible(group, member, YearMonth.from(today))) return null;
+        String groupId = member.getGroupId();
+        GroupMasterData rules = rules(groupId, period, today);
+        BigDecimal amount = resolveMonthlyBachat(groupId, period.atDay(1), rules);
+        if (amount.signum() <= 0) return null;
+        CollectionRecord record = new CollectionRecord(groupId, member.getMemberId(), member.getFullName(),
+                period.getMonthValue(), period.getYear(), amount);
+        record.setDueDate(MonthlyBachatCalendar.dueDate(group, member, rules, period));
+        if (period.isAfter(YearMonth.from(today))) record.setStatus(CollectionStatus.UPCOMING);
+        record.setRecordedBy(actor);
+        return dataService.createMonthlyCollection(record) ? record : null;
+    }
 
-        GroupMasterData masterData = dataService.getMasterDataForDate(groupId, LocalDate.of(year, month, 1)).orElse(null);
-        int dueDay = masterData != null && masterData.getCollectionDueDay() > 0 ? masterData.getCollectionDueDay() : 10;
-        int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
-        LocalDate calculatedDueDate = LocalDate.of(year, month, Math.min(dueDay, maxDaysInMonth));
-
-        List<CollectionRecord> generated = new ArrayList<>();
-
-        for (Member m : activeMembers) {
-            String businessKey = groupId + "_" + m.getMemberId() + "_" + month + "_" + year;
-            if (dataService.findCollectionByBusinessKey(businessKey).isEmpty()) {
-                BigDecimal bachatAmt = resolveMonthlyBachat(groupId, LocalDate.of(year, month, 1), masterData);
-                CollectionRecord record = new CollectionRecord(groupId, m.getMemberId(), m.getFullName(), month, year, bachatAmt);
-                record.setDueDate(calculatedDueDate);
-                record.setRecordedBy(recordedBy);
-                CollectionRecord saved = dataService.saveCollection(record);
-                generated.add(saved);
-
-                // Update member pending savings tracking
-                BigDecimal currentPending = m.getPendingSavings() != null ? m.getPendingSavings() : BigDecimal.ZERO;
-                m.setPendingSavings(currentPending.add(bachatAmt));
-                dataService.saveMember(m);
-            }
+    void requireEligibleMonthlyPayment(String groupId, Member member, YearMonth period, BigDecimal share, BigDecimal fee) {
+        if ((zero(share).signum() > 0 || zero(fee).signum() > 0)
+                && !MonthlyBachatCalendar.eligible(group(groupId), member, period)) {
+            throw new InvalidFinancialOperationException("This month is before the Bachat start date.");
         }
+    }
 
-        // Notify group members
-        notificationService.sendNotification(groupId, null, "USER",
-                "Monthly Bachat Due for " + month + "/" + year,
-                "Expected monthly bachat collection has been generated. Please deposit your share on time.",
-                "COLLECTION_DUE");
+    private BigDecimal requestedShare(CollectionPaymentRequest request) {
+        if (request.getShareAmount() != null) return request.getShareAmount();
+        boolean otherAllocation = List.of(zero(request.getLoanPrincipalAmount()), zero(request.getLoanInterestAmount()),
+                zero(request.getExtraLoanPaymentAmount()), zero(request.getOtherAmount()),
+                zero(request.getLateFeeAmount()), zero(request.getWaivedLateFee())).stream().anyMatch(amount -> amount.signum() > 0);
+        return otherAllocation ? BigDecimal.ZERO : request.getAmount();
+    }
 
-        auditService.log(groupId, recordedBy, recordedBy, "MONTHLY_COLLECTION_GENERATED", "COLLECTION",
-                month + "/" + year, null, "Generated " + generated.size() + " expected collection records", "127.0.0.1");
+    public List<CollectionRecord> generateMonthlyCollections(String groupId, int month, int year, String recordedBy) {
+        return generateMonthlyCollections(groupId, YearMonth.of(year, month), MonthlyBachatCalendar.today(), recordedBy);
+    }
 
+    List<CollectionRecord> generateMonthlyCollections(String groupId, YearMonth period, LocalDate today, String recordedBy) {
+        Group group = group(groupId);
+        // Reconcile records left by older generators even if the requested period is ineligible.
+        getGroupCollections(groupId, today);
+        if (!MonthlyBachatCalendar.eligible(group, null, period)) return List.of();
+        List<CollectionRecord> generated = new ArrayList<>();
+        for (Member member : dataService.getMembersByGroupId(groupId)) {
+            if (member.getStatus() != MemberStatus.ACTIVE) continue;
+            CollectionRecord record = ensureMonthlyRecord(group, member, period, today, recordedBy);
+            if (record != null) generated.add(record);
+        }
+        if (!generated.isEmpty() && !period.isAfter(YearMonth.from(today))) {
+            String label = period.getMonthValue() + "/" + period.getYear();
+            notificationService.sendNotification(groupId, null, "USER",
+                    "Monthly Bachat Due for " + label,
+                    "Expected monthly bachat collection has been generated. Please deposit your share on time.",
+                    "COLLECTION_DUE");
+            auditService.log(groupId, recordedBy, recordedBy, "MONTHLY_COLLECTION_GENERATED", "COLLECTION",
+                    label, null, "Generated " + generated.size() + " expected collection records", "127.0.0.1");
+        }
         return generated;
     }
 
@@ -321,6 +375,9 @@ public class CollectionService {
 
         Member member = dataService.findMemberByMemberId(request.getMemberId())
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with Member ID: " + request.getMemberId()));
+        if (!groupId.equals(member.getGroupId())) {
+            throw new com.bachatgat.exception.ForbiddenException("Member does not belong to this group.");
+        }
 
         // 1. PAYMENT IDEMPOTENCY (Section 5)
         if (request.getIdempotencyKey() != null && !request.getIdempotencyKey().isBlank()) {
@@ -334,24 +391,29 @@ public class CollectionService {
             }
         }
 
-        int month = request.getMonth() > 0 ? request.getMonth() : LocalDate.now().getMonthValue();
-        int year = request.getYear() > 0 ? request.getYear() : LocalDate.now().getYear();
-
-        GroupMasterData masterData = dataService.getMasterDataForDate(groupId, LocalDate.of(year, month, 1)).orElse(null);
-        BigDecimal configuredMonthlyBachat = resolveMonthlyBachat(groupId, LocalDate.of(year, month, 1), masterData);
-        int dueDay = masterData != null && masterData.getCollectionDueDay() > 0 ? masterData.getCollectionDueDay() : 10;
-        int maxDaysInMonth = java.time.YearMonth.of(year, month).lengthOfMonth();
-        LocalDate calculatedDueDate = LocalDate.of(year, month, Math.min(dueDay, maxDaysInMonth));
+        LocalDate today = MonthlyBachatCalendar.today();
+        int month = request.getMonth() > 0 ? request.getMonth() : today.getMonthValue();
+        int year = request.getYear() > 0 ? request.getYear() : today.getYear();
+        YearMonth period = YearMonth.of(year, month);
+        Group collectionGroup = group(groupId);
+        boolean eligible = MonthlyBachatCalendar.eligible(collectionGroup, member, period);
+        requireEligibleMonthlyPayment(groupId, member, period, requestedShare(request),
+                zero(request.getLateFeeAmount()).add(zero(request.getWaivedLateFee())));
+        GroupMasterData masterData = rules(groupId, period, today);
+        BigDecimal configuredMonthlyBachat = resolveMonthlyBachat(groupId, period.atDay(1), masterData);
+        LocalDate calculatedDueDate = MonthlyBachatCalendar.dueDate(collectionGroup, member, masterData, period);
 
         String businessKey = groupId + "_" + member.getMemberId() + "_" + month + "_" + year;
-        CollectionRecord record = dataService.findCollectionByBusinessKey(businessKey)
+        CollectionRecord record = dataService.findCollectionByBusinessKey(businessKey).map(this::copyCollection)
                 .orElseGet(() -> {
                     BigDecimal bachatAmt = configuredMonthlyBachat;
                     CollectionRecord cr = new CollectionRecord(groupId, member.getMemberId(), member.getFullName(), month, year, bachatAmt);
                     cr.setDueDate(calculatedDueDate);
                     return cr;
                 });
-        alignOpenRecordToGroupRule(record, groupId, LocalDate.now());
+        if (eligible && remaining(record).signum() > 0) {
+            alignOpenRecordToGroupRule(record, collectionGroup, member, masterData, today);
+        }
 
         LocalDate payDate = request.getPaymentDate() != null ? request.getPaymentDate() : LocalDate.now();
 
@@ -359,7 +421,7 @@ public class CollectionService {
         if ("FAILED".equalsIgnoreCase(request.getPaymentStatus()) || "CANCELLED".equalsIgnoreCase(request.getPaymentStatus())) {
             record.setStatus(CollectionStatus.FAILED);
             record.setNotes("Payment attempt failed at gateway or banking provider: " + (request.getNotes() != null ? request.getNotes() : ""));
-            dataService.saveCollection(record);
+            if (eligible) dataService.saveCollection(record);
             // Log audit
             auditService.log(groupId, recordedBy, recordedBy, "PAYMENT_FAILED", "COLLECTION",
                     record.getId(), null, "Payment failed for ₹" + request.getAmount() + " - no balances updated", "127.0.0.1");
@@ -369,7 +431,7 @@ public class CollectionService {
         if ("PENDING".equalsIgnoreCase(request.getPaymentStatus())) {
             record.setStatus(CollectionStatus.PENDING);
             record.setNotes("Payment pending at gateway or banking provider: " + (request.getNotes() != null ? request.getNotes() : ""));
-            dataService.saveCollection(record);
+            if (eligible) dataService.saveCollection(record);
             auditService.log(groupId, recordedBy, recordedBy, "PAYMENT_PENDING", "COLLECTION",
                     record.getId(), null, "Payment pending for ₹" + request.getAmount() + " - no balances updated", "127.0.0.1");
             return record;
@@ -379,7 +441,7 @@ public class CollectionService {
         BigDecimal totalReceived = request.getAmount();
 
         // Component 1: Share / Savings
-        BigDecimal sharePart = request.getShareAmount();
+        BigDecimal sharePart = requestedShare(request);
         // Component 2: Loan Principal & Interest
         BigDecimal loanPrincPart = request.getLoanPrincipalAmount() != null ? request.getLoanPrincipalAmount() : BigDecimal.ZERO;
         BigDecimal loanIntPart = request.getLoanInterestAmount() != null ? request.getLoanInterestAmount() : BigDecimal.ZERO;
@@ -387,9 +449,7 @@ public class CollectionService {
         // Component 3: Other
         BigDecimal otherPart = request.getOtherAmount() != null ? request.getOtherAmount() : BigDecimal.ZERO;
         // Late fee
-        BigDecimal configuredLateFee = masterData != null && masterData.getLatePaymentFee() != null
-                ? masterData.getLatePaymentFee()
-                : dataService.findGroupById(groupId).map(Group::getLateFeeAmount).orElse(BigDecimal.ZERO);
+        BigDecimal configuredLateFee = lateFee(collectionGroup, masterData);
         BigDecimal lateFee = request.getLateFeeAmount() != null ? request.getLateFeeAmount() : BigDecimal.ZERO;
         BigDecimal waivedFee = request.getWaivedLateFee() != null ? request.getWaivedLateFee() : BigDecimal.ZERO;
         if (waivedFee.compareTo(lateFee) > 0) {
@@ -406,20 +466,17 @@ public class CollectionService {
         BigDecimal alreadyPaidShare = record.getPaidAmount() != null
                 ? record.getPaidAmount() : BigDecimal.ZERO;
         BigDecimal remainingShare = expectedShare.subtract(alreadyPaidShare).max(BigDecimal.ZERO);
-        BigDecimal accruedPenalty = calculateAccruedPenalty(configuredLateFee, dueDate, payDate);
+        BigDecimal accruedPenalty = eligible && remainingShare.signum() > 0
+                ? calculateAccruedPenalty(configuredLateFee, dueDate, payDate).subtract(record.getPaidLateFee()).max(BigDecimal.ZERO)
+                : BigDecimal.ZERO;
 
-        // A missing share component means zero when the payment is loan/other-only.
-        // Keep the legacy single-amount savings behaviour only when no other
-        // allocation was supplied.
-        if (sharePart == null) {
-            boolean hasOtherAllocation = loanPrincPart.signum() > 0 || loanIntPart.signum() > 0
-                    || otherPart.signum() > 0 || lateFee.signum() > 0 || waivedFee.signum() > 0;
-            sharePart = hasOtherAllocation ? BigDecimal.ZERO : totalReceived;
+        if (accruedPenalty.signum() == 0 && (lateFee.signum() > 0 || waivedFee.signum() > 0)) {
+            throw new InvalidFinancialOperationException("No monthly Bachat penalty is due for this payment.");
         }
 
         // The server owns the penalty calculation. A browser cannot submit an
         // older/smaller penalty to bypass the daily increase.
-        if (sharePart.signum() > 0 && remainingShare.signum() > 0 && accruedPenalty.signum() > 0) {
+        if ((sharePart.signum() > 0 || lateFee.signum() > 0 || waivedFee.signum() > 0) && accruedPenalty.signum() > 0) {
             if (waivedFee.signum() > 0) {
                 if (waivedFee.compareTo(accruedPenalty) != 0) {
                     throw new InvalidFinancialOperationException(
@@ -439,15 +496,6 @@ public class CollectionService {
             }
         }
         BigDecimal netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
-
-        // Late fees are authoritative backend values. A browser may display a
-        // preview, but it cannot opt out of a configured fee or invent one.
-        if (lateFee.signum() == 0 && waivedFee.signum() == 0 && sharePart.signum() > 0
-                && payDate.isAfter(calculatedDueDate)) {
-            lateFee = configuredLateFee.max(BigDecimal.ZERO);
-        }
-        // Recalculate after applying the authoritative configured late fee.
-        netLateFee = lateFee.subtract(waivedFee).max(BigDecimal.ZERO);
 
         if (netLateFee.signum() > 0 && totalReceived.compareTo(netLateFee) < 0) {
             throw new InvalidFinancialOperationException(

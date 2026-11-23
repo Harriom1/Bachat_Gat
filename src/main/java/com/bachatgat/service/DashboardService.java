@@ -17,9 +17,12 @@ public class DashboardService {
     private final FirestoreDataService dataService;
     private final GroupFundService groupFundService;
 
-    public DashboardService(FirestoreDataService dataService, GroupFundService groupFundService) {
+    private final CollectionService collectionService;
+
+    public DashboardService(FirestoreDataService dataService, GroupFundService groupFundService, CollectionService collectionService) {
         this.dataService = dataService;
         this.groupFundService = groupFundService;
+        this.collectionService = collectionService;
     }
 
     public DashboardAdminDTO getAdminDashboard(String groupId) {
@@ -34,10 +37,10 @@ public class DashboardService {
         dto.setTotalActiveMembers((int) activeCount);
 
         // Monthly collections (Current month & year)
-        int curMonth = LocalDate.now().getMonthValue();
-        int curYear = LocalDate.now().getYear();
+        int curMonth = MonthlyBachatCalendar.today().getMonthValue();
+        int curYear = MonthlyBachatCalendar.today().getYear();
 
-        List<CollectionRecord> collections = dataService.getCollectionsByGroupId(targetGroupId);
+        List<CollectionRecord> collections = collectionService.getGroupCollections(targetGroupId);
         List<CollectionRecord> currentMonthRecords = collections.stream()
                 .filter(c -> c.getMonth() == curMonth && c.getYear() == curYear)
                 .toList();
@@ -126,17 +129,23 @@ public class DashboardService {
         if (group != null) {
             dto.setRegistrationId(group.getRegistrationId());
 
-            LocalDate today = LocalDate.now();
+            LocalDate today = MonthlyBachatCalendar.today();
+            var currentMonth = java.time.YearMonth.from(today);
+            boolean bachatStarted = MonthlyBachatCalendar.eligible(group, member, currentMonth);
+            dto.setBachatStarted(bachatStarted);
+            var history = collectionService.getMemberHistory(member.getMemberId());
+            dto.setNextBachatDueDate(collectionService.getNextBachatDueDate(group, member, history, today));
             GroupMasterData currentRules = dataService.getMasterDataForDate(group.getId(), today).orElse(null);
             BigDecimal monthlyBachat = currentRules != null && currentRules.getMonthlyBachatAmount() != null
                     ? currentRules.getMonthlyBachatAmount()
                     : (group.getMonthlyBachatAmount() != null ? group.getMonthlyBachatAmount() : BigDecimal.ZERO);
             dto.setMonthlyBachatAmount(monthlyBachat);
-            dto.setPendingCollection(monthlyBachat);
+            dto.setPendingCollection(bachatStarted ? monthlyBachat : BigDecimal.ZERO);
 
             String currentBusinessKey = group.getId() + "_" + member.getMemberId() + "_"
                     + today.getMonthValue() + "_" + today.getYear();
-            dataService.findCollectionByBusinessKey(currentBusinessKey).ifPresent(currentCollection -> {
+            history.stream().filter(record -> bachatStarted && currentBusinessKey.equals(record.getBusinessKey()))
+                    .findFirst().ifPresent(currentCollection -> {
                 if (currentCollection.getExpectedAmount() != null) {
                     dto.setMonthlyBachatAmount(currentCollection.getExpectedAmount());
                 }
@@ -163,29 +172,7 @@ public class DashboardService {
         dto.setMyTotalSavings(member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO);
         dto.setMyCurrentShare(member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO);
         dto.setMyIncome(member.getMyIncome());
-        // Recalculate the open current-month penalty from the collection record
-        // so checkout cannot use a stale member snapshot after the due date.
-        BigDecimal currentPenalty = member.getPendingLateFees() != null ? member.getPendingLateFees() : BigDecimal.ZERO;
-        if (group != null) {
-            GroupMasterData penaltyRules = dataService.getMasterDataForDate(group.getId(), LocalDate.now()).orElse(null);
-            int month = LocalDate.now().getMonthValue();
-            int year = LocalDate.now().getYear();
-            String key = group.getId() + "_" + member.getMemberId() + "_" + month + "_" + year;
-            CollectionRecord current = dataService.findCollectionByBusinessKey(key).orElse(null);
-            if (current != null && current.getDueDate() != null
-                    && (current.getPaidAmount() == null || current.getPaidAmount().compareTo(current.getExpectedAmount() != null ? current.getExpectedAmount() : BigDecimal.ZERO) < 0)
-                    && LocalDate.now().isAfter(current.getDueDate())) {
-                BigDecimal dailyFee = penaltyRules != null && penaltyRules.getLatePaymentFee() != null
-                        ? penaltyRules.getLatePaymentFee()
-                        : (group.getLateFeeAmount() != null ? group.getLateFeeAmount() : BigDecimal.ZERO);
-                long overdueDays = java.time.temporal.ChronoUnit.DAYS.between(current.getDueDate(), LocalDate.now());
-                BigDecimal alreadyPaid = current.getPaidLateFee() != null ? current.getPaidLateFee() : BigDecimal.ZERO;
-                currentPenalty = dailyFee.multiply(BigDecimal.valueOf(overdueDays)).subtract(alreadyPaid).max(BigDecimal.ZERO);
-            } else if (current != null && (current.getPaidAmount() == null || current.getPaidAmount().signum() == 0)) {
-                currentPenalty = BigDecimal.ZERO;
-            }
-        }
-        dto.setMyPenalties(currentPenalty);
+        dto.setMyPenalties(collectionService.getCurrentPenalty(member));
         dto.setNetFinancialPosition(member.getTotalFinancialPosition());
 
         // Fetch active loan

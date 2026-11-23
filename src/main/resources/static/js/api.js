@@ -728,9 +728,10 @@ class ApiClient {
   // ==========================================
   // MASTER DATA APIs (Section 7, 8, 9, 58)
   // ==========================================
-  getMasterData(groupId) {
+  getMasterData(groupId, effectiveToday = false) {
     const targetGroupId = this.resolveAdminGroupId(groupId);
-    return this.request(`/admin/groups/${encodeURIComponent(targetGroupId)}/master-data`);
+    const query = effectiveToday ? '?effectiveToday=true' : '';
+    return this.request(`/admin/groups/${encodeURIComponent(targetGroupId)}/master-data${query}`);
   }
 
   getMasterDataHistory(groupId) {
@@ -852,6 +853,11 @@ class ApiClient {
 
   getLoanEligibility() {
     return this.request('/me/loan-eligibility');
+  }
+
+  getLoanRepaymentPreview(amount, durationMonths) {
+    const query = new URLSearchParams({amount, durationMonths});
+    return this.request(`/me/loan-repayment-preview?${query}`);
   }
 }
 

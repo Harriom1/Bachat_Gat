@@ -181,12 +181,13 @@ public final class FinancialCalculator {
                 // The member pays whole rupees. Round the final settlement as
                 // well so the visible cash schedule adds up exactly; the
                 // final interest component absorbs the paise reconciliation.
-                totalDue = roundDisplay(principalPortion.add(interest)).setScale(MONEY_SCALE, ROUNDING);
+                totalDue = roundDisplay(principalPortion.add(interest)).setScale(MONEY_SCALE, ROUNDING)
+                        .max(principalPortion);
                 interest = totalDue.subtract(principalPortion).max(BigDecimal.ZERO);
             } else {
                 principalPortion = regularCashEmi.subtract(interest).min(currentPrincipal);
                 closingPrincipal = currentPrincipal.subtract(principalPortion).max(BigDecimal.ZERO);
-                totalDue = regularCashEmi;
+                totalDue = principalPortion.add(interest);
             }
 
             entry.setEmiAmount(totalDue);

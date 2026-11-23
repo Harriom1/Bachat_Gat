@@ -250,7 +250,7 @@
 
           <div class="form-group">
             <label class="form-label" for="inp-max-loan-per-member" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹) *</label>
-            <input type="number" id="inp-max-loan-per-member" class="form-control" value="75000" min="1000" step="1" required>
+            <input type="number" id="inp-max-loan-per-member" class="form-control" value="500000" min="1000" step="1" required>
             <small class="text-muted" style="font-size: 0.75rem;" data-i18n="helpMemberLoanLimit">Per-member single loan ceiling limit.</small>
           </div>
         </div>
@@ -963,8 +963,9 @@
         ifsc: (document.getElementById('inp-ifsc') ? document.getElementById('inp-ifsc').value.trim().toUpperCase() : ''),
         meetingLocation: '',
         monthlyBachatAmount: parseFloat(document.getElementById('inp-monthly-share').value) || 5000,
-        maxLoanAmount: 100000,
-        maxLoanAmountPerMember: parseFloat(document.getElementById('inp-max-loan-per-member')?.value) || 75000,
+        maxLoanAmount: Math.max(500000, Number(document.getElementById('inp-max-loan-per-member').value)),
+        maxOutstandingLoanAmount: Math.max(500000, Number(document.getElementById('inp-max-loan-per-member').value)),
+        maxLoanAmountPerMember: Number(document.getElementById('inp-max-loan-per-member').value),
         collectionDueDay: parseInt(document.getElementById('inp-due-day')?.value) || 10,
         formationDate: document.getElementById('inp-formation-date').value || null,
         president: document.getElementById('inp-president-name').value.trim(),

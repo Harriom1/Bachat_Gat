@@ -1,5 +1,6 @@
 package com.bachatgat.service;
 
+import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoginRequest;
 import com.bachatgat.dto.PaymentOrderRequest;
 import com.bachatgat.dto.PaymentReceiptDTO;
@@ -52,7 +53,7 @@ class PaymentAndIncomeDistributionIntegrationTest {
     }
 
     private String authenticate(String username, String password) throws Exception {
-        LoginRequest req = new LoginRequest(username, password);
+        LoginRequest req = DemoLoginRequests.forAccount(username, password);
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))

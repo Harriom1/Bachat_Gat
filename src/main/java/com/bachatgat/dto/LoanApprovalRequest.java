@@ -1,6 +1,7 @@
 package com.bachatgat.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -17,6 +18,7 @@ public class LoanApprovalRequest {
 
     @NotNull(message = "Duration in months is required")
     @Min(value = 1, message = "Duration must be at least 1 month")
+    @Max(value = LoanRepaymentPreview.MAX_DURATION_MONTHS)
     private Integer durationMonths = 12;
 
     private String interestType = "REDUCING"; // FLAT or REDUCING

@@ -1,10 +1,8 @@
 package com.bachatgat.service;
 
-import com.bachatgat.dto.LoanApprovalRequest;
+import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoanApplicationRequest;
 import com.bachatgat.dto.LoginRequest;
-import com.bachatgat.model.LoanApplication;
-import com.bachatgat.model.LoanApplicationStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,13 +11,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -33,7 +32,7 @@ class LoanApplicationAndPasswordResetTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
+    @MockitoSpyBean
     private GroupFundService groupFundService;
 
     private String adminToken;
@@ -48,7 +47,7 @@ class LoanApplicationAndPasswordResetTest {
     }
 
     private String authenticate(String username, String password) throws Exception {
-        LoginRequest req = new LoginRequest(username, password);
+        LoginRequest req = DemoLoginRequests.forAccount(username, password);
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -66,10 +65,8 @@ class LoanApplicationAndPasswordResetTest {
 
         // Step 1: Member submits loan application
         LoanApplicationRequest appReq = new LoanApplicationRequest();
-        // Use one rupee above the current seeded lending capacity so this test remains
-        // valid if demo ledger amounts change.
-        BigDecimal requestedAmount = groupFundService.getLendingCapacity("bg-001").add(BigDecimal.ONE);
-        appReq.setRequestedAmount(requestedAmount);
+        doReturn(BigDecimal.valueOf(40_000)).when(groupFundService).getLendingCapacity("bg-001");
+        appReq.setRequestedAmount(BigDecimal.valueOf(40_001));
         appReq.setPurpose("Education");
         appReq.setPreferredDurationMonths(12);
         appReq.setRepaymentPeriodMonths(12);
@@ -83,6 +80,21 @@ class LoanApplicationAndPasswordResetTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.data.code").value("INSUFFICIENT_GROUP_FUNDS"));
+    }
+
+    @Test
+    void signedInMemberCanPreviewRepaymentAtBothTermLimits() throws Exception {
+        for (String months : new String[]{"1", "360"}) {
+            mockMvc.perform(get("/api/me/loan-repayment-preview")
+                            .header("Authorization", "Bearer " + userToken)
+                            .param("amount", "49000")
+                            .param("durationMonths", months))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.monthlyEmi").isNumber())
+                    .andExpect(jsonPath("$.data.finalInstallment").isNumber())
+                    .andExpect(jsonPath("$.data.totalInterest").isNumber())
+                    .andExpect(jsonPath("$.data.totalRepayment").isNumber());
+        }
     }
 
     @Test
@@ -103,7 +115,7 @@ class LoanApplicationAndPasswordResetTest {
                 .andExpect(jsonPath("$.success").value(true));
 
         // Member logs in with new temporary password
-        LoginRequest loginReq = new LoginRequest("user", newTempPass);
+        LoginRequest loginReq = DemoLoginRequests.forAccount("user", newTempPass);
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginReq)))

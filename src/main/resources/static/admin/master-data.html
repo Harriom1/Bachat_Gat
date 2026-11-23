@@ -333,8 +333,8 @@
         document.getElementById('md-due-day').value = md.collectionDueDay || 10;
         document.getElementById('md-grace-period').value = md.gracePeriodDays || 5;
         document.getElementById('md-late-fee').value = md.latePaymentFee || 100;
-        document.getElementById('md-max-loan').value = md.maxLoanAmount || 100000;
-        document.getElementById('md-max-member-loan').value = md.maxLoanAmountPerMember || md.maxLoanAmount || 100000;
+        document.getElementById('md-max-loan').value = md.maxLoanAmount ?? 500000;
+        document.getElementById('md-max-member-loan').value = md.maxLoanAmountPerMember ?? 500000;
         document.getElementById('md-loan-duration').value = md.defaultLoanDurationMonths || 12;
         document.getElementById('md-financial-year').value = md.financialYear || '2026-2027';
         document.getElementById('md-effective-from').value = md.effectiveFrom && md.effectiveFrom > new Date().toISOString().slice(0, 10)

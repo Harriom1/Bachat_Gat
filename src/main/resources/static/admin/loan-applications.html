@@ -159,14 +159,14 @@
             <div class="form-group">
               <label class="form-label">Annual Interest Rate (%) *</label>
               <div class="input-currency-group">
-                <input type="number" id="rev-interestRate" class="form-control" value="12" step="0.25" min="1" max="60" required oninput="syncRevFromAnnual()">
+                <input type="number" id="rev-interestRate" class="form-control" value="12" step="0.01" min="0" max="60" required oninput="syncRevFromAnnual()">
               </div>
               <div class="form-help">Annual equivalent rate</div>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Approved Duration (Months) *</label>
-            <input type="number" id="rev-durationMonths" class="form-control" value="12" min="1" required>
+            <input type="number" id="rev-durationMonths" class="form-control" value="12" min="1" max="360" required>
           </div>
 
           <div class="form-group">
@@ -349,7 +349,9 @@
       document.getElementById('rev-duration').textContent = `${app.preferredDurationMonths} Months`;
       
       // Default approved amount = requested amount, but admin can adjust downwards!
-      document.getElementById('rev-approvedAmount').value = app.requestedAmount;
+      const approvedAmount = document.getElementById('rev-approvedAmount');
+      approvedAmount.value = app.requestedAmount;
+      approvedAmount.removeAttribute('max');
       document.getElementById('rev-durationMonths').value = app.preferredDurationMonths || 12;
 
       // Dynamic interest calculation listener (Requirement 5)
@@ -357,12 +359,18 @@
         const type = document.getElementById('rev-interestType').value;
         const P = parseFloat(document.getElementById('rev-approvedAmount').value || 0);
         const annualRate = parseFloat(document.getElementById('rev-interestRate').value || 0);
-        const months = parseInt(document.getElementById('rev-durationMonths').value || 1, 10);
+        const months = document.getElementById('rev-durationMonths').valueAsNumber;
 
         const titleEl = document.getElementById('rev-interest-title');
         const descEl = document.getElementById('rev-interest-desc');
         const emiEl = document.getElementById('rev-est-emi');
         const totalIntEl = document.getElementById('rev-est-total-int');
+
+        if (!Number.isInteger(months) || months < 1 || months > 360) {
+          emiEl.textContent = '—';
+          totalIntEl.textContent = '—';
+          return;
+        }
 
         if (type === 'FLAT') {
           titleEl.textContent = 'Flat Interest Method (स्थिर व्याज)';
@@ -404,9 +412,13 @@
       };
 
       // Prefill interest rate and calculation type from group master data
-      const groupId = document.getElementById('active-group-select').value || 'bg-001';
-      api.getMasterData(groupId).then(md => {
+      const groupId = app.groupId || document.getElementById('active-group-select').value;
+      api.getMasterData(groupId, true).then(md => {
+        if (document.getElementById('rev-appId').value !== app.id) return;
         if (md) {
+          if (md.maxLoanAmountPerMember != null && md.maxOutstandingLoanAmount != null) {
+            approvedAmount.max = Math.min(md.maxLoanAmountPerMember, md.maxOutstandingLoanAmount);
+          }
           if (md.loanInterestRate != null) {
             document.getElementById('rev-interestRate').value = md.loanInterestRate;
             document.getElementById('rev-monthlyInterestRate').value = (md.loanInterestRate / 12).toFixed(2).replace(/\.00$/, '');
@@ -417,6 +429,7 @@
           recalculateInterestDetails();
         }
       }).catch(e => {
+        if (document.getElementById('rev-appId').value !== app.id) return;
         const rate = parseFloat(document.getElementById('rev-interestRate').value || 12);
         document.getElementById('rev-monthlyInterestRate').value = (rate / 12).toFixed(2).replace(/\.00$/, '');
         recalculateInterestDetails();

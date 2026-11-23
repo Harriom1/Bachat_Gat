@@ -875,9 +875,9 @@
                 <div class="form-help" data-i18n="helpInterestType">Reducing balance calculates on remaining principal only.</div>
               </div>
               <div class="form-group" style="flex: 1;">
-                <label class="form-label required" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹)</label>
-                <input type="number" id="edit-max-loan-per-member" class="form-control" min="1000" step="1" placeholder="75000">
-                <input type="hidden" id="edit-max-loan" value="100000">
+                <label class="form-label required" for="edit-max-loan-per-member" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹)</label>
+                <input type="number" id="edit-max-loan-per-member" class="form-control" min="1000" step="1" placeholder="500000" required>
+                <input type="hidden" id="edit-max-loan">
                 <div class="form-help" data-i18n="helpMemberLoanLimit">Per-member single loan ceiling limit.</div>
               </div>
               <div class="form-group" style="flex: 0.8;">
@@ -904,7 +904,7 @@
               </div>
               <div class="form-group" style="flex: 1;" id="edit-max-outstanding-loan-box">
                 <label class="form-label" data-i18n="maxOutstandingLoanAmount">Max Outstanding Cap per Member (₹)</label>
-                <input type="number" id="edit-max-outstanding-loan" class="form-control" min="10000" step="1" placeholder="150000">
+                <input type="number" id="edit-max-outstanding-loan" class="form-control" min="1000" step="1" placeholder="500000">
                 <div class="form-help" data-i18n="helpMaxOutstanding">Total cumulative debt allowed across loans.</div>
               </div>
             </div>
@@ -995,7 +995,7 @@
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
+  <script src="/js/api.js?v=loan-terms-20261123"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
@@ -1763,23 +1763,21 @@
       // Prefill Interest Rate & Lending Rules
       let annualRate = currentGroup.defaultInterestRate != null ? currentGroup.defaultInterestRate : 12;
       let interestType = currentGroup.loanInterestType || 'REDUCING_BALANCE';
-      let maxLoan = currentGroup.maxLoanAmount || 100000;
+      let maxLoan = currentGroup.maxLoanAmount ?? 500000;
       let lateFee = currentGroup.lateFeeAmount != null ? currentGroup.lateFeeAmount : 100;
       let allowMulti = currentGroup.allowMultipleLoans === true;
       let maxActive = currentGroup.maxActiveLoans != null ? currentGroup.maxActiveLoans : 2;
-      let maxOutstanding = currentGroup.maxOutstandingLoanAmount != null ? currentGroup.maxOutstandingLoanAmount : 150000;
-      let maxPerMember = currentGroup.maxLoanAmountPerMember != null ? currentGroup.maxLoanAmountPerMember : 100000;
+      let maxOutstanding = currentGroup.maxOutstandingLoanAmount ?? 500000;
+      let maxPerMember = currentGroup.maxLoanAmountPerMember ?? 500000;
 
       // Try fetching latest master data rules to ensure 100% current settings
       try {
-        const md = await api.getMasterData(currentGroup.id);
+        const md = await api.getMasterData(currentGroup.id, true);
         if (md) {
           if (md.loanInterestRate != null) annualRate = md.loanInterestRate;
           if (md.loanInterestType) interestType = md.loanInterestType;
           if (md.maxLoanAmount != null) maxLoan = md.maxLoanAmount;
           if (md.latePaymentFee != null) lateFee = md.latePaymentFee;
-          if (md.allowMultipleLoans != null) allowMulti = md.allowMultipleLoans;
-          if (md.maxActiveLoans != null) maxActive = md.maxActiveLoans;
           if (md.maxOutstandingLoanAmount != null) maxOutstanding = md.maxOutstandingLoanAmount;
           if (md.maxLoanAmountPerMember != null) maxPerMember = md.maxLoanAmountPerMember;
         }
@@ -1828,20 +1826,25 @@
       const groupId = (currentGroup && currentGroup.id) ? currentGroup.id : (Common.getSelectedGroupId() || 'bg-001');
       const annualRate = parseFloat(document.getElementById('edit-interest-rate')?.value);
       const interestType = document.getElementById('edit-interest-type')?.value || 'REDUCING_BALANCE';
-      const maxLoan = parseFloat(document.getElementById('edit-max-loan')?.value || document.getElementById('edit-max-loan-per-member')?.value);
+      const limitInput = document.getElementById('edit-max-loan-per-member');
+      if (!limitInput.reportValidity()) return;
+      const maxLoanAmountPerMember = limitInput.valueAsNumber;
+      const maxLoan = Math.max(Number(document.getElementById('edit-max-loan').value), maxLoanAmountPerMember);
       const lateFee = parseFloat(document.getElementById('edit-late-fee')?.value);
       const collectionDueDay = parseInt(document.getElementById('edit-collection-due-day')?.value) || 10;
       const allowMultipleLoans = document.getElementById('edit-allow-multiple-loans')?.value === 'true';
       const maxActiveLoans = parseInt(document.getElementById('edit-max-active-loans')?.value) || 2;
-      const maxOutstandingLoanAmount = parseFloat(document.getElementById('edit-max-outstanding-loan')?.value) || 150000;
-      const maxLoanAmountPerMember = parseFloat(document.getElementById('edit-max-loan-per-member')?.value) || 100000;
+      const outstandingInput = document.getElementById('edit-max-outstanding-loan');
+      if (allowMultipleLoans && !outstandingInput.reportValidity()) return;
+      const configuredOutstanding = outstandingInput.valueAsNumber || 500000;
+      const maxOutstandingLoanAmount = allowMultipleLoans ? configuredOutstanding : Math.max(configuredOutstanding, maxLoanAmountPerMember);
 
       const updatedData = {
         groupName: document.getElementById('edit-name').value,
         monthlyBachatAmount: parseFloat(document.getElementById('edit-monthly-share').value),
         defaultInterestRate: isNaN(annualRate) ? 12 : annualRate,
         loanInterestType: interestType,
-        maxLoanAmount: isNaN(maxLoan) ? 100000 : maxLoan,
+        maxLoanAmount: maxLoan,
         lateFeeAmount: isNaN(lateFee) ? 100 : lateFee,
         bachatGatRegNumber: document.getElementById('edit-gov-reg').value,
         collectionDueDay: collectionDueDay,
@@ -1856,7 +1859,23 @@
         accountNumber: document.getElementById('edit-account').value,
         ifsc: document.getElementById('edit-ifsc').value,
         registrationId: currentGroup.registrationId,
-        groupCode: currentGroup.groupCode
+        groupCode: currentGroup.groupCode,
+        defaultLanguage: currentGroup.defaultLanguage,
+        organizationId: currentGroup.organizationId,
+        formationDate: currentGroup.formationDate,
+        registrationDate: currentGroup.registrationDate,
+        village: currentGroup.village,
+        taluka: currentGroup.taluka,
+        district: currentGroup.district,
+        state: currentGroup.state,
+        pinCode: currentGroup.pinCode,
+        meetingDay: currentGroup.meetingDay,
+        meetingTime: currentGroup.meetingTime,
+        meetingLocation: currentGroup.meetingLocation,
+        contactNumber: currentGroup.contactNumber,
+        email: currentGroup.email,
+        branch: currentGroup.branch,
+        upiDetails: currentGroup.upiDetails
       };
 
       try {
@@ -1882,7 +1901,7 @@
       const sel = document.getElementById('desig-existing-member');
       sel.innerHTML = '<option value="">-- Or enter new office bearer details below --</option>';
       if (groupMembers && groupMembers.length > 0) {
-        groupMembers.forEach(m => {
+        groupMembers.filter(m => m.status === 'ACTIVE').forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.memberId || m.id;
           opt.textContent = `${m.fullName} (${m.mobileNumber}) - ${m.designation || 'MEMBER'}`;
@@ -1927,12 +1946,14 @@
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Assigning...';
 
+      const mobileNumber = document.getElementById('desig-mobileNumber').value.trim();
       const payload = {
-        role: role,
+        designation: role,
         memberId: document.getElementById('desig-existing-member').value || null,
         fullName: document.getElementById('desig-fullName').value.trim(),
         fullNameMr: document.getElementById('desig-fullNameMr').value.trim(),
-        mobileNumber: document.getElementById('desig-mobileNumber').value.trim(),
+        username: mobileNumber,
+        mobileNumber,
         email: document.getElementById('desig-email').value.trim(),
         password: pw1,
         confirmPassword: pw2

@@ -1,5 +1,6 @@
 package com.bachatgat.security;
 
+import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +33,7 @@ class DocumentUploadValidationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        LoginRequest request = new LoginRequest("admin", "admin123");
+        LoginRequest request = DemoLoginRequests.forAccount("admin", "admin123");
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

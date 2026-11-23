@@ -22,7 +22,7 @@ public class GroupMasterData {
     private BigDecimal loanInterestRate = BigDecimal.valueOf(12.0); // Annual %
     private String loanInterestType = "REDUCING_BALANCE"; // REDUCING_BALANCE or FLAT
     private int defaultLoanDurationMonths = 12;
-    private BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+    private BigDecimal maxLoanAmount = Group.DEFAULT_LOAN_LIMIT;
     private BigDecimal latePaymentFee = BigDecimal.valueOf(100);
     private int collectionDueDay = 10; // 10th of every month
     private int gracePeriodDays = 5;
@@ -30,8 +30,9 @@ public class GroupMasterData {
     // Multi-loan configuration per group (Requirements 26, 27, 28)
     private boolean allowMultipleLoans = false;
     private int maxActiveLoans = 1;
-    private BigDecimal maxOutstandingLoanAmount = BigDecimal.valueOf(150000);
-    private BigDecimal maxLoanAmountPerMember = BigDecimal.valueOf(100000);
+    private BigDecimal maxOutstandingLoanAmount = Group.DEFAULT_LOAN_LIMIT;
+    private BigDecimal maxLoanAmountPerMember = Group.DEFAULT_LOAN_LIMIT;
+    private boolean loanLimitDefaultsUpdated;
 
     private BigDecimal membershipFee = BigDecimal.valueOf(200);
     private String financialYear = "2025-2026";
@@ -59,7 +60,8 @@ public class GroupMasterData {
         this.monthlyBachatAmount = monthlyBachatAmount != null ? monthlyBachatAmount : BigDecimal.valueOf(5000);
         this.defaultLoanEmiAmount = defaultLoanEmiAmount != null ? defaultLoanEmiAmount : BigDecimal.valueOf(4100);
         this.loanInterestRate = loanInterestRate != null ? loanInterestRate : BigDecimal.valueOf(12.0);
-        this.maxLoanAmount = maxLoanAmount != null ? maxLoanAmount : BigDecimal.valueOf(100000);
+        this.maxLoanAmount = maxLoanAmount != null ? maxLoanAmount : Group.DEFAULT_LOAN_LIMIT;
+        this.maxLoanAmountPerMember = Group.DEFAULT_LOAN_LIMIT.min(this.maxLoanAmount);
         this.latePaymentFee = latePaymentFee != null ? latePaymentFee : BigDecimal.valueOf(100);
         this.collectionDueDay = collectionDueDay > 0 ? collectionDueDay : 10;
         this.gracePeriodDays = gracePeriodDays >= 0 ? gracePeriodDays : 5;
@@ -132,6 +134,8 @@ public class GroupMasterData {
     public void setMaxOutstandingLoanAmount(BigDecimal maxOutstandingLoanAmount) { this.maxOutstandingLoanAmount = maxOutstandingLoanAmount; }
     public BigDecimal getMaxLoanAmountPerMember() { return maxLoanAmountPerMember; }
     public void setMaxLoanAmountPerMember(BigDecimal maxLoanAmountPerMember) { this.maxLoanAmountPerMember = maxLoanAmountPerMember; }
+    public boolean isLoanLimitDefaultsUpdated() { return loanLimitDefaultsUpdated; }
+    public void setLoanLimitDefaultsUpdated(boolean updated) { this.loanLimitDefaultsUpdated = updated; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

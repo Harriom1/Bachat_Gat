@@ -3,6 +3,7 @@ package com.bachatgat.controller;
 import com.bachatgat.dto.ApiResponse;
 import com.bachatgat.dto.DashboardUserDTO;
 import com.bachatgat.dto.LoanApplicationRequest;
+import com.bachatgat.dto.LoanRepaymentPreview;
 import com.bachatgat.exception.ForbiddenException;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.*;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
@@ -175,6 +177,15 @@ public class CurrentUserController {
         return ResponseEntity.ok(ApiResponse.ok(eligibility));
     }
 
+    @GetMapping("/loan-repayment-preview")
+    public ResponseEntity<ApiResponse<LoanRepaymentPreview>> previewLoanRepayment(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestParam BigDecimal amount,
+            @RequestParam int durationMonths) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                loanApplicationService.previewRepayment(requireMemberId(principal), amount, durationMonths)));
+    }
+
     @GetMapping("/transactions")
     public ResponseEntity<ApiResponse<List<Transaction>>> getMyTransactions(
             @RequestParam(required = false) Integer month,
@@ -198,7 +209,7 @@ public class CurrentUserController {
             throw new ResourceNotFoundException("User is not assigned to any Bachat Gat group.");
         }
         Group group = groupService.getGroupById(groupId);
-        GroupMasterData masterData = masterDataService.getLatestMasterData(groupId);
+        GroupMasterData masterData = masterDataService.getCurrentLoanRules(groupId);
         long activeCount = memberService.getMembersByGroupId(groupId).stream()
                 .filter(m -> m.getStatus() == MemberStatus.ACTIVE)
                 .count();
@@ -229,7 +240,7 @@ public class CurrentUserController {
         if (groupId == null || groupId.isBlank()) {
             throw new ResourceNotFoundException("User is not assigned to any Bachat Gat group.");
         }
-        GroupMasterData masterData = masterDataService.getLatestMasterData(groupId);
+        GroupMasterData masterData = masterDataService.getCurrentLoanRules(groupId);
         return ResponseEntity.ok(ApiResponse.ok(masterData));
     }
 

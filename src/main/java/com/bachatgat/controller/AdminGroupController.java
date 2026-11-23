@@ -3,6 +3,7 @@ package com.bachatgat.controller;
 import com.bachatgat.dto.ApiResponse;
 import com.bachatgat.dto.GroupDTO;
 import com.bachatgat.dto.GroupDropdownDTO;
+import com.bachatgat.dto.OfficeBearerDTO;
 import com.bachatgat.model.Group;
 import com.bachatgat.model.Role;
 import com.bachatgat.security.GroupSecurityService;
@@ -125,13 +126,13 @@ public class AdminGroupController {
     }
 
     @PostMapping("/{id}/office-bearers")
-    public ResponseEntity<ApiResponse<com.bachatgat.model.User>> designateOfficeBearer(
+    public ResponseEntity<ApiResponse<Void>> designateOfficeBearer(
             @PathVariable String id,
-            @Valid @RequestBody com.bachatgat.dto.OfficeBearerDTO dto,
+            @Valid @RequestBody OfficeBearerDTO dto,
             @AuthenticationPrincipal UserPrincipal principal) {
         groupSecurityService.validateGroupAccess(principal, id);
-        com.bachatgat.model.User user = groupService.designateOfficeBearer(id, dto, principal.getUsername());
-        return ResponseEntity.ok(ApiResponse.ok("Office bearer designated successfully", user));
+        groupService.designateOfficeBearer(id, dto, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("Office bearer designated successfully", null));
     }
 }
 

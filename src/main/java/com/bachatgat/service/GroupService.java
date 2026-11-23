@@ -1,13 +1,19 @@
 package com.bachatgat.service;
 
 import com.bachatgat.dto.GroupDTO;
+import com.bachatgat.dto.OfficeBearerDTO;
 import com.bachatgat.exception.DuplicateRecordException;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.Group;
+import com.bachatgat.model.Member;
+import com.bachatgat.model.MemberStatus;
+import com.bachatgat.model.Role;
+import com.bachatgat.model.User;
 import com.bachatgat.repository.FirestoreDataService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class GroupService {
@@ -71,6 +77,9 @@ public class GroupService {
 
         Group group = new Group();
         mapDtoToGroup(dto, group);
+        if (dto.getMaxLoanAmountPerMember() == null) {
+            group.setMaxLoanAmountPerMember(Group.DEFAULT_LOAN_LIMIT.min(group.getMaxLoanAmount()));
+        }
         validateLoanLimits(group);
         group.setCreatedBy(createdBy);
 
@@ -163,7 +172,7 @@ public class GroupService {
                 saved.getMonthlyShareAmount() != null ? saved.getMonthlyShareAmount() : java.math.BigDecimal.valueOf(3300),
                 saved.getMonthlyShareAmount() != null ? saved.getMonthlyShareAmount() : java.math.BigDecimal.valueOf(3300),
                 saved.getDefaultInterestRate() != null ? saved.getDefaultInterestRate() : java.math.BigDecimal.valueOf(12.0),
-                saved.getMaxLoanAmount() != null ? saved.getMaxLoanAmount() : java.math.BigDecimal.valueOf(50000),
+                saved.getMaxLoanAmount() != null ? saved.getMaxLoanAmount() : Group.DEFAULT_LOAN_LIMIT,
                 saved.getLateFeeAmount() != null ? saved.getLateFeeAmount() : java.math.BigDecimal.valueOf(50),
                 saved.getCollectionDueDay() > 0 ? saved.getCollectionDueDay() : 10,
                 saved.getGracePeriodDays() > 0 ? saved.getGracePeriodDays() : 5,
@@ -171,6 +180,7 @@ public class GroupService {
         );
         md.setFinancialYear("2026-2027");
         md.setDefaultLanguage(saved.getDefaultLanguage() != null ? saved.getDefaultLanguage() : "en");
+        md.setLoanInterestType(saved.getLoanInterestType());
         md.setAllowMultipleLoans(saved.isAllowMultipleLoans());
         md.setMaxActiveLoans(saved.getMaxActiveLoans() > 0 ? saved.getMaxActiveLoans() : 2);
         md.setMaxOutstandingLoanAmount(saved.getMaxOutstandingLoanAmount());
@@ -185,14 +195,24 @@ public class GroupService {
 
     public Group updateGroup(String id, GroupDTO dto, String updatedBy) {
         Group group = getGroupById(id);
-        String oldState = group.getGroupName() + " | Monthly Bachat: " + group.getMonthlyShareAmount() + " | Rate: " + group.getDefaultInterestRate() + "%";
+        var currentRules = dataService.getCurrentLoanRules(id);
+        currentRules.ifPresent(rules -> {
+            if (rules.getMaxLoanAmount() != null) group.setMaxLoanAmount(rules.getMaxLoanAmount());
+            if (rules.getMaxLoanAmountPerMember() != null) group.setMaxLoanAmountPerMember(rules.getMaxLoanAmountPerMember());
+            if (rules.getMaxOutstandingLoanAmount() != null) group.setMaxOutstandingLoanAmount(rules.getMaxOutstandingLoanAmount());
+        });
+        String oldState = groupAuditState(group);
 
         mapDtoToGroup(dto, group);
+        if (dto.getMaxLoanAmount() != null && dto.getMaxLoanAmountPerMember() == null
+                && group.getMaxLoanAmountPerMember() != null) {
+            group.setMaxLoanAmountPerMember(group.getMaxLoanAmountPerMember().min(group.getMaxLoanAmount()));
+        }
         validateLoanLimits(group);
         Group updated = dataService.saveGroup(group);
 
-        // Sync latest GroupMasterData with updated Group rules
-        dataService.getLatestMasterDataByGroupId(id).ifPresent(md -> {
+        // A profile edit applies immediately and leaves scheduled versions in place.
+        currentRules.ifPresent(md -> {
             if (updated.getMonthlyShareAmount() != null) md.setMonthlyShareAmount(updated.getMonthlyShareAmount());
             if (updated.getDefaultInterestRate() != null) md.setLoanInterestRate(updated.getDefaultInterestRate());
             if (updated.getLoanInterestType() != null) md.setLoanInterestType(updated.getLoanInterestType());
@@ -206,56 +226,87 @@ public class GroupService {
             dataService.saveMasterData(md);
         });
 
-        String newState = updated.getGroupName() + " | Monthly Bachat: " + updated.getMonthlyShareAmount() + " | Rate: " + updated.getDefaultInterestRate() + "%";
-        auditService.log(id, updatedBy, updatedBy, "GROUP_UPDATED", "GROUP", id, oldState, newState, "127.0.0.1");
+        auditService.log(id, updatedBy, updatedBy, "GROUP_UPDATED", "GROUP", id,
+                oldState, groupAuditState(updated), "127.0.0.1");
 
         return updated;
     }
 
-    public com.bachatgat.model.User designateOfficeBearer(String groupId, com.bachatgat.dto.OfficeBearerDTO dto, String createdBy) {
+    private String groupAuditState(Group group) {
+        return group.getGroupName() + " | Monthly Bachat: " + group.getMonthlyShareAmount()
+                + " | Rate: " + group.getDefaultInterestRate() + "% | Member Loan Limit: "
+                + group.getMaxLoanAmountPerMember();
+    }
+
+    public User designateOfficeBearer(String groupId, OfficeBearerDTO dto, String createdBy) {
         Group group = getGroupById(groupId);
         if (dto.getPassword() == null || dto.getPassword().length() < 6) {
             throw new IllegalArgumentException("Password must be at least 6 characters");
         }
         if (dto.getConfirmPassword() != null && !dto.getConfirmPassword().isBlank()
-                && !dto.getPassword().equals(dto.getConfirmPassword().trim())) {
+                && !dto.getPassword().equals(dto.getConfirmPassword())) {
             throw new IllegalArgumentException("Password and confirmation password do not match");
         }
 
-        String desig = (dto.getDesignation() != null ? dto.getDesignation().trim().toUpperCase() : "MEMBER");
-        com.bachatgat.model.Role role;
-        if ("SECRETARY".equalsIgnoreCase(desig)) {
-            role = com.bachatgat.model.Role.SECRETARY;
-            group.setSecretary(dto.getFullName().trim());
-        } else if ("TREASURER".equalsIgnoreCase(desig)) {
-            role = com.bachatgat.model.Role.TREASURER;
-            group.setTreasurer(dto.getFullName().trim());
-        } else {
-            role = com.bachatgat.model.Role.MEMBER;
+        Role role = switch (dto.getDesignation().trim().toUpperCase(Locale.ROOT)) {
+            case "SECRETARY" -> Role.SECRETARY;
+            case "TREASURER" -> Role.TREASURER;
+            default -> throw new IllegalArgumentException("Select Secretary or Treasurer.");
+        };
+
+        Member member = null;
+        if (dto.getMemberId() != null && !dto.getMemberId().isBlank()) {
+            String selectedId = dto.getMemberId().trim();
+            member = dataService.findMemberByMemberId(selectedId)
+                    .or(() -> dataService.findMemberById(selectedId))
+                    .filter(selected -> group.getId().equals(selected.getGroupId())
+                            && selected.getStatus() == MemberStatus.ACTIVE)
+                    .orElseThrow(() -> new IllegalArgumentException("Select an active member of this group."));
         }
 
-        // Find or create User
-        com.bachatgat.model.User user = dataService.findUserByUsername(dto.getUsername())
-                .orElse(new com.bachatgat.model.User());
+        String memberId = member == null ? null : member.getMemberId();
+        String username = dto.getUsername().trim();
+        User user = (memberId == null ? dataService.findUserByUsername(username)
+                : dataService.findUserByMemberId(memberId).or(() -> dataService.findUserByUsername(username)))
+                .orElseGet(User::new);
+        if (user.getId() != null && (!group.getId().equals(user.getGroupId())
+                || (user.getMemberId() != null && !user.getMemberId().equalsIgnoreCase(memberId))
+                || (user.getRole() != Role.MEMBER && user.getRole() != Role.USER && user.getRole() != role))) {
+            throw new DuplicateRecordException("This login is already assigned to another member, group, or role.");
+        }
 
-        user.setUsername(dto.getUsername().trim());
-        user.setPassword(passwordEncoder.encode(dto.getPassword().trim()));
+        if (user.getId() == null) {
+            user.setUsername(username);
+        }
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
         user.setFullName(dto.getFullName().trim());
         user.setFullNameMr(dto.getFullNameMr() != null ? dto.getFullNameMr().trim() : dto.getFullName().trim());
         user.setFullNameHi(dto.getFullNameHi() != null ? dto.getFullNameHi().trim() : dto.getFullName().trim());
         user.setMobileNumber(dto.getMobileNumber());
         user.setEmail(dto.getEmail());
         user.setRole(role);
-        user.setDesignation(desig);
-        user.setGroupId(groupId);
+        user.setDesignation(role.name());
+        user.setGroupId(group.getId());
+        user.setMemberId(memberId);
         user.setActive(dto.isActive());
         user.setFirstLogin(false);
 
-        com.bachatgat.model.User savedUser = dataService.saveUser(user);
+        User savedUser = dataService.saveUser(user);
+        if (member != null) {
+            member.setDesignation(role.name());
+            member.setHasLoginAccount(true);
+            member.setLoginUsername(savedUser.getUsername());
+            dataService.saveMember(member);
+        }
+        if (role == Role.SECRETARY) {
+            group.setSecretary(savedUser.getFullName());
+        } else {
+            group.setTreasurer(savedUser.getFullName());
+        }
         dataService.saveGroup(group);
 
         auditService.log(groupId, createdBy, createdBy, "OFFICE_BEARER_DESIGNATED", "USER",
-                savedUser.getId(), null, "Designated " + savedUser.getFullName() + " as " + desig, "127.0.0.1");
+                savedUser.getId(), null, "Designated " + savedUser.getFullName() + " as " + role, "127.0.0.1");
 
         return savedUser;
     }
@@ -316,6 +367,9 @@ public class GroupService {
         }
         if (group.getMaxLoanAmountPerMember() != null && group.getMaxLoanAmountPerMember().signum() <= 0) {
             throw new IllegalArgumentException("Maximum loan per member must be greater than zero.");
+        }
+        if (group.getMaxOutstandingLoanAmount() != null && group.getMaxOutstandingLoanAmount().signum() <= 0) {
+            throw new IllegalArgumentException("Maximum outstanding loan balance must be greater than zero.");
         }
         if (group.getMaxLoanAmount() != null && group.getMaxLoanAmountPerMember() != null
                 && group.getMaxLoanAmountPerMember().compareTo(group.getMaxLoanAmount()) > 0) {

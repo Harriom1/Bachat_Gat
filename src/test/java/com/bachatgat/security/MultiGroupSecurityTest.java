@@ -1,5 +1,6 @@
 package com.bachatgat.security;
 
+import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ class MultiGroupSecurityTest {
     }
 
     private String authenticate(String username, String password) throws Exception {
-        LoginRequest req = new LoginRequest(username, password);
+        LoginRequest req = DemoLoginRequests.forAccount(username, password);
         MvcResult res = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))

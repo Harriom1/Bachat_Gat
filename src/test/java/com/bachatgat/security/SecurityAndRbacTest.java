@@ -1,5 +1,6 @@
 package com.bachatgat.security;
 
+import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -27,7 +28,7 @@ class SecurityAndRbacTest {
     @Test
     @DisplayName("Admin Login succeeds and returns valid JWT token")
     void testAdminLogin() throws Exception {
-        LoginRequest req = new LoginRequest("admin", "admin123");
+        LoginRequest req = DemoLoginRequests.forAccount("admin", "admin123");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -39,9 +40,27 @@ class SecurityAndRbacTest {
     }
 
     @Test
+    void superAdminCanSignInWithUsernameAndPasswordAlone() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("superadmin", "admin123"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.role").value("SUPER_ADMIN"))
+                .andExpect(jsonPath("$.data.token").isNotEmpty());
+    }
+
+    @Test
+    void memberCannotSignInWithoutSelectingTheirGroup() throws Exception {
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginRequest("user", "user123"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     @DisplayName("Member User Login succeeds and returns valid JWT token with MEMBER role")
     void testUserLogin() throws Exception {
-        LoginRequest req = new LoginRequest("user", "user123");
+        LoginRequest req = DemoLoginRequests.forAccount("user", "user123");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -57,7 +76,7 @@ class SecurityAndRbacTest {
     @DisplayName("USER role attempting to access Admin endpoint /api/admin/dashboard returns 403 Forbidden")
     void testUserCannotAccessAdminEndpoint() throws Exception {
         // 1. Login as User
-        LoginRequest req = new LoginRequest("user", "user123");
+        LoginRequest req = DemoLoginRequests.forAccount("user", "user123");
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -77,7 +96,7 @@ class SecurityAndRbacTest {
     @DisplayName("Admin role successfully accesses /api/admin/dashboard")
     void testAdminAccessesAdminDashboard() throws Exception {
         // 1. Login as Admin
-        LoginRequest req = new LoginRequest("admin", "admin123");
+        LoginRequest req = DemoLoginRequests.forAccount("admin", "admin123");
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
@@ -98,7 +117,7 @@ class SecurityAndRbacTest {
     @Test
     @DisplayName("User accesses their own self-service endpoint /api/me/dashboard successfully")
     void testUserAccessesSelfDashboard() throws Exception {
-        LoginRequest req = new LoginRequest("user", "user123");
+        LoginRequest req = DemoLoginRequests.forAccount("user", "user123");
         MvcResult result = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))

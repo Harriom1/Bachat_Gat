@@ -1,5 +1,6 @@
 package com.bachatgat.dto;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -16,6 +17,7 @@ public class LoanApplicationRequest {
 
     @NotNull(message = "Preferred duration is required")
     @Min(value = 1, message = "Duration must be at least 1 month")
+    @Max(value = LoanRepaymentPreview.MAX_DURATION_MONTHS)
     private Integer preferredDurationMonths;
 
     private String optionalMessage;

@@ -123,7 +123,7 @@
                 <label class="form-label required" data-i18n="requestedLoanAmount">Requested Loan Amount (₹)</label>
                 <div style="position: relative;">
                   <span style="position: absolute; left: 14px; top: 10px; font-weight: bold; color: var(--text-muted);">₹</span>
-                  <input type="number" id="app-amount" class="form-control" style="padding-left: 2rem;" placeholder="e.g. 50000" min="1000" step="1000" required oninput="calculateLiveEmi()">
+                  <input type="number" id="app-amount" class="form-control" style="padding-left: 2rem;" placeholder="e.g. 50000" min="1000" step="1" required>
                 </div>
                 <small id="app-amount-help" class="text-muted"></small>
               </div>
@@ -142,10 +142,8 @@
                   </select>
                 </div>
                 <div class="form-group" style="flex: 1;">
-                  <label class="form-label" data-i18n="repaymentDuration">Repayment Duration</label>
-                  <input type="text" id="app-duration-display" class="form-control" value="12 Months" readonly style="background: var(--bg-surface); font-weight: 600; color: var(--text-main); cursor: not-allowed;">
-                  <input type="hidden" id="app-duration" value="12">
-                  <small class="text-muted" style="font-size: 0.75rem;">Determined by group loan policy & authorized committee</small>
+                  <label class="form-label required" for="app-duration" data-i18n="repaymentDurationMonths">Repayment Duration (Months)</label>
+                  <input type="number" id="app-duration" class="form-control" value="12" min="1" max="360" step="1" required>
                 </div>
               </div>
 
@@ -154,16 +152,22 @@
                 <div data-i18n="estimatedRepaymentSummary" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 0.5rem;">Estimated Repayment Summary</div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.35rem;">
                   <span class="text-muted" data-i18n="estimatedMonthlyEmi">Estimated Monthly EMI:</span>
-                  <strong id="live-emi-val" style="color: var(--primary); font-size: 1.05rem;">₹0</strong>
+                  <strong id="live-emi-val" style="color: var(--primary); font-size: 1.05rem;">—</strong>
+                </div>
+                <div id="live-final-row" hidden style="justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.35rem;">
+                  <span class="text-muted" data-i18n="finalInstallment">Final Installment:</span>
+                  <span id="live-final-val">—</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-bottom: 0.35rem;">
                   <span class="text-muted" data-i18n="estimatedTotalInterest">Estimated Total Interest:</span>
-                  <span id="live-interest-val">₹0</span>
+                  <span id="live-interest-val">—</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
                   <span class="text-muted" data-i18n="estimatedTotalRepayment">Estimated Total Repayment:</span>
-                  <strong id="live-total-val">₹0</strong>
+                  <strong id="live-total-val">—</strong>
                 </div>
+                <small class="text-muted" data-i18n="repaymentPreviewTerms">Based on the group’s current rate and your requested terms. The committee can adjust the final terms.</small>
+                <div id="live-preview-status" class="text-muted" role="status" style="font-size: 0.8rem;"></div>
               </div>
 
               <div class="form-group mb-4">
@@ -171,7 +175,7 @@
                 <textarea id="app-message" class="form-control" rows="3" data-i18n-placeholder="loanAppMessagePlaceholder" placeholder="Provide any details that will assist the Bachat Gat committee in reviewing your loan..."></textarea>
               </div>
 
-              <button type="submit" id="btn-submit-app" class="btn-primary-custom" style="width: 100%; padding: 0.75rem;">
+              <button type="submit" id="btn-submit-app" class="btn-primary-custom" style="width: 100%; padding: 0.75rem;" disabled>
                 <i class="bi bi-check2-circle"></i> <span data-i18n="submitLoanApplication">Submit Loan Application</span>
               </button>
             </form>
@@ -226,28 +230,29 @@
     </main>
   </div>
 
-  <script src="/js/api.js"></script>
+  <script src="/js/api.js?v=loan-terms-20261123"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
   <script>
     let memberEligibility = null;
     let cachedApplications = [];
+    let previewTimer;
+    let previewRequestId = 0;
 
     document.addEventListener('DOMContentLoaded', async () => {
       if (!Auth.isAuthenticated()) {
         window.location.href = '/login.html';
         return;
       }
-      await loadEligibility();
-      await loadGroupRules();
-      await loadApplications();
+      document.getElementById('app-amount').addEventListener('input', calculateLiveEmi);
+      document.getElementById('app-duration').addEventListener('input', calculateLiveEmi);
       document.getElementById('form-loan-app').addEventListener('submit', handleSubmitApp);
+      await Promise.all([loadEligibility(), loadApplications()]);
 
       window.addEventListener('languageChanged', async () => {
         if (memberEligibility) {
           await loadEligibility();
-          await loadGroupRules();
           renderApplications(cachedApplications);
         }
       });
@@ -270,12 +275,13 @@
           badgeEl.innerHTML = `<span class="status-badge badge-active"><i class="bi bi-check-circle-fill"></i> ${eligibleLabel}</span>`;
           alertEl.style.display = 'none';
           submitBtn.disabled = false;
+          submitBtn.title = '';
         } else {
           badgeEl.innerHTML = `<span class="status-badge badge-danger"><i class="bi bi-x-circle-fill"></i> ${notEligibleLabel}</span>`;
           alertEl.style.display = 'block';
-          reasonText.textContent = el.ineligibilityReason || 'You do not meet the criteria to apply for a new loan under group policies.';
+          reasonText.textContent = el.reason || 'You do not meet the criteria to apply for a new loan under group policies.';
           submitBtn.disabled = true;
-          submitBtn.title = el.ineligibilityReason || 'Ineligible to apply';
+          submitBtn.title = reasonText.textContent;
         }
 
         const singleLoanOnlyText = window.i18n ? window.i18n.t('singleLoanOnly', 'Single Loan Only') : 'Single Loan Only';
@@ -287,11 +293,15 @@
         document.getElementById('el-active-count').textContent = maxActiveStr;
         document.getElementById('el-outstanding-amt').textContent = Common.formatIndianCurrency(el.totalOutstanding || 0);
 
-        // Individual limit entered by President
-        const memberLimit = el.maxLoanAmountPerMember || el.maxIndividualLoanLimit || 75000;
-        const totalOutstandingCap = el.maxOutstandingLimit || 120000;
+        const memberLimit = el.maxLoanAmountPerMember;
+        const totalOutstandingCap = el.maxOutstandingLimit;
 
         document.getElementById('el-max-loan').textContent = Common.formatIndianCurrency(memberLimit);
+        document.getElementById('group-max-loan').textContent = Common.formatIndianCurrency(memberLimit);
+        const type = el.interestType === 'FLAT' ? 'Flat Interest' : 'Reducing Balance';
+        const rateFormat = new Intl.NumberFormat(Common.getLocale(), {maximumFractionDigits: 2});
+        document.getElementById('group-loan-rate').textContent =
+          `${rateFormat.format(el.interestRate / 12)}% / month (${rateFormat.format(el.interestRate)}% p.a. ${type})`;
         document.getElementById('el-multi-policy').textContent = el.allowMultipleLoans 
           ? (window.i18n ? window.i18n.t('yesUpTo', `YES (Up to ${el.maxActiveLoans} loans)`).replace('{n}', el.maxActiveLoans) : `YES (Up to ${el.maxActiveLoans} loans)`) 
           : noOneAtATimeText;
@@ -305,7 +315,7 @@
 
         const amountInput = document.getElementById('app-amount');
         if (amountInput && memberLimit) {
-          amountInput.max = memberLimit;
+          amountInput.max = Math.max(0, Math.min(memberLimit, totalOutstandingCap - el.totalOutstanding));
           const helpEl = document.getElementById('app-amount-help');
           if (helpEl) {
             const ceilingText = window.i18n ? window.i18n.t('groupCeilingPerLoan', 'Group ceiling per loan') : 'Group ceiling per loan';
@@ -318,86 +328,54 @@
 
       } catch (err) {
         console.warn('Could not load loan eligibility:', err);
+        memberEligibility = null;
+        document.getElementById('btn-submit-app').disabled = true;
+        document.getElementById('el-badge-status').textContent =
+          window.i18n?.t('loanEligibilityUnavailable', 'Loan eligibility is unavailable. Refresh to try again.') ||
+          'Loan eligibility is unavailable. Refresh to try again.';
+        calculateLiveEmi();
       }
     }
 
     function calculateLiveEmi() {
-      const amount = parseFloat(document.getElementById('app-amount').value) || 0;
-      const duration = parseInt(document.getElementById('app-duration').value) || 12;
-
-      let annualRate = 12.0;
-      let interestType = 'REDUCING_BALANCE';
-      if (memberEligibility) {
-        if (memberEligibility.interestRate != null) annualRate = parseFloat(memberEligibility.interestRate);
-        if (memberEligibility.interestType) interestType = memberEligibility.interestType;
+      clearTimeout(previewTimer);
+      const requestId = ++previewRequestId;
+      const amount = document.getElementById('app-amount');
+      const duration = document.getElementById('app-duration');
+      const status = document.getElementById('live-preview-status');
+      const finalRow = document.getElementById('live-final-row');
+      finalRow.style.display = 'none';
+      finalRow.hidden = true;
+      for (const id of ['live-emi-val', 'live-interest-val', 'live-total-val']) {
+        document.getElementById(id).textContent = '—';
       }
+      status.textContent = '';
+      if (!memberEligibility || !amount.value || !amount.validity.valid ||
+          !duration.value || !duration.validity.valid) return;
 
-      if (amount <= 0 || duration <= 0) {
-        document.getElementById('live-emi-val').textContent = '₹0';
-        document.getElementById('live-interest-val').textContent = '₹0';
-        document.getElementById('live-total-val').textContent = '₹0';
-        return;
-      }
+      const principal = amount.valueAsNumber;
+      const months = duration.valueAsNumber;
+      status.textContent = window.i18n?.t('calculatingRepayment', 'Calculating repayment…') || 'Calculating repayment…';
+      previewTimer = setTimeout(async () => {
+        try {
+          const quote = await api.getLoanRepaymentPreview(principal, months);
+          if (requestId !== previewRequestId) return;
 
-      let monthlyEmi = 0;
-      let totalInterest = 0;
-      let totalRepay = 0;
-
-      if (interestType === 'FLAT') {
-        totalInterest = amount * (annualRate / 100) * (duration / 12);
-        totalRepay = amount + totalInterest;
-        monthlyEmi = totalRepay / duration;
-      } else {
-        // Reducing Balance (Clean integer straight-line principal + reducing interest)
-        const isMonthlyRate = annualRate <= 5.0;
-        const monthlyRate = isMonthlyRate ? (annualRate / 100) : ((annualRate / 12) / 100);
-        const monthlyPrincipal = Math.floor(amount / duration);
-        let remPrincipal = amount;
-        totalInterest = 0;
-        for (let i = 1; i <= duration; i++) {
-          const interest = Math.round(remPrincipal * monthlyRate);
-          totalInterest += interest;
-          remPrincipal -= (i === duration ? remPrincipal : monthlyPrincipal);
-        }
-        totalRepay = amount + totalInterest;
-        // Month 1 installment
-        monthlyEmi = monthlyPrincipal + Math.round(amount * monthlyRate);
-      }
-
-      document.getElementById('live-emi-val').textContent = Common.formatIndianCurrency(monthlyEmi);
-      document.getElementById('live-interest-val').textContent = Common.formatIndianCurrency(totalInterest);
-      document.getElementById('live-total-val').textContent = Common.formatIndianCurrency(totalRepay);
-    }
-
-    async function loadGroupRules() {
-      try {
-        const rules = await api.getMyGroupRules();
-        if (rules) {
-          const rawRate = rules.loanInterestRate != null ? rules.loanInterestRate : 12;
-          const rateNum = parseFloat(rawRate);
-          let mStr, aStr;
-          if (rateNum <= 5) {
-            mStr = rateNum.toFixed(1).replace(/\.0$/, '');
-            aStr = (rateNum * 12).toFixed(1).replace(/\.0$/, '');
-          } else {
-            mStr = (rateNum / 12).toFixed(1).replace(/\.0$/, '');
-            aStr = rateNum.toFixed(1).replace(/\.0$/, '');
+          document.getElementById('live-emi-val').textContent = Common.formatLoanCurrency(quote.monthlyEmi);
+          document.getElementById('live-interest-val').textContent = Common.formatLoanCurrency(quote.totalInterest);
+          document.getElementById('live-total-val').textContent = Common.formatLoanCurrency(quote.totalRepayment);
+          if (quote.finalInstallment !== quote.monthlyEmi) {
+            document.getElementById('live-final-val').textContent = Common.formatLoanCurrency(quote.finalInstallment);
+            finalRow.hidden = false;
+            finalRow.style.display = 'flex';
           }
-          const typeStr = (rules.loanInterestType || 'REDUCING_BALANCE') === 'FLAT' ? 'Flat Interest' : 'Reducing Balance';
-          document.getElementById('group-loan-rate').textContent = `${mStr}% / month (${aStr}% p.a. ${typeStr})`;
-
-          const totalCapacity = rules.maxGroupLoanCapacity || rules.maxLoanAmount || 75000;
-          const memberLimit = rules.maxLoanAmountPerMember || rules.maxLoanAmount || 75000;
-
-          const capEl = document.getElementById('group-max-capacity');
-          if (capEl) capEl.textContent = Common.formatIndianCurrency(totalCapacity);
-
-          const limitEl = document.getElementById('group-max-loan');
-          if (limitEl) limitEl.textContent = Common.formatIndianCurrency(memberLimit);
+          status.textContent = '';
+        } catch (err) {
+          if (requestId !== previewRequestId) return;
+          status.textContent = err.message ||
+            window.i18n?.t('repaymentPreviewUnavailable', 'Repayment preview unavailable.') || 'Repayment preview unavailable.';
         }
-      } catch (e) {
-        console.warn('Could not load group rules for loan application:', e);
-      }
+      }, 250);
     }
 
     async function loadApplications() {
@@ -449,28 +427,16 @@
 
     async function handleSubmitApp(e) {
       e.preventDefault();
-      const amount = parseFloat(document.getElementById('app-amount').value);
+      const amount = document.getElementById('app-amount').valueAsNumber;
       const purpose = document.getElementById('app-purpose').value;
-      const duration = parseInt(document.getElementById('app-duration').value);
+      const duration = document.getElementById('app-duration').valueAsNumber;
       const message = document.getElementById('app-message').value.trim();
 
-      const memberLimit = (memberEligibility && (memberEligibility.maxLoanAmountPerMember || memberEligibility.maxIndividualLoanLimit)) || 75000;
-
-      if (memberEligibility) {
-        if (!memberEligibility.eligible) {
-          Common.showToast('Application blocked: ' + (memberEligibility.ineligibilityReason || 'Not eligible'), 'danger');
-          return;
-        }
-        if (amount > memberLimit) {
-          Common.showToast(`Requested amount ₹${amount} exceeds max loan limit of ₹${memberLimit}`, 'danger');
-          return;
-        }
-        const remainingCap = (memberEligibility.maxOutstandingLimit || 120000) - (memberEligibility.totalOutstanding || 0);
-        if (amount > remainingCap) {
-          Common.showToast(`Requested amount exceeds your available credit cap of ₹${remainingCap.toFixed(0)}`, 'danger');
-          return;
-        }
+      if (!memberEligibility?.eligible) {
+        Common.showToast(memberEligibility?.reason || 'Could not confirm loan eligibility.', 'danger');
+        return;
       }
+      if (!e.currentTarget.reportValidity()) return;
 
       const btn = document.getElementById('btn-submit-app');
       btn.disabled = true;
@@ -483,9 +449,7 @@
           requestedAmount: amount,
           purpose: purpose,
           preferredDurationMonths: duration,
-          repaymentPeriodMonths: duration,
-          optionalMessage: message,
-          notes: message
+          optionalMessage: message
         });
 
         Common.showToast('Loan application submitted successfully! It is now pending admin committee review.', 'success');
@@ -502,7 +466,7 @@
           Common.showToast('Failed to submit application: ' + err.message, 'danger');
         }
       } finally {
-        btn.disabled = false;
+        btn.disabled = !memberEligibility?.eligible;
         btn.innerHTML = `<i class="bi bi-check2-circle"></i> ${submitTxt}`;
       }
     }

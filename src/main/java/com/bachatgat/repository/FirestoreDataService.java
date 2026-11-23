@@ -114,7 +114,7 @@ public class FirestoreDataService {
      */
     private void loadPersistedData() {
         loadCollection("users", User.class, users, User::setId);
-        loadCollection("groups", Group.class, groups, Group::setId);
+        loadCollection("groups", Group.class, groups, FirestoreDataService::loadGroup);
         loadCollection("members", Member.class, members, Member::setId);
         loadCollection("collections", CollectionRecord.class, collections, CollectionRecord::setId);
         loadCollection("loanApplications", LoanApplication.class, loanApplications, LoanApplication::setId);
@@ -128,7 +128,7 @@ public class FirestoreDataService {
         loadCollection("incomes", GroupIncome.class, incomes, GroupIncome::setId);
         loadCollection("adjustments", MemberAdjustment.class, adjustments, MemberAdjustment::setId);
         loadCollection("memberRefunds", MemberRefund.class, memberRefunds, MemberRefund::setId);
-        loadCollection("groupMasterData", GroupMasterData.class, masterDataMap, GroupMasterData::setId);
+        loadCollection("groupMasterData", GroupMasterData.class, masterDataMap, FirestoreDataService::loadGroupMasterData);
         loadCollection("paymentOrders", PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
         loadLoanSchedules();
     }
@@ -146,7 +146,7 @@ public class FirestoreDataService {
     private void ensureLoaded(String collectionName) {
         switch (collectionName) {
             case "users" -> loadCollectionOnce(collectionName, User.class, users, User::setId);
-            case "groups" -> loadCollectionOnce(collectionName, Group.class, groups, Group::setId);
+            case "groups" -> loadCollectionOnce(collectionName, Group.class, groups, FirestoreDataService::loadGroup);
             case "members" -> loadCollectionOnce(collectionName, Member.class, members, Member::setId);
             case "collections" -> loadCollectionOnce(collectionName, CollectionRecord.class, collections, CollectionRecord::setId);
             case "loanApplications" -> loadCollectionOnce(collectionName, LoanApplication.class, loanApplications, LoanApplication::setId);
@@ -160,7 +160,7 @@ public class FirestoreDataService {
             case "incomes" -> loadCollectionOnce(collectionName, GroupIncome.class, incomes, GroupIncome::setId);
             case "adjustments" -> loadCollectionOnce(collectionName, MemberAdjustment.class, adjustments, MemberAdjustment::setId);
             case "memberRefunds" -> loadCollectionOnce(collectionName, MemberRefund.class, memberRefunds, MemberRefund::setId);
-            case "groupMasterData" -> loadCollectionOnce(collectionName, GroupMasterData.class, masterDataMap, GroupMasterData::setId);
+            case "groupMasterData" -> loadCollectionOnce(collectionName, GroupMasterData.class, masterDataMap, FirestoreDataService::loadGroupMasterData);
             case "paymentOrders" -> loadCollectionOnce(collectionName, PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
             case "otpChallenges" -> loadCollectionOnce(collectionName, OtpChallenge.class, otpChallenges, OtpChallenge::setId);
             case "loanSchedules" -> { loadCollectionOnce("loans", Loan.class, loans, Loan::setId); loadLoanSchedules(); loadedCollections.add(collectionName); }
@@ -168,7 +168,35 @@ public class FirestoreDataService {
         }
     }
 
+    static void loadGroup(Group group, String id) {
+        group.setId(id);
+        if (group.isLoanLimitDefaultsUpdated()) return;
+        group.setMaxLoanAmount(upgradeLegacyLimit(group.getMaxLoanAmount(), 50_000, 75_000, 100_000));
+        group.setMaxLoanAmountPerMember(upgradeLegacyLimit(group.getMaxLoanAmountPerMember(), 50_000, 75_000, 100_000));
+        group.setMaxOutstandingLoanAmount(upgradeLegacyLimit(group.getMaxOutstandingLoanAmount(), 80_000, 120_000, 150_000));
+        group.setLoanLimitDefaultsUpdated(true);
+    }
+
+    static void loadGroupMasterData(GroupMasterData rules, String id) {
+        rules.setId(id);
+        if (rules.isLoanLimitDefaultsUpdated()
+                || (rules.getEffectiveTo() != null && rules.getEffectiveTo().isBefore(LocalDate.now()))) return;
+        rules.setMaxLoanAmount(upgradeLegacyLimit(rules.getMaxLoanAmount(), 50_000, 75_000, 100_000));
+        rules.setMaxLoanAmountPerMember(upgradeLegacyLimit(rules.getMaxLoanAmountPerMember(), 50_000, 75_000, 100_000));
+        rules.setMaxOutstandingLoanAmount(upgradeLegacyLimit(rules.getMaxOutstandingLoanAmount(), 80_000, 120_000, 150_000));
+        rules.setLoanLimitDefaultsUpdated(true);
+    }
+
+    private static BigDecimal upgradeLegacyLimit(BigDecimal limit, long... oldDefaults) {
+        if (limit == null) return Group.DEFAULT_LOAN_LIMIT;
+        for (long oldDefault : oldDefaults) {
+            if (limit.compareTo(BigDecimal.valueOf(oldDefault)) == 0) return Group.DEFAULT_LOAN_LIMIT;
+        }
+        return limit;
+    }
+
     private void loadLoanSchedules() {
+        if (firestore == null) return;
         try {
             for (DocumentSnapshot snapshot : firestore.collection("loanSchedules").get().get().getDocuments()) {
                 if (!snapshot.exists()) continue;
@@ -394,6 +422,7 @@ public class FirestoreDataService {
             group.setId("group-" + UUID.randomUUID().toString().substring(0, 8));
         }
         group.setUpdatedAt(LocalDateTime.now());
+        group.setLoanLimitDefaultsUpdated(true);
         groups.put(group.getId(), group);
         persistToFirestore("groups", group.getId(), group);
         return group;
@@ -1172,9 +1201,35 @@ public class FirestoreDataService {
         LocalDate date = collectionDate != null ? collectionDate : LocalDate.now();
         return masterDataMap.values().stream()
                 .filter(m -> m.getGroupId().equals(groupId))
-                .filter(m -> m.getEffectiveFrom() == null || !m.getEffectiveFrom().isAfter(date))
-                .filter(m -> m.getEffectiveTo() == null || !m.getEffectiveTo().isBefore(date))
+                .filter(m -> isEffectiveOn(m, date))
                 .max(Comparator.comparingInt(GroupMasterData::getVersion));
+    }
+
+    /** Lending decisions must see limit changes saved by another Cloud Run instance. */
+    public Optional<GroupMasterData> getCurrentLoanRules(String groupId) {
+        LocalDate today = LocalDate.now();
+        if (firestore == null) return getMasterDataForDate(groupId, today);
+        try {
+            return firestore.collection("groupMasterData").whereEqualTo("groupId", groupId)
+                    .get().get().getDocuments().stream()
+                    .map(snapshot -> {
+                        GroupMasterData rules = objectMapper.convertValue(snapshot.getData(), GroupMasterData.class);
+                        loadGroupMasterData(rules, snapshot.getId());
+                        return rules;
+                    })
+                    .filter(rules -> isEffectiveOn(rules, today))
+                    .max(Comparator.comparingInt(GroupMasterData::getVersion));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while loading current loan rules.", ex);
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new IllegalStateException("Could not load current loan rules.", ex);
+        }
+    }
+
+    private static boolean isEffectiveOn(GroupMasterData rules, LocalDate date) {
+        return (rules.getEffectiveFrom() == null || !rules.getEffectiveFrom().isAfter(date))
+                && (rules.getEffectiveTo() == null || !rules.getEffectiveTo().isBefore(date));
     }
 
     public List<GroupMasterData> getAllMasterDataVersions(String groupId) {
@@ -1189,6 +1244,7 @@ public class FirestoreDataService {
         if (md.getId() == null) {
             md.setId(md.getGroupId() + "_v" + md.getVersion());
         }
+        md.setLoanLimitDefaultsUpdated(true);
         masterDataMap.put(md.getId(), md);
         persistToFirestore("groupMasterData", md.getId(), md);
         return md;
@@ -1293,9 +1349,6 @@ public class FirestoreDataService {
         group.setMeetingLocation("Gram Panchayat Hall, Shirur");
         group.setMonthlyShareAmount(BigDecimal.valueOf(5000));
         group.setDefaultInterestRate(BigDecimal.valueOf(12.0));
-        group.setMaxLoanAmount(BigDecimal.valueOf(100000));
-        group.setMaxLoanAmountPerMember(BigDecimal.valueOf(100000));
-        group.setMaxOutstandingLoanAmount(BigDecimal.valueOf(150000));
         group.setGracePeriodDays(5);
         group.setLateFeeAmount(BigDecimal.valueOf(100));
         group.setCollectionDueDay(10);
@@ -1790,9 +1843,6 @@ public class FirestoreDataService {
         group2.setMeetingLocation("Mahila Vikas Bhavan, Baramati");
         group2.setMonthlyShareAmount(BigDecimal.valueOf(3000));
         group2.setDefaultInterestRate(BigDecimal.valueOf(12.0));
-        group2.setMaxLoanAmount(BigDecimal.valueOf(75000));
-        group2.setMaxLoanAmountPerMember(BigDecimal.valueOf(75000));
-        group2.setMaxOutstandingLoanAmount(BigDecimal.valueOf(120000));
         group2.setGracePeriodDays(5);
         group2.setLateFeeAmount(BigDecimal.valueOf(50));
         group2.setCollectionDueDay(5);
@@ -1830,7 +1880,7 @@ public class FirestoreDataService {
         // Group 2 Master Data
         GroupMasterData md2 = new GroupMasterData(group2.getId(), 1,
                 BigDecimal.valueOf(3000), BigDecimal.valueOf(3000), BigDecimal.valueOf(12.0),
-                BigDecimal.valueOf(75000), BigDecimal.valueOf(50), 10, 5, "SYSTEM_INIT");
+                Group.DEFAULT_LOAN_LIMIT, BigDecimal.valueOf(50), 10, 5, "SYSTEM_INIT");
         md2.setFinancialYear("2025-2026");
         md2.setDefaultLanguage("mr");
         masterDataMap.put(md2.getId(), md2);
@@ -2055,9 +2105,6 @@ public class FirestoreDataService {
         group3.setMeetingLocation("Samaj Mandir, Hadapsar");
         group3.setMonthlyShareAmount(BigDecimal.valueOf(2000));
         group3.setDefaultInterestRate(BigDecimal.valueOf(12.0));
-        group3.setMaxLoanAmount(BigDecimal.valueOf(50000));
-        group3.setMaxLoanAmountPerMember(BigDecimal.valueOf(50000));
-        group3.setMaxOutstandingLoanAmount(BigDecimal.valueOf(80000));
         group3.setGracePeriodDays(5);
         group3.setLateFeeAmount(BigDecimal.valueOf(50));
         group3.setCollectionDueDay(5);
@@ -2095,7 +2142,7 @@ public class FirestoreDataService {
         // Group 3 Master Data
         GroupMasterData md3 = new GroupMasterData(group3.getId(), 1,
                 BigDecimal.valueOf(2000), BigDecimal.valueOf(2000), BigDecimal.valueOf(12.0),
-                BigDecimal.valueOf(50000), BigDecimal.valueOf(50), 10, 5, "SYSTEM_INIT");
+                Group.DEFAULT_LOAN_LIMIT, BigDecimal.valueOf(50), 10, 5, "SYSTEM_INIT");
         md3.setFinancialYear("2025-2026");
         md3.setDefaultLanguage("mr");
         masterDataMap.put(md3.getId(), md3);
@@ -2304,7 +2351,7 @@ public class FirestoreDataService {
         // 12. Seed Group Master Data (Version 1)
         GroupMasterData md1 = new GroupMasterData(group.getId(), 1,
                 BigDecimal.valueOf(5000), BigDecimal.valueOf(4100), BigDecimal.valueOf(12.0),
-                BigDecimal.valueOf(100000), BigDecimal.valueOf(100), 10, 5, "SYSTEM_INIT");
+                Group.DEFAULT_LOAN_LIMIT, BigDecimal.valueOf(100), 10, 5, "SYSTEM_INIT");
         md1.setFinancialYear("2025-2026");
         md1.setDefaultLanguage("mr");
         masterDataMap.put(md1.getId(), md1);

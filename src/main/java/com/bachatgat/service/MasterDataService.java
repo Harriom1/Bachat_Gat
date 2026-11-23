@@ -29,22 +29,21 @@ public class MasterDataService {
 
     public GroupMasterData getLatestMasterData(String groupId) {
         return dataService.getLatestMasterDataByGroupId(groupId)
-                .orElseGet(() -> {
-                    // Lazy initialize from Group settings
-                    Group group = dataService.findGroupById(groupId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
-                    GroupMasterData md = new GroupMasterData(
-                            groupId, 1,
-                            group.getMonthlyShareAmount(),
-                            BigDecimal.valueOf(4100),
-                            group.getDefaultInterestRate(),
-                            group.getMaxLoanAmount(),
-                            group.getLateFeeAmount(),
-                            10, group.getGracePeriodDays(),
-                            "AUTO_INITIALIZED"
-                    );
-                    return dataService.saveMasterData(md);
-                });
+                .orElseGet(() -> dataService.saveMasterData(initialRules(groupId)));
+    }
+
+    private GroupMasterData initialRules(String groupId) {
+        Group group = dataService.findGroupById(groupId)
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
+        GroupMasterData rules = new GroupMasterData(groupId, 1, group.getMonthlyShareAmount(),
+                BigDecimal.valueOf(4100), group.getDefaultInterestRate(), group.getMaxLoanAmount(),
+                group.getLateFeeAmount(), 10, group.getGracePeriodDays(), "AUTO_INITIALIZED");
+        rules.setLoanInterestType(group.getLoanInterestType());
+        rules.setMaxLoanAmountPerMember(group.getMaxLoanAmountPerMember());
+        rules.setMaxOutstandingLoanAmount(group.getMaxOutstandingLoanAmount());
+        rules.setAllowMultipleLoans(group.isAllowMultipleLoans());
+        rules.setMaxActiveLoans(group.getMaxActiveLoans());
+        return rules;
     }
 
     public List<GroupMasterData> getMasterDataHistory(String groupId) {
@@ -61,6 +60,10 @@ public class MasterDataService {
                 .orElseGet(() -> getLatestMasterData(groupId));
     }
 
+    public GroupMasterData getCurrentLoanRules(String groupId) {
+        return dataService.getCurrentLoanRules(groupId).orElseGet(() -> initialRules(groupId));
+    }
+
     public GroupMasterData updateMasterData(String groupId, MasterDataDTO dto, String adminUsername) {
         GroupMasterData current = getLatestMasterData(groupId);
         int nextVersion = current.getVersion() + 1;
@@ -75,9 +78,16 @@ public class MasterDataService {
         if (memberLoanLimit != null && memberLoanLimit.signum() <= 0) {
             throw new IllegalArgumentException("Maximum loan per member must be greater than zero.");
         }
+        if (dto.getMaxOutstandingLoanAmount() != null && dto.getMaxOutstandingLoanAmount().signum() <= 0) {
+            throw new IllegalArgumentException("Maximum outstanding loan balance must be greater than zero.");
+        }
         boolean groupCapacityChanged = dto.getMaxLoanAmount() != null
                 && (current.getMaxLoanAmount() == null
                     || dto.getMaxLoanAmount().compareTo(current.getMaxLoanAmount()) != 0);
+        if (groupCapacityChanged && dto.getMaxLoanAmountPerMember() == null && memberLoanLimit != null) {
+            // Older callers send only a group ceiling. Keep their single-ceiling updates valid.
+            memberLoanLimit = memberLoanLimit.min(groupLoanCapacity);
+        }
         boolean memberLimitChanged = dto.getMaxLoanAmountPerMember() != null
                 && (current.getMaxLoanAmountPerMember() == null
                     || dto.getMaxLoanAmountPerMember().compareTo(current.getMaxLoanAmountPerMember()) != 0);
@@ -114,9 +124,11 @@ public class MasterDataService {
         newMd.setLoanInterestRate(dto.getLoanInterestRate() != null ? dto.getLoanInterestRate() : current.getLoanInterestRate());
         newMd.setLoanInterestType(dto.getLoanInterestType() != null ? dto.getLoanInterestType() : current.getLoanInterestType());
         newMd.setDefaultLoanDurationMonths(dto.getDefaultLoanDurationMonths() != null ? dto.getDefaultLoanDurationMonths() : current.getDefaultLoanDurationMonths());
-        newMd.setMaxLoanAmount(dto.getMaxLoanAmount() != null ? dto.getMaxLoanAmount() : current.getMaxLoanAmount());
-        newMd.setMaxLoanAmountPerMember(dto.getMaxLoanAmountPerMember() != null ? dto.getMaxLoanAmountPerMember() : current.getMaxLoanAmountPerMember());
+        newMd.setMaxLoanAmount(groupLoanCapacity);
+        newMd.setMaxLoanAmountPerMember(memberLoanLimit);
         newMd.setMaxOutstandingLoanAmount(dto.getMaxOutstandingLoanAmount() != null ? dto.getMaxOutstandingLoanAmount() : current.getMaxOutstandingLoanAmount());
+        newMd.setAllowMultipleLoans(current.isAllowMultipleLoans());
+        newMd.setMaxActiveLoans(current.getMaxActiveLoans());
         newMd.setLatePaymentFee(dto.getLatePaymentFee() != null ? dto.getLatePaymentFee() : current.getLatePaymentFee());
         newMd.setCollectionDueDay(dto.getCollectionDueDay() != null ? dto.getCollectionDueDay() : current.getCollectionDueDay());
         newMd.setGracePeriodDays(dto.getGracePeriodDays() != null ? dto.getGracePeriodDays() : current.getGracePeriodDays());

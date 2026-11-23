@@ -84,7 +84,12 @@ class BachatGatFullLifecycleTest {
         // ========================================================
         // 2. President First Login & Forced Password Change (Requirements 10, 11, 12)
         // ========================================================
-        LoginRequest presLoginReq = new LoginRequest("anjali9823", "InitialP@ss123");
+        var president = authService.getPublicGroupMembers(createdGroup.getId()).stream()
+                .filter(person -> "PRESIDENT".equals(person.getRole()))
+                .findFirst().orElseThrow();
+        assertEquals("anjali9823", president.getUsername());
+        LoginRequest presLoginReq = new LoginRequest(createdGroup.getId(), president.getMemberId(), "InitialP@ss123");
+        presLoginReq.setUsername(president.getUsername());
         LoginResponse presRes = authService.login(presLoginReq);
         assertNotNull(presRes.getToken());
         assertEquals(Role.PRESIDENT, presRes.getRole());
@@ -96,8 +101,8 @@ class BachatGatFullLifecycleTest {
         authService.firstLoginChangePassword("anjali9823", presPwReq);
 
         // Subsequent login must succeed with new password and firstLogin=false
-        LoginRequest presSubsequentLogin = new LoginRequest("anjali9823", "AnjaliSecure#2026");
-        LoginResponse presRes2 = authService.login(presSubsequentLogin);
+        presLoginReq.setPassword("AnjaliSecure#2026");
+        LoginResponse presRes2 = authService.login(presLoginReq);
         assertNotNull(presRes2.getToken());
         assertFalse(presRes2.isFirstLogin(), "President firstLogin must be false after update");
 

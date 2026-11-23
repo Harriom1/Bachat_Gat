@@ -421,7 +421,7 @@
             const typeStr = (rules.loanInterestType || rules.interestType || 'REDUCING_BALANCE') === 'FLAT' ? 'Flat Interest' : 'Reducing Balance';
             document.getElementById('rule-info-interest').textContent = `${monthlyRateStr}% / month (${annualRateStr}% p.a. ${typeStr})`;
 
-            const maxLoan = rules.maxLoanAmount != null ? rules.maxLoanAmount : 100000;
+            const maxLoan = rules.maxLoanAmountPerMember ?? rules.maxLoanAmount ?? 500000;
             document.getElementById('rule-info-max-loan').textContent = Common.formatIndianCurrency(maxLoan);
           }
         } catch (e) {

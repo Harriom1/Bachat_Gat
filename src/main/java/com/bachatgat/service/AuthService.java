@@ -167,7 +167,7 @@ public class AuthService {
                 presDto.setHasLoginAccount(true);
                 presDto.setRole("PRESIDENT");
                 presDto.setDesignation("PRESIDENT");
-                presDto.setUsername("president");
+                presDto.setUsername(presidentUser.getUsername());
                 list.add(presDto);
             } else if (group.getPresident() != null && !group.getPresident().isBlank()) {
                 MemberDropdownDTO presDto = new MemberDropdownDTO();

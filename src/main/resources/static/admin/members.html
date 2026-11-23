@@ -816,7 +816,7 @@
       }
     }
 
-    function renderMembers(members) {
+    function renderMembers(members, pageOffset) {
       const tbody = document.getElementById('members-table-tbody');
       if (!tbody) return;
       if (!members || members.length === 0) {
@@ -831,7 +831,7 @@
 
         return `
         <tr>
-          <td>${index + 1}</td>
+          <td>${pageOffset + index + 1}</td>
           <td>
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
               <strong>${escapeHtml(memberDisplayName)}</strong>
@@ -883,9 +883,9 @@
     }
 
     function renderMembersPage() {
-      const start = (currentMemberPage - 1) * MEMBERS_PER_PAGE;
-      renderMembers(filteredMembers.slice(start, start + MEMBERS_PER_PAGE));
       updateMembersPagination(filteredMembers.length);
+      const start = (currentMemberPage - 1) * MEMBERS_PER_PAGE;
+      renderMembers(filteredMembers.slice(start, start + MEMBERS_PER_PAGE), start);
     }
 
     function goToMemberPage(page) {

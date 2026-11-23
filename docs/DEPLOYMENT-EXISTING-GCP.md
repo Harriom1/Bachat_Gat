@@ -10,6 +10,7 @@ The current Bachat Gat deployment uses:
 | Storage bucket | `bachat-gat-development-docs-2026` |
 | Artifact Registry repository | `bachatgat-app` |
 | Cloud Run service | `bachatgat-service` |
+| Production login | [Bachat Gat sign-in](https://bachatgat-service-230889435212.asia-south1.run.app/login.html) |
 
 ## Authenticate and select the project
 
@@ -23,12 +24,12 @@ Create production secrets in Secret Manager and grant the Cloud Run runtime serv
 
 ## Build and deploy
 
-From the repository root:
+From the repository root, supply the verified Brevo sender email and Firebase web app API key from your deployment settings:
 
 ```powershell
 gcloud builds submit `
   --config=cloudbuild.yaml `
-  --substitutions=_CORS_ALLOWED_ORIGINS=https://bachatgat-service-230889435212.asia-south1.run.app
+  "--substitutions=_REPORT_EMAIL_FROM=$reportEmailFrom,_FIREBASE_WEB_API_KEY=$firebaseWebApiKey"
 ```
 
 The build packages the application, builds and pushes the container, and deploys Cloud Run with production demo data disabled. Confirm the build ends with `STATUS: SUCCESS`.
@@ -44,7 +45,11 @@ $serviceUrl = gcloud run services describe bachatgat-service `
 Invoke-RestMethod "$serviceUrl/actuator/health"
 ```
 
-The health response must report `UP`. Test login and group-authorized access using a real account.
+Before promoting a revision, verify that both exact Cloud Run HTTPS origins in `cloudbuild.yaml` are in `CORS_ALLOWED_ORIGINS` and that both hostnames are authorized in Firebase Authentication for phone verification. If a custom domain is introduced, add its HTTPS origin to Cloud Run and its hostname to Firebase Authentication.
+
+Confirm that health reports `UP` and that the password login endpoint accepts requests from both approved origins. A request with an empty JSON body should reach validation and return 400. A 403 with `Invalid CORS request` indicates an origin mismatch. Check that signed-out requests to protected endpoints are denied and test sign-in and group-scoped access with an authorized account.
+
+Username and password sign-in uses the application API. Firebase handles phone verification, and Brevo handles email OTP and reports. Confirm that the Brevo sender is verified and that the Cloud Run service has its SMTP credentials from Secret Manager. Test OTP delivery to a controlled email inbox before promotion.
 
 ## Emergency administrator recovery
 

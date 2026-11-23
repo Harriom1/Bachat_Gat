@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Group {
+    public static final BigDecimal DEFAULT_LOAN_LIMIT = BigDecimal.valueOf(500_000);
     @DocumentId
     private String id;
     private String groupName;
@@ -34,15 +35,16 @@ public class Group {
     private int collectionDueDay = 10; // Configurable due date (e.g. 5th, 10th of every month)
     private BigDecimal defaultInterestRate = BigDecimal.valueOf(12.0); // 12% per annum
     private String loanInterestType = "REDUCING_BALANCE"; // REDUCING_BALANCE or FLAT
-    private BigDecimal maxLoanAmount = BigDecimal.valueOf(100000);
+    private BigDecimal maxLoanAmount = DEFAULT_LOAN_LIMIT;
     private int gracePeriodDays = 5;
     private BigDecimal lateFeeAmount = BigDecimal.valueOf(100);
 
     // Multi-loan configuration per group (Requirements 26, 27, 28)
     private boolean allowMultipleLoans = false;
     private int maxActiveLoans = 1;
-    private BigDecimal maxOutstandingLoanAmount = BigDecimal.valueOf(150000);
-    private BigDecimal maxLoanAmountPerMember = BigDecimal.valueOf(100000);
+    private BigDecimal maxOutstandingLoanAmount = DEFAULT_LOAN_LIMIT;
+    private BigDecimal maxLoanAmountPerMember = DEFAULT_LOAN_LIMIT;
+    private boolean loanLimitDefaultsUpdated;
 
     // Office Bearers
     private String president;
@@ -198,6 +200,8 @@ public class Group {
     public void setMaxOutstandingLoanAmount(BigDecimal maxOutstandingLoanAmount) { this.maxOutstandingLoanAmount = maxOutstandingLoanAmount; }
     public BigDecimal getMaxLoanAmountPerMember() { return maxLoanAmountPerMember; }
     public void setMaxLoanAmountPerMember(BigDecimal maxLoanAmountPerMember) { this.maxLoanAmountPerMember = maxLoanAmountPerMember; }
+    public boolean isLoanLimitDefaultsUpdated() { return loanLimitDefaultsUpdated; }
+    public void setLoanLimitDefaultsUpdated(boolean updated) { this.loanLimitDefaultsUpdated = updated; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

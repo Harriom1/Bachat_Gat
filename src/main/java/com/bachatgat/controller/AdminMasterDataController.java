@@ -31,9 +31,12 @@ public class AdminMasterDataController {
     @GetMapping
     public ResponseEntity<ApiResponse<GroupMasterData>> getMasterData(
             @PathVariable String groupId,
+            @RequestParam(defaultValue = "false") boolean effectiveToday,
             @AuthenticationPrincipal UserPrincipal principal) {
         groupSecurityService.validateGroupAccess(principal, groupId);
-        GroupMasterData md = masterDataService.getLatestMasterData(groupId);
+        GroupMasterData md = effectiveToday
+                ? masterDataService.getCurrentLoanRules(groupId)
+                : masterDataService.getLatestMasterData(groupId);
         return ResponseEntity.ok(ApiResponse.ok(md));
     }
 

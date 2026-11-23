@@ -352,8 +352,8 @@ class ApiClient {
   // ==========================================
   // CLIENT ADMIN APIs (Super Admin)
   // ==========================================
-  getClientAdmins() {
-    return this.request('/admin/client-admins');
+  getClientAdmins(includeGroupProfiles = false) {
+    return this.request(includeGroupProfiles ? '/admin/client-admins?includeGroupProfiles=true' : '/admin/client-admins');
   }
 
   createClientAdmin(adminData) {

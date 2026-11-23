@@ -357,7 +357,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-  <script src="/js/api.js"></script>
+  <script src="/js/api.js?v=president-directory"></script>
   <script src="/js/auth.js"></script>
   <script src="/js/common.js"></script>
   <script src="/js/i18n.js"></script>
@@ -421,7 +421,7 @@
     async function loadAdminsData() {
       try {
         const [admins, groups] = await Promise.all([
-          api.getClientAdmins(),
+          api.getClientAdmins(true),
           api.getGroupDropdown().catch(() => [])
         ]);
 
@@ -430,7 +430,7 @@
 
         // Calculate stats
         document.getElementById('stat-total-admins').textContent = adminsList.length;
-        const activeCount = adminsList.filter(a => a.enabled !== false).length;
+        const activeCount = adminsList.filter(a => a.active !== false && a.enabled !== false).length;
         document.getElementById('stat-active-admins').textContent = activeCount;
         const pendingFirst = adminsList.filter(a => a.firstLogin === true).length;
         document.getElementById('stat-first-login-admins').textContent = pendingFirst;
@@ -469,7 +469,7 @@
           const code = (matchedGroup && matchedGroup.groupCode) ? matchedGroup.groupCode : (adm.groupCode || '');
           groupDisplay = `
             <div>
-              <strong style="color: var(--primary);">${code ? code + ' - ' : ''}</strong>${grpLocName}
+              <strong style="color: var(--primary);">${code ? Common.escapeHtml(code) + ' - ' : ''}</strong>${Common.escapeHtml(grpLocName)}
             </div>
           `;
         }
@@ -486,17 +486,19 @@
           <td>
             <div>${Common.text(adm.mobileNumber, '-')}</div>
           </td>
-          <td>
+          <td>${adm.profileOnly ? '<span class="text-muted">No login assigned to this group</span>' : `
             <div style="display: flex; gap: 0.5rem;">
-              <button class="btn-table-action" onclick="promptResetPassword('${adm.id}', '${adm.username}')" title="Reset Password" aria-label="Reset Password">
+              <button class="btn-table-action js-reset-president" title="Reset Password" aria-label="Reset Password">
                 <i class="bi bi-key-fill"></i>
               </button>
-              <button class="btn-table-action" onclick="toggleAdminStatus('${adm.id}', ${!isEnabled})" title="${isEnabled ? 'Disable Admin' : 'Enable Admin'}">
+              <button class="btn-table-action js-toggle-president" title="${isEnabled ? 'Disable Admin' : 'Enable Admin'}">
                 <i class="bi bi-${isEnabled ? 'slash-circle' : 'check-circle'}"></i>
               </button>
             </div>
-          </td>
+          `}</td>
         `;
+        tr.querySelector('.js-reset-president')?.addEventListener('click', () => promptResetPassword(adm.id, adm.username));
+        tr.querySelector('.js-toggle-president')?.addEventListener('click', () => toggleAdminStatus(adm.id, !isEnabled));
         tbody.appendChild(tr);
       });
     }

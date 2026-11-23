@@ -40,7 +40,8 @@ public class AdminClientAdminController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllClientAdmins() {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAllClientAdmins(
+            @RequestParam(defaultValue = "false") boolean includeGroupProfiles) {
         List<User> admins = dataService.findUsersByRole(Role.ADMIN);
         List<User> presidents = dataService.findUsersByRole(Role.PRESIDENT);
         Map<String, User> combinedMap = new HashMap<>();
@@ -87,25 +88,47 @@ public class AdminClientAdminController {
             map.put("createdAt", admin.getCreatedAt());
 
             if (admin.getGroupId() != null) {
-                dataService.findGroupById(admin.getGroupId()).ifPresent(g -> {
-                    map.put("groupName", g.getGroupName());
-                    map.put("groupCode", g.getGroupCode());
-                    map.put("groupNameMr", g.getGroupNameMr());
-                    map.put("groupNameHi", g.getGroupNameHi());
-                    map.put("presidentName", g.getPresident() != null ? g.getPresident() : admin.getFullName());
-                    map.put("presidentNameMr", g.getPresidentNameMr() != null ? g.getPresidentNameMr() : admin.getFullNameMr());
-                    map.put("presidentNameHi", g.getPresidentNameHi() != null ? g.getPresidentNameHi() : admin.getFullNameHi());
-                    map.put("activeMembersCount", g.getActiveMembersCount());
-                    map.put("totalSavingsBalance", g.getTotalSavingsBalance());
-                    map.put("collectionDueDay", g.getCollectionDueDay());
-                });
+                dataService.findGroupById(admin.getGroupId()).ifPresent(group -> putGroupDetails(map, group, admin));
             } else {
                 map.put("presidentName", admin.getFullName());
             }
             return map;
         }).collect(Collectors.toList());
 
+        if (includeGroupProfiles) {
+            for (Group group : dataService.getAllGroups()) {
+                if (groupToPresident.containsKey(group.getId()) || !"ACTIVE".equalsIgnoreCase(group.getStatus())
+                        || group.getPresident() == null || group.getPresident().isBlank()) {
+                    continue;
+                }
+                // An existing profile is useful even when its login belongs to another group.
+                // Do not expose that account's ID or imply that it is active for this group.
+                Map<String, Object> row = new HashMap<>();
+                row.put("groupId", group.getId());
+                row.put("username", group.getPresidentUsername());
+                row.put("mobileNumber", group.getPresidentMobile());
+                row.put("active", false);
+                row.put("firstLogin", false);
+                row.put("profileOnly", true);
+                putGroupDetails(row, group, null);
+                response.add(row);
+            }
+        }
+
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    private void putGroupDetails(Map<String, Object> row, Group group, User admin) {
+        row.put("groupName", group.getGroupName());
+        row.put("groupCode", group.getGroupCode());
+        row.put("groupNameMr", group.getGroupNameMr());
+        row.put("groupNameHi", group.getGroupNameHi());
+        row.put("presidentName", group.getPresident() != null || admin == null ? group.getPresident() : admin.getFullName());
+        row.put("presidentNameMr", group.getPresidentNameMr() != null || admin == null ? group.getPresidentNameMr() : admin.getFullNameMr());
+        row.put("presidentNameHi", group.getPresidentNameHi() != null || admin == null ? group.getPresidentNameHi() : admin.getFullNameHi());
+        row.put("activeMembersCount", group.getActiveMembersCount());
+        row.put("totalSavingsBalance", group.getTotalSavingsBalance());
+        row.put("collectionDueDay", group.getCollectionDueDay());
     }
 
     @PostMapping

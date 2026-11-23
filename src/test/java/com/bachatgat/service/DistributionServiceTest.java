@@ -1,16 +1,22 @@
 package com.bachatgat.service;
 
+import com.bachatgat.controller.AdminExpenseController;
 import com.bachatgat.dto.DistributionRequest;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
+import com.bachatgat.security.UserPrincipal;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.test.context.support.WithMockUser;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,6 +28,12 @@ class DistributionServiceTest {
 
     @Autowired
     private FirestoreDataService dataService;
+
+    @Autowired
+    private AdminExpenseController expenseController;
+
+    @Autowired
+    private GroupFundService fundService;
 
     @Test
     @DisplayName("Equal distribution of Other Income adjusts each active member's share balance and creates ledger entries")
@@ -69,43 +81,49 @@ class DistributionServiceTest {
     }
 
     @Test
-    @DisplayName("Equal distribution of Other Expense deducts from each active member's balance")
+    @DisplayName("Recording an expense reduces member savings and group cash exactly once")
+    @WithMockUser(username = "admin", roles = "ADMIN")
     void testEqualExpenseDistribution() {
         String groupId = "bg-001";
-
-        GroupExpense expense = new GroupExpense();
-        expense.setGroupId(groupId);
-        expense.setCategory("STATIONERY");
-        expense.setDescription("Annual Registers & Audit Printing");
-        expense.setAmount(new BigDecimal("2000.00"));
-        expense.setExpenseDate(LocalDate.now());
-        expense.setPaymentMode("CASH");
-        expense.setRecordedBy("admin");
-        GroupExpense savedExpense = dataService.saveExpense(expense);
-
-        List<Member> activeMembers = dataService.getMembersByGroupId(groupId);
-        int count = activeMembers.size();
-        Member sampleMember = activeMembers.get(0);
-        BigDecimal initialExpDist = sampleMember.getTotalOtherExpenseDistributed() != null ?
-                sampleMember.getTotalOtherExpenseDistributed() : BigDecimal.ZERO;
-
-        DistributionRequest distReq = new DistributionRequest();
-        distReq.setDistributionRule("EQUAL");
-        distReq.setNote("Shared administrative expense");
-
-        GroupExpense result = distributionService.distributeExpense(groupId, savedExpense.getId(), distReq, "admin");
+        var principal = new UserPrincipal("usr-admin-01", "admin", "", Role.ADMIN, groupId, null);
+        BigDecimal amount = new BigDecimal("2000.01");
+        LocalDate expenseDate = LocalDate.now();
+        GroupExpense expense = new GroupExpense(groupId, "STATIONERY", "Annual registers",
+                amount, expenseDate, "CASH", "Stationery supplier", "admin");
+        expense.setReference("STATIONERY-REGRESSION");
+        BigDecimal previousFund = fundService.getAvailableFund(groupId);
+        BigDecimal previousExpenses = fundService.getFundBreakdown(groupId).expenses();
+        BigDecimal previousOpening = fundService.getAvailableFundBefore(groupId, expenseDate.plusDays(1));
+        Map<String, BigDecimal> previousSavings = dataService.getMembersByGroupId(groupId).stream()
+                .filter(member -> member.getStatus() == MemberStatus.ACTIVE)
+                .collect(Collectors.toMap(Member::getMemberId, Member::getTotalSavingsBalance));
+        assertFalse(previousSavings.isEmpty());
+        GroupExpense result = expenseController.createExpense(groupId, expense, principal).getBody().getData();
         assertTrue(result.isDistributed());
-
-        BigDecimal expectedDeduction = new BigDecimal("2000.00").divide(BigDecimal.valueOf(count), 2, java.math.RoundingMode.HALF_UP);
-        Member updatedMember = dataService.getMemberById(sampleMember.getMemberId());
-        assertEquals(initialExpDist.add(expectedDeduction), updatedMember.getTotalOtherExpenseDistributed());
+        GroupExpense retry = expenseController.createExpense(groupId, expense, principal).getBody().getData();
+        assertEquals(result.getId(), retry.getId());
 
         List<Transaction> transactions = dataService.getTransactionsByGroupId(groupId);
-        boolean txFound = transactions.stream()
-                .anyMatch(t -> t.getType() == TransactionType.MEMBER_EXPENSE_DISTRIBUTION &&
-                        t.getMemberId().equals(sampleMember.getMemberId()) &&
-                        t.getAmount().compareTo(expectedDeduction) == 0);
-        assertTrue(txFound, "Member expense distribution transaction must be in financial ledger");
+        Map<String, BigDecimal> allocations = transactions.stream()
+                .filter(t -> t.getType() == TransactionType.MEMBER_EXPENSE_DISTRIBUTION
+                        && result.getId().equals(t.getReference()))
+                .collect(Collectors.toMap(Transaction::getMemberId, Transaction::getAmount));
+        assertEquals(previousSavings.keySet(), allocations.keySet());
+        assertEquals(amount, allocations.values().stream().reduce(BigDecimal.ZERO, BigDecimal::add));
+        BigDecimal baseShare = amount.divide(BigDecimal.valueOf(allocations.size()), 2, RoundingMode.DOWN);
+        BigDecimal remainder = amount.subtract(baseShare.multiply(BigDecimal.valueOf(allocations.size())));
+        BigDecimal largestShare = baseShare.add(remainder);
+        allocations.forEach((memberId, share) -> {
+            assertTrue(share.equals(baseShare) || share.equals(largestShare));
+            assertEquals(0, previousSavings.get(memberId).subtract(share)
+                    .compareTo(dataService.getMemberById(memberId).getTotalSavingsBalance()));
+        });
+        assertEquals(1, transactions.stream().filter(t -> t.getType() == TransactionType.OTHER_EXPENSE
+                && result.getId().equals(t.getReference())).count());
+        assertEquals(0, previousFund.subtract(amount).compareTo(fundService.getAvailableFund(groupId)));
+        assertEquals(0, previousExpenses.add(amount).compareTo(fundService.getFundBreakdown(groupId).expenses()));
+        assertEquals(0, previousOpening.subtract(amount)
+                .compareTo(fundService.getAvailableFundBefore(groupId, expenseDate.plusDays(1))));
     }
 
     @Test

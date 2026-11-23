@@ -1,5 +1,7 @@
 package com.bachatgat.service;
 
+import com.bachatgat.model.Group;
+import com.bachatgat.model.GroupExpense;
 import com.bachatgat.model.Member;
 import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Loan;
@@ -10,11 +12,53 @@ import com.bachatgat.repository.FirestoreDataService;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GroupFundServiceTest {
+
+    @Test
+    void countsDistributedExpensesOnceWhenHistoricalRecordsAndLedgerCoexist() {
+        FirestoreDataService dataService = new FirestoreDataService(null, null, null);
+        Group group = new Group();
+        group.setId("group-expense-history");
+        dataService.saveGroup(group);
+        String groupId = group.getId();
+
+        Member member = new Member();
+        member.setMemberId("M-EXPENSE-HISTORY");
+        member.setGroupId(groupId);
+        member.setTotalSavingsBalance(new BigDecimal("800"));
+        member.setTotalOtherExpenseDistributed(new BigDecimal("250"));
+        member.setTotalExpenseDeductedFromSavings(new BigDecimal("200"));
+        dataService.saveMember(member);
+
+        LocalDate date = LocalDate.of(2026, 1, 15);
+        GroupExpense oldExpense = new GroupExpense(groupId, "BANK_CHARGES", "Legacy fee",
+                new BigDecimal("50"), date, "CASH", null, "admin");
+        oldExpense.setDistributed(true);
+        dataService.saveExpense(oldExpense);
+        GroupExpense postedExpense = new GroupExpense(groupId, "STATIONERY", "New supplies",
+                new BigDecimal("200"), date, "CASH", null, "admin");
+        postedExpense.setDistributed(true);
+        dataService.saveExpense(postedExpense);
+
+        GroupFundService service = new GroupFundService(dataService);
+        assertEquals(new BigDecimal("750"), service.getAvailableFund(groupId));
+
+        Transaction cashDebit = new Transaction();
+        cashDebit.setGroupId(groupId);
+        cashDebit.setDate(date);
+        cashDebit.setReference(postedExpense.getId());
+        cashDebit.setType(TransactionType.OTHER_EXPENSE);
+        cashDebit.setAmount(postedExpense.getAmount());
+        dataService.saveTransaction(cashDebit);
+
+        assertEquals(new BigDecimal("250"), service.getFundBreakdown(groupId).expenses());
+        assertEquals(new BigDecimal("750"), service.getAvailableFund(groupId));
+    }
 
     @Test
     void keepsLegacySavingsWhenExitAddsOnlyRefundLedgerEntry() {

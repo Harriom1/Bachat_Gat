@@ -246,7 +246,7 @@ public class DistributionService {
 
         Map<Member, BigDecimal> deductions = calculateAllocations(expense.getAmount(), rule, activeMembers, request);
 
-        // Apply deductions to member share balances
+        // Apply each allocation to both member balance fields in the same save.
         for (Map.Entry<Member, BigDecimal> entry : deductions.entrySet()) {
             Member member = entry.getKey();
             BigDecimal amount = entry.getValue();
@@ -254,6 +254,11 @@ public class DistributionService {
             BigDecimal prevShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
             BigDecimal newShare = prevShare.subtract(amount); // Deduct share
             member.setCurrentShareBalance(newShare);
+            BigDecimal savings = member.getTotalSavingsBalance();
+            member.setTotalSavingsBalance((savings != null ? savings : BigDecimal.ZERO).subtract(amount));
+            BigDecimal deductedFromSavings = member.getTotalExpenseDeductedFromSavings();
+            member.setTotalExpenseDeductedFromSavings(
+                    (deductedFromSavings != null ? deductedFromSavings : BigDecimal.ZERO).add(amount));
 
             BigDecimal previousExpense = member.getTotalOtherExpenseDistributed() != null
                     ? member.getTotalOtherExpenseDistributed() : BigDecimal.ZERO;

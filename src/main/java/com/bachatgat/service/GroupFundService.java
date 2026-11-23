@@ -97,7 +97,8 @@ public class GroupFundService {
                 // Suspension pauses participation; it does not remove the
                 // member's accumulated savings from the group balance.
                 .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
-                .map(m -> nz(m.getTotalSavingsBalance())).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(m -> nz(m.getTotalSavingsBalance()).add(nz(m.getTotalExpenseDeductedFromSavings())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         List<Loan> loans = getUniqueLoans(groupId);
         BigDecimal principalRecovered = loans.stream()
                 .map(l -> nz(l.getPrincipalPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -107,7 +108,6 @@ public class GroupFundService {
                 .filter(i -> !i.isDistributed())
                 .map(i -> nz(i.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal expenses = dataService.getExpensesByGroupId(groupId).stream()
-                .filter(e -> !e.isDistributed())
                 .map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal disbursed = loans.stream()
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
@@ -174,7 +174,8 @@ public class GroupFundService {
             }
             if (interest.signum() == 0) interest = legacy.interest();
             if (otherIncome.signum() == 0) otherIncome = legacy.otherIncome();
-            if (expenses.signum() == 0) expenses = legacy.expenses();
+            // Expenses without a matching cash transaction predate the ledger.
+            expenses = expenses.add(unpostedExpenses(groupId, transactions));
             if (disbursed.signum() == 0) disbursed = legacy.disbursed();
             if (principalRepaid.signum() == 0) principalRepaid = legacy.principalRepaid();
             return new FundBreakdown(savings, interest, otherIncome, expenses, disbursed, principalRepaid, refunds);
@@ -195,7 +196,7 @@ public class GroupFundService {
                 .filter(m -> m.getStatus() == null || m.getStatus() != MemberStatus.EXITED)
                 .map(m -> nz(m.getTotalSavingsBalance())
                         .subtract(nz(m.getTotalOtherIncomeDistributed()))
-                        .add(nz(m.getTotalOtherExpenseDistributed())))
+                        .add(nz(m.getTotalExpenseDeductedFromSavings())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal principalRepaid = dataService.getLoansByGroupId(groupId).stream()
                 .map(l -> nz(l.getPrincipalPaid())).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -206,12 +207,20 @@ public class GroupFundService {
                 .filter(i -> !i.isDistributed())
                 .map(i -> nz(i.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal expenses = dataService.getExpensesByGroupId(groupId).stream()
-                .filter(e -> !e.isDistributed())
                 .map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal disbursed = dataService.getLoansByGroupId(groupId).stream()
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
                 .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new LegacyFundValues(savings, interest, otherIncome, expenses, disbursed, principalRepaid);
+    }
+
+    private BigDecimal unpostedExpenses(String groupId, List<Transaction> transactions) {
+        List<Transaction> cashExpenses = transactions.stream()
+                .filter(t -> t.getType() == TransactionType.OTHER_EXPENSE || t.getType() == TransactionType.EXPENSE)
+                .toList();
+        return dataService.getExpensesByGroupId(groupId).stream()
+                .filter(expense -> cashExpenses.stream().noneMatch(t -> matchesExpense(t, expense)))
+                .map(expense -> nz(expense.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private BigDecimal reconcileDisbursedLoans(String groupId, List<Transaction> transactions,
@@ -287,9 +296,8 @@ public class GroupFundService {
     }
 
     /**
-     * Internal distribution entries are member-level transfers, not new group
-     * cash. The original income/expense transaction is also excluded once its
-     * source record is marked distributed, preventing double counting.
+     * Internal distribution entries adjust member balances. The original
+     * expense remains the cash debit after its member allocations are posted.
      */
     private boolean countsTowardGroupFund(Transaction transaction) {
         if (transaction == null || transaction.getType() == null) return false;
@@ -299,9 +307,6 @@ public class GroupFundService {
         }
         if (transaction.getType() == TransactionType.OTHER_INCOME) {
             return !isDistributedIncome(transaction);
-        }
-        if (transaction.getType() == TransactionType.OTHER_EXPENSE) {
-            return !isDistributedExpense(transaction);
         }
         return true;
     }
@@ -315,13 +320,11 @@ public class GroupFundService {
                 .anyMatch(GroupIncome::isDistributed);
     }
 
-    private boolean isDistributedExpense(Transaction transaction) {
-        return dataService.getExpensesByGroupId(transaction.getGroupId()).stream()
-                .filter(e -> sameDateAndAmount(transaction.getDate(), transaction.getAmount(), e.getExpenseDate(), e.getAmount()))
-                .filter(e -> transaction.getReference() == null || transaction.getReference().isBlank()
-                        || transaction.getReference().equalsIgnoreCase(e.getId())
-                        || transaction.getReference().equalsIgnoreCase(e.getReference()))
-                .anyMatch(GroupExpense::isDistributed);
+    private boolean matchesExpense(Transaction transaction, GroupExpense expense) {
+        String reference = transaction.getReference();
+        return sameDateAndAmount(transaction.getDate(), transaction.getAmount(), expense.getExpenseDate(), expense.getAmount())
+                && (reference == null || reference.isBlank() || reference.equalsIgnoreCase(expense.getId())
+                        || reference.equalsIgnoreCase(expense.getReference()));
     }
 
     private boolean sameDateAndAmount(LocalDate firstDate, BigDecimal firstAmount,

@@ -84,6 +84,8 @@ public class Member {
     // Other Income & Expense Distribution Totals
     private BigDecimal totalOtherIncomeDistributed = BigDecimal.ZERO;
     private BigDecimal totalOtherExpenseDistributed = BigDecimal.ZERO;
+    // Older allocations reduced only the share balance. Track what actually reduced savings.
+    private BigDecimal totalExpenseDeductedFromSavings = BigDecimal.ZERO;
 
     // Metadata
     private String createdBy;
@@ -241,6 +243,8 @@ public class Member {
     public void setTotalOtherIncomeDistributed(BigDecimal totalOtherIncomeDistributed) { this.totalOtherIncomeDistributed = totalOtherIncomeDistributed; }
     public BigDecimal getTotalOtherExpenseDistributed() { return totalOtherExpenseDistributed != null ? totalOtherExpenseDistributed : BigDecimal.ZERO; }
     public void setTotalOtherExpenseDistributed(BigDecimal totalOtherExpenseDistributed) { this.totalOtherExpenseDistributed = totalOtherExpenseDistributed; }
+    public BigDecimal getTotalExpenseDeductedFromSavings() { return totalExpenseDeductedFromSavings; }
+    public void setTotalExpenseDeductedFromSavings(BigDecimal totalExpenseDeductedFromSavings) { this.totalExpenseDeductedFromSavings = totalExpenseDeductedFromSavings; }
     public BigDecimal getTotalLoanInterestReceived() { return totalLoanInterestReceived != null ? totalLoanInterestReceived : BigDecimal.ZERO; }
     public void setTotalLoanInterestReceived(BigDecimal totalLoanInterestReceived) { this.totalLoanInterestReceived = totalLoanInterestReceived; }
     public BigDecimal getPendingLateFees() { return pendingLateFees != null ? pendingLateFees : BigDecimal.ZERO; }

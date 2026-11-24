@@ -429,7 +429,7 @@
           <div class="content-card report-ledger-card" style="margin-top: 1.5rem;">
             <h3>Loans Disbursed This Month / या महिन्यातील कर्ज वाटप</h3>
             <div class="table-responsive"><table class="data-table compact-report-table" data-export-name="Loans Disbursed">
-              <thead><tr><th>Sr. No.</th><th>Loan ID</th><th>Member / सभासद</th><th>Loan / कर्ज</th><th>Interest Rate / व्याजदर</th><th>Date</th></tr></thead>
+              <thead><tr><th>Sr. No.</th><th>Loan ID</th><th>Member / सभासद</th><th>Loan / कर्ज</th><th>Monthly Interest Rate / मासिक व्याजदर</th><th>Date</th></tr></thead>
               <tbody id="monthly-loans-given"><tr><td colspan="6" class="text-center text-muted">No loans disbursed in this month.</td></tr></tbody>
             </table></div>
           </div>
@@ -458,7 +458,7 @@
             <h3 style="color: #dc2626; text-align: center; margin-bottom: 1rem;">All Loans — Current Position</h3>
             <div class="table-responsive">
               <table class="data-table compact-report-table" data-export-name="Loan Current Position">
-                <thead><tr><th>Loan ID</th><th>Borrower</th><th>Principal</th><th>EMI</th><th>Interest Rate</th><th>Outstanding</th><th>Status</th></tr></thead>
+                <thead><tr><th>Loan ID</th><th>Borrower</th><th>Principal</th><th>EMI</th><th>Monthly Interest Rate</th><th>Outstanding</th><th>Status</th></tr></thead>
                 <tbody id="monthly-loan-ledger"><tr><td colspan="7" class="text-center text-muted">Load a report to view loans.</td></tr></tbody>
               </table>
             </div>
@@ -843,23 +843,18 @@
 
     document.addEventListener('DOMContentLoaded', async () => {
       Auth.requireAdmin();
-      switchReportTab('monthly');
-      document.getElementById('sum-gen-date').textContent = new Date().toLocaleDateString(Common.getLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
-      await loadFinancialSummary();
-      await populateMemberDropdown();
-      await loadReportDeliveryStatus();
-
+      removePersonalReportSections();
+      document.getElementById('tab-monthly').style.display = 'block';
       document.getElementById('form-share-whatsapp').addEventListener('submit', handleSendWhatsApp);
       document.getElementById('form-share-email').addEventListener('submit', handleSendEmail);
+      await Promise.all([loadMonthlyReport(), loadReportDeliveryStatus()]);
 
-      const refreshReportData = async () => {
-        await Promise.all([loadFinancialSummary(), loadMonthlyReport()]);
-      };
+      const refreshReportData = () => loadMonthlyReport(false);
       FinanceSync.subscribe((update) => {
         const selectedGroupId = document.getElementById('active-group-select').value || 'bg-001';
         if (!update.groupId || update.groupId === selectedGroupId) refreshReportData();
       });
-      window.addEventListener('groupChanged', refreshReportData);
+      window.addEventListener('groupChanged', () => loadMonthlyReport());
       FinanceSync.startPolling(refreshReportData);
     });
 
@@ -902,32 +897,7 @@
       }
     }
 
-    async function loadFinancialSummary() {
-      const groupId = document.getElementById('active-group-select').value || 'bg-001';
-      try {
-        const data = await api.getFinancialSummary(groupId);
-        if (data.group) {
-          document.getElementById('sum-group-name').textContent = data.group.groupName || data.group.name || '-';
-          document.getElementById('sum-reg-id').textContent = data.group.registrationId || data.group.groupCode || '-';
-        }
-        document.getElementById('sum-total-savings').textContent = Common.formatIndianCurrency(data.totalSavings);
-        document.getElementById('sum-total-shares').textContent = Common.formatIndianCurrency(data.totalShareContributions);
-        document.getElementById('sum-net-savings').textContent = Common.formatIndianCurrency(parseFloat(data.totalSavings || 0) + parseFloat(data.totalShareContributions || 0));
-
-        document.getElementById('sum-loans-disbursed').textContent = Common.formatIndianCurrency(data.totalLoansDisbursed);
-        document.getElementById('sum-principal-recovered').textContent = Common.formatIndianCurrency(data.totalPrincipalRecovered);
-        document.getElementById('sum-interest-collected').textContent = Common.formatIndianCurrency(data.totalInterestCollected);
-        document.getElementById('sum-outstanding-principal').textContent = Common.formatIndianCurrency(data.outstandingPrincipal);
-
-        document.getElementById('sum-total-expenses').textContent = Common.formatIndianCurrency(data.totalExpenses);
-        document.getElementById('sum-outstanding-interest').textContent = Common.formatIndianCurrency(data.outstandingInterest);
-        document.getElementById('sum-total-outstanding').textContent = Common.formatIndianCurrency(data.totalOutstanding);
-      } catch (err) {
-        Common.showToast('Failed to load financial summary: ' + err.message, 'danger');
-      }
-    }
-
-    async function loadMonthlyReport() {
+    async function loadMonthlyReport(showError = true) {
       const groupId = document.getElementById('active-group-select').value || 'bg-001';
       const month = document.getElementById('monthly-report-month').value;
       const year = document.getElementById('monthly-report-year').value;
@@ -983,17 +953,24 @@
           }
         }
         renderMonthlyLedgerTables(data);
-        removePersonalReportSections();
       } catch (err) {
-        Common.showToast('Failed to load monthly audit: ' + err.message, 'danger');
+        console.warn('Unable to refresh the monthly audit:', err);
+        if (showError) Common.showToast('Unable to load the monthly audit. Please try again.', 'danger');
       }
     }
 
     function removePersonalReportSections() {
       document.querySelectorAll('.report-personal-detail').forEach(element => element.remove());
-      ['tab-btn-summary', 'tab-btn-yearly', 'tab-btn-outstanding', 'tab-btn-statement']
-        .forEach(id => document.getElementById(id)?.remove());
       document.querySelector('.report-tabs')?.remove();
+    }
+
+    function formatMonthlyInterestRate(loan) {
+      if (loan.interestRate == null || loan.interestRate === '') return '—';
+      const rate = Number(loan.interestRate);
+      if (!Number.isFinite(rate)) return '—';
+      const monthlyRate = loan.interestRateBasis?.toUpperCase() === 'MONTHLY' ? rate : rate / 12;
+      return new Intl.NumberFormat(Common.getLocale(), { style: 'percent', maximumFractionDigits: 6 })
+        .format(monthlyRate / 100);
     }
 
     function renderMonthlyLedgerTables(data) {
@@ -1010,7 +987,7 @@
       document.getElementById('monthly-loan-ledger').innerHTML = (data.loans || []).map(l => `
         <tr><td>${escapeHtml(l.loanId || l.id || '-')}</td><td>${escapeHtml(l.memberName || l.memberId || '-')}</td>
         <td>${Common.formatIndianCurrency(l.principalAmount || 0)}</td><td>${Common.formatIndianCurrency(l.monthlyInstallment || 0)}</td>
-        <td>${escapeHtml(l.interestRate || 0)}%</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
+        <td>${formatMonthlyInterestRate(l)}</td><td>${Common.formatIndianCurrency(l.totalOutstanding || 0)}</td><td>${escapeHtml(l.status || '')}</td></tr>
       `).join('') || '<tr><td colspan="7">No loans recorded.</td></tr>';
 
       const paymentRows = data.monthlyLoanInstallments || [];
@@ -1035,7 +1012,7 @@
       const loanRows = data.loansGivenRows || [];
       document.getElementById('monthly-loans-given').innerHTML = loanRows.map((l, i) => `
         <tr><td>${i + 1}</td><td>${escapeHtml(l.loanId || '-')}</td><td>${escapeHtml(l.memberName || '-')}</td>
-        <td>${Common.formatIndianCurrency(l.principal || 0)}</td><td>${escapeHtml(l.interestRate || 0)}%</td><td>${l.date ? Common.formatDate(l.date) : '-'}</td></tr>
+        <td>${Common.formatIndianCurrency(l.principal || 0)}</td><td>${formatMonthlyInterestRate(l)}</td><td>${l.date ? Common.formatDate(l.date) : '-'}</td></tr>
       `).join('') || '<tr><td colspan="6" class="text-center text-muted">No loans disbursed in this month.</td></tr>';
 
     }
@@ -1058,18 +1035,6 @@
           <td>${escapeHtml(member.status || 'NOT PAID')}</td>
         </tr>
       `).join('') || `<tr><td colspan="4" class="text-center text-muted">${emptyMessage}</td></tr>`;
-    }
-
-    async function populateMemberDropdown() {
-      const groupId = document.getElementById('active-group-select').value || 'bg-001';
-      try {
-        const members = await api.getMembers(groupId);
-        const select = document.getElementById('statement-member-select');
-        select.innerHTML = '<option value="">-- Choose Member --</option>' +
-          members.map(m => `<option value="${m.memberId}">${escapeHtml(m.fullName)} (${m.memberId})</option>`).join('');
-      } catch (err) {
-        console.error(err);
-      }
     }
 
     async function loadMemberStatement() {

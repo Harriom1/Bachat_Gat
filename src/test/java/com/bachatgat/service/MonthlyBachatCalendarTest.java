@@ -6,6 +6,7 @@ import com.bachatgat.exception.InvalidFinancialOperationException;
 import com.bachatgat.model.CollectionRecord;
 import com.bachatgat.model.CollectionStatus;
 import com.bachatgat.model.Group;
+import com.bachatgat.model.Loan;
 import com.bachatgat.model.Member;
 import com.bachatgat.model.TransactionType;
 import com.bachatgat.repository.FirestoreDataService;
@@ -87,6 +88,37 @@ class MonthlyBachatCalendarTest {
         assertEquals(1, data.getTransactionsByGroupId(groupId).stream()
                 .filter(t -> t.getType() == TransactionType.SHARE_CONTRIBUTION && "INIT-CONTRIB".equals(t.getReference()))
                 .count());
+    }
+
+    @Test
+    void monthlyReportPreservesEachDisbursedLoansInterestRateBasis() {
+        LocalDate disbursement = LocalDate.of(2026, 11, 23);
+        Group group = group(disbursement.withDayOfMonth(1), 17);
+        Loan annual = new Loan();
+        annual.setLoanId("ANNUAL-" + group.getId());
+        annual.setGroupId(group.getId());
+        annual.setMemberId(member(group).getMemberId());
+        annual.setDisbursementDate(disbursement);
+        annual.setInterestRate(BigDecimal.valueOf(12));
+        data.saveLoan(annual);
+
+        Loan monthly = new Loan();
+        monthly.setLoanId("MONTHLY-" + group.getId());
+        monthly.setGroupId(group.getId());
+        monthly.setMemberId(member(group).getMemberId());
+        monthly.setDisbursementDate(disbursement);
+        monthly.setInterestRate(BigDecimal.ONE);
+        monthly.setInterestRateBasis("MONTHLY");
+        data.saveLoan(monthly);
+
+        var rows = (java.util.List<?>) reports.getMonthlyReport(group.getId(), 11, 2026).get("loansGivenRows");
+        assertEquals(2, rows.size());
+        var byBasis = new java.util.HashMap<Object, Object>();
+        for (Object item : rows) {
+            var row = (java.util.Map<?, ?>) item;
+            byBasis.put(row.get("interestRateBasis"), row.get("interestRate"));
+        }
+        assertEquals(java.util.Map.of("ANNUAL", BigDecimal.valueOf(12), "MONTHLY", BigDecimal.ONE), byBasis);
     }
 
     @Test

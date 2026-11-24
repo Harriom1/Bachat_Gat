@@ -216,7 +216,8 @@ public class ReportService {
             row.put("loanId", loan.getLoanId() == null ? loan.getId() : loan.getLoanId());
             row.put("memberName", loan.getMemberName());
             row.put("principal", nz(loan.getPrincipalAmount()));
-            row.put("interestRate", nz(loan.getInterestRate()));
+            row.put("interestRate", loan.getInterestRate());
+            row.put("interestRateBasis", loan.getInterestRateBasis());
             row.put("date", loan.getDisbursementDate());
             return row;
         }).toList());

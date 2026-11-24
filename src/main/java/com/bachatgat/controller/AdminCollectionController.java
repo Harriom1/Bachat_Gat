@@ -14,6 +14,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/groups/{groupId}/collections")
@@ -49,6 +50,14 @@ public class AdminCollectionController {
         int y = (year != null && year > 0) ? year : today.getYear();
         List<java.util.Map<String, Object>> pending = collectionService.getPendingSavingsMembers(groupId, m, y);
         return ResponseEntity.ok(ApiResponse.ok(pending));
+    }
+
+    @GetMapping("/pending/year")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getPendingSavingsForYear(
+            @PathVariable String groupId, @RequestParam int year,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        groupSecurityService.validateGroupAccess(principal, groupId);
+        return ResponseEntity.ok(ApiResponse.ok(collectionService.getPendingSavingsForYear(groupId, year)));
     }
 
     @PostMapping

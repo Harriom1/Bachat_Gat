@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Collections Register - Bachat Gat Platform</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/responsive.css">
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/style.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/forms.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/admin.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
@@ -396,11 +396,11 @@
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/i18n.js"></script>
-  <script src="/js/finance-sync.js"></script>
+  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/auth.js"></script>
+  <script src="/assets/perf-v1/js/common.js"></script>
+  <script src="/assets/perf-v1/js/i18n.js"></script>
+  <script src="/assets/perf-v1/js/finance-sync.js"></script>
   <script>
     let allCollections = [];
     let memberList = [];
@@ -654,15 +654,15 @@
 
       // Filter events
       document.getElementById('collection-search-input').addEventListener('input', () => {
-        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        if (pendingColCard.style.display === 'block') renderPendingCollections();
         else applyFilters();
       });
       document.getElementById('collection-month-select').addEventListener('change', () => {
-        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        if (pendingColCard.style.display === 'block') renderPendingCollections();
         else applyFilters();
       });
       document.getElementById('collection-status-filter').addEventListener('change', () => {
-        if (pendingColCard.style.display === 'block') loadPendingCollections(currentGroupId);
+        if (pendingColCard.style.display === 'block') renderPendingCollections();
         else applyFilters();
       });
 
@@ -948,26 +948,39 @@
       return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
+    let pendingRows;
+    let pendingRequest = 0;
+
     async function loadPendingCollections(groupId) {
       const targetGId = groupId || currentGroupId || Common.getSelectedGroupId();
       const tbody = document.getElementById('pending-savings-tbody');
+      const request = ++pendingRequest;
+      pendingRows = undefined;
       tbody.innerHTML = '<tr><td colspan="10" style="text-align: center;">Loading pending members...</td></tr>';
       try {
-        const selectedMonth = parseInt(document.getElementById('collection-month-select').value) || 0;
-        const year = new Date().getFullYear();
-        const months = selectedMonth > 0 ? [selectedMonth] : Array.from({ length: 12 }, (_, i) => i + 1);
-        const pendingLists = await Promise.all(months.map(month => api.getPendingSavings(targetGId, month, year)));
-        const pendingList = pendingLists.flatMap((list, index) =>
-          (list || []).map(item => ({ ...item, month: months[index], year }))
-        );
+        const rows = await api.getPendingSavingsForYear(targetGId, new Date().getFullYear());
+        if (request !== pendingRequest) return;
+        pendingRows = rows || [];
+        renderPendingCollections();
+      } catch (err) {
+        if (request !== pendingRequest) return;
+        console.error('Failed to load pending savings:', err);
+        tbody.innerHTML = '<tr><td colspan="10" class="empty-state">Could not load pending savings.</td></tr>';
+      }
+    }
+
+    function renderPendingCollections() {
+        if (!pendingRows) return;
+        const tbody = document.getElementById('pending-savings-tbody');
+        const selectedMonth = Number(document.getElementById('collection-month-select').value);
         const search = document.getElementById('collection-search-input').value.trim().toLowerCase();
         const statusFilter = document.getElementById('collection-status-filter').value;
-        const filteredPending = pendingList.filter(p => {
+        const filteredPending = pendingRows.filter(p => {
           const matchesSearch = !search ||
             String(p.memberName || '').toLowerCase().includes(search) ||
             String(p.memberId || '').toLowerCase().includes(search);
           const matchesStatus = statusFilter === 'ALL' || String(p.status || '').toUpperCase() === statusFilter;
-          return matchesSearch && matchesStatus;
+          return (!selectedMonth || p.month === selectedMonth) && matchesSearch && matchesStatus;
         });
         if (filteredPending.length === 0) {
           tbody.innerHTML = '<tr><td colspan="10" class="empty-state text-success" style="padding: 2rem;"><i class="bi bi-check-circle-fill me-1" style="font-size: 1.5rem; display: block; margin-bottom: 0.5rem;"></i> All active members have deposited their monthly savings share! Zero pending dues.</td></tr>';
@@ -1002,9 +1015,6 @@
           </tr>
         `;
         }).join('');
-      } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--danger);">Failed to load pending collections: ${err.message}</td></tr>`;
-      }
     }
 
     window.addEventListener('languageChanged', () => {

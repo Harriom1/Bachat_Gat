@@ -10,6 +10,7 @@ class I18nManager {
     this.translations = {};
     this.englishTranslations = {};
     this.englishTextToKey = new Map();
+    this.dictionaries = new Map();
     // Keep the English source for legacy hard-coded text nodes so a switch
     // between Marathi, Hindi, and English is always reversible.
     this.originalTextNodes = new WeakMap();
@@ -18,17 +19,36 @@ class I18nManager {
   }
 
   async init() {
+    const lang = ['en', 'mr', 'hi'].includes(this.currentLang) ? this.currentLang : 'en';
+    const preferredDictionary = this.loadDictionary(lang);
     await this.loadEnglishDictionary();
-    await this.setLanguage(this.currentLang);
+    await this.setLanguage(lang, preferredDictionary);
     this.bindLanguageSelectors();
     this.observeDynamicContent();
   }
 
+  loadDictionary(lang) {
+    if (!this.dictionaries.has(lang)) {
+      const request = fetch('/assets/perf-v1/i18n/' + lang + '.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Translation request failed');
+          return response.json();
+        })
+        .catch(error => {
+          this.dictionaries.delete(lang);
+          console.warn('Could not load translations for ' + lang, error);
+          return null;
+        });
+      this.dictionaries.set(lang, request);
+    }
+    return this.dictionaries.get(lang);
+  }
+
   async loadEnglishDictionary() {
     try {
-      const response = await fetch('/i18n/en.json?v=1');
-      if (!response.ok) return;
-      this.englishTranslations = await response.json();
+      const dictionary = await this.loadDictionary('en');
+      if (!dictionary) return;
+      this.englishTranslations = dictionary;
       Object.entries(this.englishTranslations).forEach(([key, value]) => {
         if (typeof value === 'string' && value.trim()) {
           // Keep the first key when two concepts intentionally share the same
@@ -41,19 +61,13 @@ class I18nManager {
     }
   }
 
-  async setLanguage(lang) {
+  async setLanguage(lang, dictionary = this.loadDictionary(lang)) {
     this.currentLang = lang;
     localStorage.setItem('app_lang', lang);
     try {
-      // init() already loaded English to support legacy text translation.
-      // Reuse it instead of downloading the same 33 KB file a second time.
-      if (lang === 'en' && Object.keys(this.englishTranslations).length > 0) {
-        this.translations = this.englishTranslations;
-      } else {
-        const response = await fetch(`/i18n/${lang}.json?v=1`);
-        if (!response.ok) return;
-        this.translations = await response.json();
-      }
+      const translations = await dictionary;
+      if (!translations || this.currentLang !== lang) return;
+      this.translations = translations;
       this.applyTranslations();
       document.documentElement.lang = lang;
       window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang, translations: this.translations } }));
@@ -183,3 +197,11 @@ window.i18n = new I18nManager();
 document.addEventListener('DOMContentLoaded', () => {
   window.i18n.init();
 });
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // The online app works without an offline shell.
+    });
+  });
+}

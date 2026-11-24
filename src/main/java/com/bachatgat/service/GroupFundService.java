@@ -122,7 +122,11 @@ public class GroupFundService {
      * same successful ledger entries, so the numbers cannot drift apart.
      */
     public FundBreakdown getFundBreakdown(String groupId) {
-        List<Transaction> transactions = dataService.getTransactionsByGroupId(groupId).stream()
+        return getFundBreakdown(groupId, dataService.getTransactionsByGroupId(groupId));
+    }
+
+    FundBreakdown getFundBreakdown(String groupId, List<Transaction> ledger) {
+        List<Transaction> transactions = ledger.stream()
                 .filter(t -> isSuccessful(t) && countsTowardGroupFund(t)).toList();
         if (!transactions.isEmpty()) {
             BigDecimal savings = BigDecimal.ZERO;
@@ -276,7 +280,11 @@ public class GroupFundService {
     }
 
     public BigDecimal getBalanceByPaymentMethod(String groupId, boolean bank) {
-        return dataService.getTransactionsByGroupId(groupId).stream()
+        return getBalanceByPaymentMethod(dataService.getTransactionsByGroupId(groupId), bank);
+    }
+
+    BigDecimal getBalanceByPaymentMethod(List<Transaction> ledger, boolean bank) {
+        return ledger.stream()
                 .filter(this::isSuccessful)
                 .filter(t -> isBankPayment(t) == bank)
                 .map(this::signedAmount)

@@ -17,6 +17,11 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 @Service
 public class CollectionService {
@@ -99,11 +104,22 @@ public class CollectionService {
     }
 
     private List<CollectionRecord> getGroupCollections(String groupId, LocalDate today) {
+        return getGroupCollections(groupId, today, record -> true);
+    }
+
+    List<CollectionRecord> getGroupCollectionsForPeriod(String groupId, LocalDate today, YearMonth period) {
+        return getGroupCollections(groupId, today, record -> record.getMonth() == period.getMonthValue()
+                && record.getYear() == period.getYear());
+    }
+
+    private List<CollectionRecord> getGroupCollections(String groupId, LocalDate today,
+                                                       Predicate<CollectionRecord> includes) {
         if (groupId == null) return List.of();
         Group group = group(groupId);
         var members = dataService.getMembersByGroupIdIncludingArchived(groupId).stream().collect(
                 java.util.stream.Collectors.toMap(Member::getMemberId, member -> member, (first, second) -> first));
         return dataService.getCollectionsByGroupId(groupId).stream()
+                .filter(includes)
                 .map(record -> collectionForRead(record, group, members.get(record.getMemberId()), today))
                 .filter(java.util.Objects::nonNull).toList();
     }
@@ -214,12 +230,16 @@ public class CollectionService {
 
     public BigDecimal getCurrentPenalty(Member member) {
         LocalDate today = MonthlyBachatCalendar.today();
+        return getCurrentPenalty(member, today, null);
+    }
+
+    BigDecimal getCurrentPenalty(Member member, LocalDate today, List<CollectionRecord> history) {
         YearMonth month = YearMonth.from(today);
         Group group = group(member.getGroupId());
         if (member.getStatus() != MemberStatus.ACTIVE || !MonthlyBachatCalendar.eligible(group, member, month)) {
             return BigDecimal.ZERO;
         }
-        CollectionRecord current = getMemberHistory(member.getMemberId()).stream()
+        CollectionRecord current = (history == null ? getMemberHistory(member.getMemberId()) : history).stream()
                 .filter(record -> record.getGroupId().equals(member.getGroupId())
                         && record.getMonth() == month.getMonthValue() && record.getYear() == month.getYear())
                 .findFirst().orElse(null);
@@ -251,18 +271,48 @@ public class CollectionService {
 
     List<java.util.Map<String, Object>> getPendingSavingsMembers(String groupId, YearMonth period, LocalDate today) {
         Group group = group(groupId);
-        var records = getGroupCollections(groupId, today);
+        // Normalize invalid legacy records for this period even when no dues
+        // can be displayed before the group's start date.
+        List<CollectionRecord> records = getGroupCollectionsForPeriod(groupId, today, period);
         if (!MonthlyBachatCalendar.eligible(group, null, period) || period.isAfter(YearMonth.from(today))) return List.of();
+        return buildPendingSavings(groupId, group, period, today, dataService.getMembersByGroupId(groupId), records);
+    }
 
+    public List<Map<String, Object>> getPendingSavingsForYear(String groupId, int year) {
+        if (year < 1 || year > 9999) throw new IllegalArgumentException("Year must be between 1 and 9999");
+        LocalDate today = MonthlyBachatCalendar.today();
+        if (year > today.getYear()) return List.of();
+        Group group = group(groupId);
+        List<Member> members = dataService.getMembersByGroupId(groupId);
+        int lastMonth = year == today.getYear() ? today.getMonthValue() : 12;
+        Map<Integer, List<CollectionRecord>> recordsByMonth = getGroupCollections(groupId, today,
+                record -> record.getYear() == year && record.getMonth() >= 1 && record.getMonth() <= lastMonth)
+                .stream().collect(Collectors.groupingBy(CollectionRecord::getMonth));
+        List<Map<String, Object>> pending = new ArrayList<>();
+        for (int month = 1; month <= lastMonth; month++) {
+            YearMonth period = YearMonth.of(year, month);
+            if (!MonthlyBachatCalendar.eligible(group, null, period)) continue;
+            for (Map<String, Object> row : buildPendingSavings(groupId, group, period, today, members,
+                    recordsByMonth.getOrDefault(month, List.of()))) {
+                row.put("month", month);
+                row.put("year", year);
+                pending.add(row);
+            }
+        }
+        return pending;
+    }
+
+    private List<Map<String, Object>> buildPendingSavings(String groupId, Group group, YearMonth period, LocalDate today,
+            List<Member> members, List<CollectionRecord> records) {
         GroupMasterData rules = rules(groupId, period, today);
         BigDecimal monthlyBachat = resolveMonthlyBachat(groupId, period.atDay(1), rules);
-        var result = new ArrayList<java.util.Map<String, Object>>();
-        for (Member member : dataService.getMembersByGroupId(groupId)) {
+        Map<String, CollectionRecord> byMember = records.stream().filter(record -> record.getMemberId() != null)
+                .collect(Collectors.toMap(record -> record.getMemberId().toLowerCase(Locale.ROOT),
+                        record -> record, (first, duplicate) -> first));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Member member : members) {
             if (member.getStatus() != MemberStatus.ACTIVE || !MonthlyBachatCalendar.eligible(group, member, period)) continue;
-            CollectionRecord record = records.stream()
-                    .filter(c -> member.getMemberId().equalsIgnoreCase(c.getMemberId())
-                            && c.getMonth() == period.getMonthValue() && c.getYear() == period.getYear())
-                    .findFirst().orElse(null);
+            CollectionRecord record = byMember.get(member.getMemberId().toLowerCase(Locale.ROOT));
             BigDecimal expected = record != null ? zero(record.getExpectedAmount()) : monthlyBachat;
             BigDecimal paid = record != null ? zero(record.getPaidAmount()) : BigDecimal.ZERO;
             BigDecimal remaining = expected.subtract(paid).max(BigDecimal.ZERO);
@@ -275,7 +325,7 @@ public class CollectionService {
             BigDecimal alreadyPaid = record != null ? record.getPaidLateFee() : BigDecimal.ZERO;
             BigDecimal penalty = calculateAccruedPenalty(lateFee(group, rules), due, today)
                     .subtract(alreadyPaid).max(BigDecimal.ZERO);
-            var row = new java.util.LinkedHashMap<String, Object>();
+            var row = new LinkedHashMap<String, Object>();
             row.put("memberId", member.getMemberId());
             row.put("memberName", member.getFullName());
             row.put("monthlyBachatAmount", expected);
@@ -538,6 +588,18 @@ public class CollectionService {
             );
         }
 
+        BigDecimal totalLoanPayment = loanPrincPart.add(loanIntPart);
+        String paymentLoanId = null;
+        if (totalLoanPayment.signum() > 0 || extraLoanPart.signum() > 0) {
+            String selectedId = request.getLoanId();
+            if (selectedId == null || selectedId.isBlank()) selectedId = member.getActiveLoanId();
+            Loan selectedLoan = (selectedId == null || selectedId.isBlank()
+                    ? dataService.findActiveLoanByMemberId(member.getMemberId()) : dataService.findLoanById(selectedId))
+                    .filter(loan -> groupId.equals(loan.getGroupId()) && member.getMemberId().equalsIgnoreCase(loan.getMemberId()))
+                    .orElseThrow(() -> new InvalidFinancialOperationException("Choose a loan for this member in the current group."));
+            paymentLoanId = selectedLoan.getId();
+        }
+
         // 4. PROCESS OPTION 1: SHARE / SAVINGS & LATE FEE
         if (sharePart.compareTo(BigDecimal.ZERO) > 0 || netLateFee.compareTo(BigDecimal.ZERO) > 0 || waivedFee.compareTo(BigDecimal.ZERO) > 0) {
             BigDecimal currentPaid = record.getPaidAmount() != null ? record.getPaidAmount() : BigDecimal.ZERO;
@@ -643,44 +705,23 @@ public class CollectionService {
         }
 
         // 5. PROCESS OPTION 2: LOAN PAYMENT (PRINCIPAL & INTEREST)
-        if (loanPrincPart.compareTo(BigDecimal.ZERO) > 0 || loanIntPart.compareTo(BigDecimal.ZERO) > 0 || extraLoanPart.compareTo(BigDecimal.ZERO) > 0) {
-            String loanId = request.getLoanId();
-            if (loanId == null || loanId.isBlank()) {
-                loanId = member.getActiveLoanId();
+        if (paymentLoanId != null) {
+            if (totalLoanPayment.signum() > 0) {
+                LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
+                        totalLoanPayment, payDate, request.getPaymentMethod(), request.getReferenceNumber());
+                loanReq.setNotes("Multi-category Collection Payment [Principal: ₹" + loanPrincPart + ", Interest: ₹" + loanIntPart + "]");
+                loanService.recordRepayment(paymentLoanId, loanReq, recordedBy);
             }
-            if (loanId == null || loanId.isBlank()) {
-                loanId = dataService.findActiveLoanByMemberId(member.getMemberId())
-                        .map(Loan::getId)
-                        .orElse(null);
-            }
-            if (loanId != null && !loanId.isBlank()) {
-                try {
-                    BigDecimal totalLoanPayment = loanPrincPart.add(loanIntPart);
-                    if (totalLoanPayment.signum() > 0) {
-                        LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
-                                totalLoanPayment,
-                                payDate,
-                                request.getPaymentMethod(),
-                                request.getReferenceNumber()
-                        );
-                        loanReq.setNotes("Multi-category Collection Payment [Principal: ₹" + loanPrincPart + ", Interest: ₹" + loanIntPart + "]");
-                        loanService.recordRepayment(loanId, loanReq, recordedBy);
-                    }
-                    if (extraLoanPart.signum() > 0) {
-                        LoanExtraPaymentRequest extraReq = new LoanExtraPaymentRequest();
-                        extraReq.setAmount(extraLoanPart);
-                        extraReq.setPaymentDate(payDate);
-                        extraReq.setPaymentMethod(request.getPaymentMethod());
-                        extraReq.setReferenceNumber(request.getReferenceNumber());
-                        extraReq.setNotes("Member extra principal payment");
-                        loanService.recordExtraPayment(loanId, extraReq, recordedBy);
-                    }
-                } catch (Exception ex) {
-                    throw new InvalidFinancialOperationException("Failed to credit loan payment component: " + ex.getMessage());
-                }
+            if (extraLoanPart.signum() > 0) {
+                LoanExtraPaymentRequest extraReq = new LoanExtraPaymentRequest();
+                extraReq.setAmount(extraLoanPart);
+                extraReq.setPaymentDate(payDate);
+                extraReq.setPaymentMethod(request.getPaymentMethod());
+                extraReq.setReferenceNumber(request.getReferenceNumber());
+                extraReq.setNotes("Member extra principal payment");
+                loanService.recordExtraPayment(paymentLoanId, extraReq, recordedBy);
             }
         }
-
 
         // 6. PROCESS OPTION 3: OTHER
         if (otherPart.compareTo(BigDecimal.ZERO) > 0) {

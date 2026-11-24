@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Bachat Gat Platform</title>
   <meta name="description" content="Bachat Gat administrator dashboard for group savings, collections, loans, reports, and member management.">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/responsive.css">
-  <link rel="stylesheet" href="/css/admin.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/style.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/forms.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/admin.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></noscript>
 </head>
 <body>
   <div class="app-wrapper">
@@ -96,6 +97,8 @@
           </div>
         </div>
 
+        <p id="dashboard-freshness" class="text-muted" role="status">Loading dashboard…</p>
+        <div id="dashboard-data" hidden>
         <!-- Compact financial summary table (data IDs are retained for existing dashboard logic). -->
         <div class="dashboard-table-card dashboard-metrics-table-wrap">
           <table class="dashboard-compact-table dashboard-metrics-table">
@@ -317,16 +320,19 @@
             <button id="dashboard-tx-page-next" type="button" class="btn-outline-custom" aria-label="Next transactions">Next</button>
           </div>
         </div>
+        </div>
       </div>
     </main>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/i18n.js"></script>
+  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/auth.js"></script>
+  <script src="/assets/perf-v1/js/common.js"></script>
+  <script src="/assets/perf-v1/js/i18n.js"></script>
   <script>
     let dashboardTransactions = [];
+    let dashboardRequest = 0;
+    let displayedGroup = null;
     let dashboardTransactionsPage = 1;
     const DASHBOARD_TRANSACTIONS_PAGE_SIZE = 5;
 
@@ -336,12 +342,13 @@
 
       // 2. Load Active Group and Dashboard Data
       let currentGroupId = Common.getSelectedGroupId();
-      await loadDashboardData(currentGroupId);
-
-      window.addEventListener('groupChanged', async (e) => {
-        currentGroupId = e.detail.groupId;
-        await loadDashboardData(currentGroupId);
+      const refresh = () => loadDashboardData(currentGroupId);
+      window.addEventListener('groupChanged', event => {
+        currentGroupId = event.detail.groupId;
+        void refresh();
       });
+      watchDashboardRefresh(() => currentGroupId, refresh);
+      void refresh();
 
       // 3. Bind Quick Generate Monthly Button
       document.getElementById('btn-quick-generate-monthly').addEventListener('click', async () => {
@@ -352,7 +359,7 @@
           const generated = await api.generateMonthlyCollections(currentGroupId, curMonth, curYear);
           Common.showToast(generated.length ? `Generated ${generated.length} monthly collection records.`
             : 'No new monthly collections are due for this period.', generated.length ? 'success' : 'info');
-          await loadDashboardData(currentGroupId);
+          await refresh();
         } catch (err) {
           Common.showToast(err.message, 'danger');
         }
@@ -374,9 +381,29 @@
     });
 
     async function loadDashboardData(groupId) {
+      const request = ++dashboardRequest;
+      const content = document.getElementById('dashboard-data');
+      const freshness = document.getElementById('dashboard-freshness');
+      if (displayedGroup !== groupId) {
+        content.hidden = true;
+        freshness.textContent = 'Loading dashboard…';
+      }
       try {
-        const data = await api.getAdminDashboard(groupId);
+        await api.getAdminDashboard(groupId, (data, snapshot) => {
+          if (request !== dashboardRequest) return;
+          renderDashboardData(data);
+          displayedGroup = groupId;
+          content.hidden = false;
+          freshness.textContent = dashboardFreshness(snapshot);
+        });
+      } catch (err) {
+        if (request !== dashboardRequest) return;
+        content.hidden = true;
+        freshness.textContent = 'Dashboard unavailable. ' + err.message;
+      }
+    }
 
+    function renderDashboardData(data) {
         // Update Metrics
         document.getElementById('metric-active-members').textContent = data.totalActiveMembers;
         document.getElementById('metric-monthly-collected').textContent = Common.formatINR(data.monthlyCollected);
@@ -415,36 +442,11 @@
         // Render Recent Transactions
         renderRecentTransactions(data.recentTransactions);
 
-        // Render Upcoming Collections Table (Requirement 39)
-        try {
-          const [members, collections, loans] = await Promise.all([
-            api.getMembers(groupId).catch(() => []),
-            api.getCollections(groupId).catch(() => []),
-            api.getLoans(groupId).catch(() => [])
-          ]);
-          renderUpcomingCollections(members, collections, loans);
-
-          // Populate Group Overview Pending Cards (Requirements 17 & 18)
-          const curMonth = new Date().getMonth() + 1;
-          const curYear = new Date().getFullYear();
-          const pendingShareList = (collections || []).filter(c => c.month === curMonth && c.year === curYear && Number(c.pendingAmount || 0) > 0);
-          const pendingShareCount = pendingShareList.length;
-          const pendingShareTotal = pendingShareList.reduce((sum, c) => sum + (Number(c.pendingAmount) || (Number(c.expectedAmount) - Number(c.paidAmount || 0))), 0);
-
-          if (document.getElementById('card-pending-share-members')) {
-            document.getElementById('card-pending-share-members').textContent = `${pendingShareCount} Members`;
-            document.getElementById('card-pending-share-amt').textContent = `${Common.formatINR(pendingShareTotal)} Awaiting Collection`;
-          }
-
-          const activeBorrowersWithDues = (loans || []).filter(l => l.status === 'ACTIVE' && (Number(l.totalOutstanding) || Number(l.outstandingPrincipal) || 0) > 0);
-          const totalLoanOutstanding = activeBorrowersWithDues.reduce((sum, l) => sum + (Number(l.totalOutstanding) || 0), 0);
-          if (document.getElementById('card-pending-loan-members')) {
-            document.getElementById('card-pending-loan-members').textContent = `${activeBorrowersWithDues.length} Members`;
-            document.getElementById('card-pending-loan-amt').textContent = `${Common.formatINR(totalLoanOutstanding)} Total Outstanding`;
-          }
-        } catch (e) {
-          console.warn('Could not load upcoming collections & pending counts:', e);
-        }
+        renderUpcomingCollections(data.upcomingCollections);
+        document.getElementById('card-pending-share-members').textContent = data.pendingShareCount + ' Members';
+        document.getElementById('card-pending-share-amt').textContent = Common.formatINR(data.pendingShareTotal) + ' Awaiting Collection';
+        document.getElementById('card-pending-loan-members').textContent = data.pendingLoanCount + ' Members';
+        document.getElementById('card-pending-loan-amt').textContent = Common.formatINR(data.pendingLoanTotal) + ' Total Outstanding';
 
         // Populate Group Overview Financial Cards (Requirements 17 & 18)
         if (document.getElementById('card-total-group-fund')) {
@@ -456,13 +458,9 @@
           document.getElementById('card-interest-income').textContent = Common.formatINR(data.totalInterestCollected || 0);
           document.getElementById('card-total-expenses').textContent = Common.formatINR(data.totalExpenses || 0);
         }
-      } catch (err) {
-        console.error('Error loading dashboard data:', err);
-        Common.showToast(err.message, 'danger');
-      }
     }
 
-    function renderUpcomingCollections(members, collections, loans) {
+    function renderUpcomingCollections(members) {
       const tbody = document.getElementById('upcoming-collections-tbody');
       if (!tbody) return;
 
@@ -471,9 +469,7 @@
         return;
       }
 
-      const activeMembers = members.filter(m => (m.status || 'ACTIVE') === 'ACTIVE').slice(0, 10);
-      const curMonth = new Date().getMonth() + 1;
-      const curYear = new Date().getFullYear();
+      const activeMembers = members;
       const lang = localStorage.getItem('app_lang') || 'en';
 
       tbody.innerHTML = activeMembers.map(m => {
@@ -483,24 +479,15 @@
 
         const share = parseFloat(m.monthlyBachatAmount || 0);
         
-        // Find active loan if any
-        const loan = (loans || []).find(l => l.memberId === m.memberId && l.status === 'ACTIVE');
-        let emi = 0;
-        let interest = 0;
-        if (loan) {
-          emi = parseFloat(loan.monthlyInstallment || 0);
-          interest = Math.round((parseFloat(loan.outstandingPrincipal || 0) * (parseFloat(loan.interestRate || 12) / 1200)) * 100) / 100;
-        }
-
+        const emi = Number(m.monthlyInstallment || 0);
+        const interest = Math.round(Number(m.outstandingPrincipal || 0) * (Number(m.interestRate || 12) / 1200) * 100) / 100;
         const totalDue = share + emi;
-        const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
         const dueDate = m.nextDueDate ? Common.formatDate(m.nextDueDate) : '—';
 
         return `
           <tr>
             <td>
-              <strong>${name}</strong>
+              <strong>${Common.text(name)}</strong>
             </td>
             <td style="text-align: right; font-weight: 600;">${Common.formatINR(share)}</td>
             <td style="text-align: right; font-weight: 600;">${emi > 0 ? Common.formatINR(emi) : '₹0'}</td>

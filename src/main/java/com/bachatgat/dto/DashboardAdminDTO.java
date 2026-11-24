@@ -2,6 +2,7 @@ package com.bachatgat.dto;
 
 import com.bachatgat.model.Transaction;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +32,15 @@ public class DashboardAdminDTO {
     private int overdueLoansCount = 0;
 
     private List<Transaction> recentTransactions = new ArrayList<>();
+    private List<UpcomingCollection> upcomingCollections = List.of();
+    private int pendingShareCount;
+    private BigDecimal pendingShareTotal = BigDecimal.ZERO;
+    private int pendingLoanCount;
+    private BigDecimal pendingLoanTotal = BigDecimal.ZERO;
+
+    public record UpcomingCollection(String fullName, String fullNameMr, String fullNameHi, LocalDate nextDueDate,
+                                     BigDecimal monthlyBachatAmount, BigDecimal monthlyInstallment,
+                                     BigDecimal outstandingPrincipal, BigDecimal interestRate) {}
 
     public DashboardAdminDTO() {}
 
@@ -79,4 +89,14 @@ public class DashboardAdminDTO {
     public void setOverdueLoansCount(int overdueLoansCount) { this.overdueLoansCount = overdueLoansCount; }
     public List<Transaction> getRecentTransactions() { return recentTransactions; }
     public void setRecentTransactions(List<Transaction> recentTransactions) { this.recentTransactions = recentTransactions; }
+    public List<UpcomingCollection> getUpcomingCollections() { return upcomingCollections; }
+    public void setUpcomingCollections(List<UpcomingCollection> value) { upcomingCollections = value; }
+    public int getPendingShareCount() { return pendingShareCount; }
+    public void setPendingShareCount(int value) { pendingShareCount = value; }
+    public BigDecimal getPendingShareTotal() { return pendingShareTotal; }
+    public void setPendingShareTotal(BigDecimal value) { pendingShareTotal = value; }
+    public int getPendingLoanCount() { return pendingLoanCount; }
+    public void setPendingLoanCount(int value) { pendingLoanCount = value; }
+    public BigDecimal getPendingLoanTotal() { return pendingLoanTotal; }
+    public void setPendingLoanTotal(BigDecimal value) { pendingLoanTotal = value; }
 }

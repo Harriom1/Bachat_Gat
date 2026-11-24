@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Loan Account Details - Bachat Gat Platform</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/responsive.css">
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/style.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/forms.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/admin.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
 <body>
@@ -179,7 +179,7 @@
       </div>
       <form id="form-partial">
         <div class="info-banner mb-3" style="background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; padding: 0.75rem; border-radius: 4px; font-size: 0.85rem;" data-i18n="partialPaymentHelp">
-          Enter the amount received. The backend allocates it to oldest pending interest first, then pending principal. Browser component amounts are not trusted.
+          Enter the amount received. Select the components received. Unpaid interest and principal carry forward separately.
         </div>
         <div class="form-group mb-3">
           <label class="form-label" data-i18n="receivedAmount">Amount Received (₹)</label>
@@ -306,10 +306,10 @@
     </div>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/i18n.js"></script>
+  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/auth.js"></script>
+  <script src="/assets/perf-v1/js/common.js"></script>
+  <script src="/assets/perf-v1/js/i18n.js"></script>
   <script>
     let currentLoan = null;
     let currentLoanId = null;
@@ -413,30 +413,17 @@
           .filter(c => Number(c.year) === now.getFullYear() && Number(c.month) === now.getMonth() + 1)
           .sort((a, b) => Number(b.pendingAmount || 0) - Number(a.pendingAmount || 0))[0];
         const loanRows = Array.isArray(schedule) ? schedule : [];
-        // For arrears, the latest due row contains the complete catch-up
-        // amount: previous unpaid principal/interest plus this installment's
-        // dues. Selecting the first unpaid row would show only the old row's
-        // balance after an interest-only payment and hide the next month's
-        // current principal and interest.
-        const dueRows = loanRows.filter(row => {
-          if (String(row.status || '').toUpperCase() === 'PAID') return false;
-          const dueDate = row.dueDate ? new Date(`${row.dueDate}T00:00:00`) : null;
-          return dueDate && !Number.isNaN(dueDate.getTime()) && dueDate <= now;
-        });
-        const arrearsRows = loanRows.filter(row => {
-          if (String(row.status || '').toUpperCase() === 'PAID') return false;
-          return Number(row.pendingPrincipal || row.remainingPendingPrincipal || 0) > 0
-            || Number(row.pendingInterest || row.remainingPendingInterest || 0) > 0;
-        });
-        const currentLoanRow = (dueRows.length ? dueRows[dueRows.length - 1] : null)
-          || (arrearsRows.length ? arrearsRows[arrearsRows.length - 1] : null)
-          || loanRows[0];
+        const openRows = loanRows.filter(row => String(row.status || "").toUpperCase() !== "PAID"
+          && (Number(row.totalPrincipalDue ?? row.principalAmount ?? 0) > Number(row.paidPrincipalAmount || 0)
+            || Number(row.totalInterestDue || row.interestAmount || 0) > Number(row.paidInterestAmount || 0)));
+        const paymentDate = document.getElementById("inp-partial-date").value;
+        const currentLoanRow = openRows.filter(row => row.dueDate <= paymentDate).at(-1) || openRows[0];
         // Keep component dues hidden until the corresponding checkbox is selected.
         partialDueDefaults = {
           bachat: currentCollection ? (currentCollection.pendingAmount ?? (Number(currentCollection.expectedAmount || 0) - Number(currentCollection.paidAmount || 0))) : (member?.monthlyBachatAmount || member?.monthlySavingsAmount || 0),
           penalty: currentCollection ? (Number(currentCollection.lateFeeAmount || 0) - Number(currentCollection.paidLateFee || 0)) : 0,
-          principal: currentLoanRow ? (Number(currentLoanRow.totalPrincipalDue ?? currentLoanRow.principalAmount ?? 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0,
-          interest: currentLoanRow ? (Number(currentLoanRow.totalInterestDue ?? currentLoanRow.interestAmount ?? 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0
+          principal: currentLoanRow ? (Number(currentLoanRow.totalPrincipalDue || currentLoanRow.principalAmount || 0) - Number(currentLoanRow.paidPrincipalAmount || 0)) : 0,
+          interest: currentLoanRow ? (Number(currentLoanRow.totalInterestDue || currentLoanRow.interestAmount || 0) - Number(currentLoanRow.paidInterestAmount || 0)) : 0
         };
         document.querySelectorAll('.partial-input').forEach(input => { input.value = ''; });
       } catch (err) {
@@ -457,6 +444,12 @@
       updatePartialTotal();
     }
 
+    function paymentReference(id) {
+      const field = document.getElementById(id);
+      if (!field.value.trim()) field.value = "LOAN-" + crypto.randomUUID();
+      return field.value.trim();
+    }
+
     async function handlePartialSubmit(e) {
       e.preventDefault();
       const btn = document.getElementById('btn-submit-partial');
@@ -470,7 +463,7 @@
         payBachatOnly: document.getElementById('inp-partial-bachat-only').checked,
         paymentDate: document.getElementById('inp-partial-date').value,
         paymentMethod: document.getElementById('inp-partial-mode').value,
-        referenceNumber: document.getElementById('inp-partial-ref').value.trim()
+        referenceNumber: paymentReference('inp-partial-ref')
       };
       const collectionTotal = payload.penaltyAmount + payload.monthlyBachatAmount;
       if (collectionTotal > payload.amount + 0.01) {
@@ -479,10 +472,11 @@
         return;
       }
       try {
-        await api.recordLoanPartialPayment(currentLoanId, payload);
+        const savedLoan = await api.recordLoanPartialPayment(currentLoanId, payload);
+        document.getElementById("inp-partial-ref").value = "";
         Common.showToast(window.i18n ? window.i18n.t('partialPaymentSaved', 'Partial payment saved successfully.') : 'Partial payment saved successfully.', 'success');
         closePartialModal();
-        await loadLoanDetails();
+        await loadLoanDetails(savedLoan);
       } catch (err) {
         Common.showToast('Partial payment failed: ' + err.message, 'danger');
       } finally {
@@ -490,9 +484,9 @@
       }
     }
 
-    async function loadLoanDetails() {
+    async function loadLoanDetails(savedLoan) {
       try {
-        currentLoan = await api.getLoanById(currentLoanId);
+        currentLoan = savedLoan || await api.getLoanById(currentLoanId);
         if (!currentLoan) {
           Common.showToast('Loan not found', 'danger');
           return;
@@ -601,15 +595,16 @@
         amount: parseFloat(document.getElementById('inp-extra-amount').value),
         paymentDate: document.getElementById('inp-extra-date').value,
         paymentMethod: document.getElementById('inp-extra-mode').value,
-        referenceNumber: document.getElementById('inp-extra-ref').value.trim(),
+        referenceNumber: paymentReference('inp-extra-ref'),
         notes: 'Extra principal prepayment'
       };
 
       try {
-        await api.recordLoanExtraPayment(currentLoanId, payload);
+        const savedLoan = await api.recordLoanExtraPayment(currentLoanId, payload);
+        document.getElementById("inp-extra-ref").value = "";
         Common.showToast('Extra prepayment applied directly to principal! Schedule recalculated.', 'success');
         closeExtraModal();
-        await loadLoanDetails();
+        await loadLoanDetails(savedLoan);
       } catch (err) {
         Common.showToast('Extra payment failed: ' + err.message, 'danger');
       } finally {

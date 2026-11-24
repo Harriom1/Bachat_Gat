@@ -1,18 +1,12 @@
 # ==============================================================================
 # Google Cloud Build CI/CD Pipeline
-# Automates: Build -> Test -> Containerize -> Artifact Registry -> Cloud Run
+# Automates: Build and containerize -> Artifact Registry -> Cloud Run
 # ==============================================================================
 
 steps:
-  # 1. Build the production artifact. Tests are run locally against the emulator
-  # before submission; Cloud Build must never run integration tests against the
-  # real production Firestore database.
-  - name: 'maven:3.9.9-eclipse-temurin-21-alpine'
-    entrypoint: 'mvn'
-    args: ['clean', 'package', '-DskipTests', '-B']
-    id: 'maven-production-build'
-
-  # 2. Build Docker container image with the Cloud Build ID and latest tags.
+  # Build the JAR once in Docker's Maven stage. Run integration tests locally
+  # against the emulator before submission, never against production Firestore.
+  # Build the image with the Cloud Build ID and latest tags.
   # BUILD_ID is available for manual `gcloud builds submit` runs; COMMIT_SHA is
   # only populated for source-repository-triggered builds.
   - name: 'gcr.io/cloud-builders/docker'

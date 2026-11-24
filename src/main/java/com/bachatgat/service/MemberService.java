@@ -370,7 +370,7 @@ public class MemberService {
         return groupMembers;
     }
 
-    private BigDecimal getEffectiveGroupMonthlyBachat(Group group) {
+    BigDecimal getEffectiveGroupMonthlyBachat(Group group) {
         return masterDataRepository.findForDate(group.getId(), LocalDate.now())
                 .map(GroupMasterData::getMonthlyBachatAmount)
                 .filter(amount -> amount != null && amount.signum() > 0)

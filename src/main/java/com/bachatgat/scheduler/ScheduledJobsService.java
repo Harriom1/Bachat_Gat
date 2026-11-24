@@ -65,36 +65,41 @@ public class ScheduledJobsService {
             int graceDays = group.getGracePeriodDays() > 0 ? group.getGracePeriodDays() : 5;
             List<Loan> groupLoans = dataService.getLoansByGroupId(group.getId());
 
-            for (Loan loan : groupLoans) {
-                if (loan.getStatus() == LoanStatus.ACTIVE || loan.getStatus() == LoanStatus.PARTIALLY_PAID) {
-                    List<LoanRepaymentSchedule> schedule = dataService.getLoanSchedule(loan.getId());
-                    boolean hasOverdue = false;
-
-                    for (LoanRepaymentSchedule item : schedule) {
-                        if (item.getStatus() != RepaymentStatus.PAID) {
-                            if (today.isAfter(item.getDueDate().plusDays(graceDays))) {
-                                item.setStatus(RepaymentStatus.OVERDUE);
-                                hasOverdue = true;
-                            } else if (today.isEqual(item.getDueDate()) || today.isAfter(item.getDueDate())) {
-                                item.setStatus(RepaymentStatus.DUE);
-                            }
-                        }
+            for (Loan cachedLoan : groupLoans) {
+                if (cachedLoan.getStatus() != LoanStatus.ACTIVE && cachedLoan.getStatus() != LoanStatus.PARTIALLY_PAID) continue;
+                var state = dataService.beginLoanPayment(cachedLoan);
+                Loan loan = state.loan();
+                if (loan.getStatus() != LoanStatus.ACTIVE && loan.getStatus() != LoanStatus.PARTIALLY_PAID) continue;
+                List<LoanRepaymentSchedule> schedule = dataService.getLoanScheduleForPayment(loan.getId());
+                boolean hasOverdue = false;
+                boolean changed = false;
+                for (LoanRepaymentSchedule item : schedule) {
+                    if (item.getStatus() == RepaymentStatus.PAID) continue;
+                    if (today.isAfter(item.getDueDate().plusDays(graceDays))) {
+                        changed |= item.getStatus() != RepaymentStatus.OVERDUE;
+                        item.setStatus(RepaymentStatus.OVERDUE);
+                        hasOverdue = true;
+                    } else if (!today.isBefore(item.getDueDate()) && item.getStatus() == RepaymentStatus.UPCOMING) {
+                        item.setStatus(RepaymentStatus.DUE);
+                        changed = true;
                     }
-
-                    if (hasOverdue) {
-                        loan.setStatus(LoanStatus.OVERDUE);
-                        dataService.saveLoan(loan);
-
-                        // Send alert notification
-                        dataService.findUserByMemberId(loan.getMemberId()).ifPresent(u ->
-                                notificationService.sendNotification(group.getId(), u.getId(), "USER",
-                                        "Loan Overdue Notice",
-                                        "Your installment for Loan " + loan.getLoanId() + 
-                                                " is overdue. Please submit payment immediately to avoid late fees.",
-                                        "LOAN_OVERDUE")
-                        );
-                    }
-                    dataService.saveLoanSchedule(loan.getId(), schedule);
+                }
+                if (hasOverdue) loan.setStatus(LoanStatus.OVERDUE);
+                if (!changed && !hasOverdue) continue;
+                try {
+                    dataService.saveLoanDueCheck(state, schedule);
+                } catch (IllegalStateException ex) {
+                    log.warn("Could not save overdue status for loan {}. It will be reevaluated on the next run.",
+                            loan.getLoanId(), ex);
+                    continue;
+                }
+                if (hasOverdue) {
+                    dataService.findUserByMemberId(loan.getMemberId()).ifPresent(u ->
+                            notificationService.sendNotification(group.getId(), u.getId(), "USER",
+                                    "Loan Overdue Notice",
+                                    "Your installment for Loan " + loan.getLoanId() +
+                                            " is overdue. Please submit payment immediately to avoid late fees.",
+                                    "LOAN_OVERDUE"));
                 }
             }
         }

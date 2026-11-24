@@ -290,10 +290,11 @@ public final class FinancialCalculator {
         BigDecimal actualOpening = round(principal);
         BigDecimal unpaidPrincipal = BigDecimal.ZERO;
         BigDecimal unpaidInterest = BigDecimal.ZERO;
-        boolean arrearsMode = false;
 
-        for (com.bachatgat.model.LoanRepaymentSchedule projected : forecast) {
-            int installment = projected.getInstallmentNo();
+        var currentTerms = forecast;
+        int firstTermInstallment = 1;
+        for (com.bachatgat.model.LoanRepaymentSchedule contractual : forecast) {
+            int installment = contractual.getInstallmentNo();
             com.bachatgat.model.LoanRepaymentSchedule source = recordedSchedule == null ? null
                     : recordedSchedule.stream()
                     .filter(item -> item.getInstallmentNo() == installment)
@@ -303,8 +304,13 @@ public final class FinancialCalculator {
             boolean hasRecordedPayment = recordedTotal.signum() > 0
                     || (source != null && (source.getPaidPrincipalAmount().signum() > 0
                     || source.getPaidInterestAmount().signum() > 0));
-            boolean due = projected.getDueDate() != null && !projected.getDueDate().isAfter(asOf);
-            boolean useActualBalance = arrearsMode || due || hasRecordedPayment;
+            boolean due = contractual.getDueDate() != null && !contractual.getDueDate().isAfter(asOf);
+            BigDecimal prepayment = source == null ? BigDecimal.ZERO : source.getPrincipalPrepayment();
+            BigDecimal postMaturity = source == null ? BigDecimal.ZERO : source.getPostMaturityPrepayment();
+            var previousDue = installment == 1 ? null : forecast.get(installment - 2).getDueDate();
+            BigDecimal latePriorPrincipal = latePriorPrincipalPaid(recordedSchedule, installment,
+                    previousDue, contractual.getDueDate(), installment == durationMonths);
+            boolean actual = due || hasRecordedPayment || latePriorPrincipal.signum() > 0 || postMaturity.signum() > 0;
 
             com.bachatgat.model.LoanRepaymentSchedule entry = new com.bachatgat.model.LoanRepaymentSchedule();
             if (source != null) {
@@ -314,35 +320,33 @@ public final class FinancialCalculator {
                 entry.setMemberId(source.getMemberId());
                 entry.setPaidDate(source.getPaidDate());
                 entry.setTransactionId(source.getTransactionId());
+                entry.setArrangementType(source.getArrangementType());
+                entry.setExceptionApprovedBy(source.getExceptionApprovedBy());
+                entry.setExceptionApprovedAt(source.getExceptionApprovedAt());
+                entry.setPrincipalReceipts(source.getPrincipalReceipts());
+                entry.setCreatedAt(source.getCreatedAt());
             }
             entry.setInstallmentNo(installment);
-            entry.setDueDate(projected.getDueDate());
-            entry.setPenaltyAmount(projected.getPenaltyAmount());
+            entry.setDueDate(contractual.getDueDate());
+            entry.setPenaltyAmount(contractual.getPenaltyAmount());
 
-            if (!useActualBalance) {
-                entry.setOpeningPrincipal(projected.getOpeningPrincipal());
-                entry.setPrincipalAmount(projected.getPrincipalAmount());
-                entry.setScheduledPrincipalAmount(projected.getPrincipalAmount());
-                entry.setInterestAmount(projected.getInterestAmount());
-                entry.setEmiAmount(projected.getEmiAmount());
-                entry.setTotalDue(projected.getTotalDue());
-                entry.setPaidAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
-                entry.setPaidPrincipalAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
-                entry.setPaidInterestAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
-                entry.setOutstandingAmount(BigDecimal.ZERO.setScale(MONEY_SCALE, ROUNDING));
-                entry.setClosingPrincipal(projected.getClosingPrincipal());
-                setScheduleCalculationFields(entry, ratePercent, isMonthlyRate,
-                        projected.getEmiAmount(), BigDecimal.ZERO, BigDecimal.ZERO,
-                        projected.getInterestAmount(), projected.getPrincipalAmount(),
-                        BigDecimal.ZERO, BigDecimal.ZERO);
-                entry.setStatus(com.bachatgat.model.RepaymentStatus.UPCOMING);
-                result.add(entry);
-                continue;
+            entry.setPrincipalPrepayment(prepayment);
+            entry.setPostMaturityPrepayment(postMaturity);
+            actualOpening = actualOpening.subtract(prepayment).max(BigDecimal.ZERO);
+            unpaidPrincipal = unpaidPrincipal.subtract(prepayment).max(BigDecimal.ZERO);
+
+            if (prepayment.signum() > 0) {
+                firstTermInstallment = installment;
+                currentTerms = generateAmortizationSchedule(actualOpening.subtract(unpaidPrincipal).max(BigDecimal.ZERO),
+                        ratePercent, isMonthlyRate, durationMonths - installment + 1, startDate);
             }
-
+            var projected = currentTerms.get(installment - firstTermInstallment);
             BigDecimal opening = round(actualOpening);
-            BigDecimal currentInterest = calculateReducingMonthlyInterest(opening, ratePercent, isMonthlyRate);
-            BigDecimal scheduledPrincipal = projected.getPrincipalAmount().min(opening).max(BigDecimal.ZERO);
+            BigDecimal currentInterest = !actual && opening.compareTo(projected.getOpeningPrincipal()) == 0
+                    ? projected.getInterestAmount() : calculateReducingMonthlyInterest(opening, ratePercent, isMonthlyRate);
+            BigDecimal unscheduledPrincipal = opening.subtract(unpaidPrincipal).max(BigDecimal.ZERO);
+            BigDecimal scheduledPrincipal = installment == durationMonths ? unscheduledPrincipal
+                    : projected.getPrincipalAmount().min(unscheduledPrincipal);
             BigDecimal principalDue = installment == durationMonths
                     ? opening
                     : unpaidPrincipal.add(scheduledPrincipal).min(opening);
@@ -352,16 +356,24 @@ public final class FinancialCalculator {
             BigDecimal paidPrincipal = source != null ? source.getPaidPrincipalAmount() : BigDecimal.ZERO;
             if (paidInterest.signum() == 0 && paidPrincipal.signum() == 0 && recordedTotal.signum() > 0) {
                 paidInterest = recordedTotal.min(interestDue);
-                paidPrincipal = recordedTotal.subtract(paidInterest).max(BigDecimal.ZERO);
+                paidPrincipal = recordedTotal.subtract(paidInterest).min(principalDue).max(BigDecimal.ZERO);
             }
-            paidInterest = paidInterest.min(interestDue).max(BigDecimal.ZERO);
-            paidPrincipal = paidPrincipal.min(principalDue).max(BigDecimal.ZERO);
-            BigDecimal latePriorPrincipal = latePriorPrincipalPaid(recordedSchedule, installment, projected.getDueDate());
+            // Legacy rows could include carried amounts twice. Preserve the
+            // contractual cap when there is no dated principal receipt history.
+            if (source == null || source.getPrincipalReceipts() == null) {
+                paidPrincipal = paidPrincipal.min(principalDue);
+            }
+
             BigDecimal paid = round(paidInterest.add(paidPrincipal));
             BigDecimal totalDue = round(principalDue.add(interestDue));
-            BigDecimal outstanding = totalDue.subtract(paid).max(BigDecimal.ZERO);
-            BigDecimal latePaidOnThisRow = isLatePaymentForMonth(source, projected)
-                    ? paidPrincipal : BigDecimal.ZERO;
+            BigDecimal lateOnThisRow = installment == durationMonths ? BigDecimal.ZERO
+                    : principalPaidBetween(source, contractual.getDueDate(), null);
+            BigDecimal pendingInterest = interestDue.subtract(paidInterest).max(BigDecimal.ZERO);
+            BigDecimal pendingPrincipal = principalDue.subtract(paidPrincipal).subtract(postMaturity).max(BigDecimal.ZERO);
+            BigDecimal outstanding = actual ? round(pendingInterest.add(pendingPrincipal)) : round(BigDecimal.ZERO);
+            BigDecimal principalReduction = actual
+                    ? paidPrincipal.subtract(lateOnThisRow).add(latePriorPrincipal).add(postMaturity)
+                    : principalDue;
 
             entry.setOpeningPrincipal(opening);
             entry.setPrincipalAmount(round(principalDue));
@@ -376,42 +388,25 @@ public final class FinancialCalculator {
             entry.setPaidAmount(paid);
             entry.setPaidPrincipalAmount(round(paidPrincipal));
             entry.setPaidInterestAmount(round(paidInterest));
-            entry.setOutstandingAmount(due || hasRecordedPayment ? outstanding : BigDecimal.ZERO);
-            entry.setPendingInterest(round(interestDue.subtract(paidInterest).max(BigDecimal.ZERO)));
-            entry.setPendingPrincipal(round(principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO)));
-            // A missed principal installment does not reduce the outstanding
-            // balance. When the member catches up, paidPrincipal contains the
-            // carried principal plus the current principal, so both amounts
-            // reduce the balance in the catch-up month exactly once.
-            BigDecimal principalReduction = paidPrincipal.subtract(latePaidOnThisRow)
-                    .add(latePriorPrincipal).max(BigDecimal.ZERO);
+            entry.setOutstandingAmount(outstanding);
+            entry.setPendingInterest(actual ? round(pendingInterest) : round(BigDecimal.ZERO));
+            entry.setPendingPrincipal(actual ? round(pendingPrincipal) : round(BigDecimal.ZERO));
             entry.setClosingPrincipal(round(opening.subtract(principalReduction).max(BigDecimal.ZERO)));
             setScheduleCalculationFields(entry, ratePercent, isMonthlyRate,
-                    projected.getEmiAmount(), unpaidInterest, unpaidPrincipal,
-                    interestDue, principalDue,
-                    interestDue.subtract(paidInterest).max(BigDecimal.ZERO),
-                    principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO));
-            entry.setStatus(outstanding.signum() == 0 && (due || hasRecordedPayment)
+                    projected.getEmiAmount(), unpaidInterest, unpaidPrincipal, interestDue, principalDue,
+                    entry.getPendingInterest(), entry.getPendingPrincipal());
+            entry.setStatus(actual && outstanding.signum() == 0
                     ? com.bachatgat.model.RepaymentStatus.PAID
                     : (paid.signum() > 0 ? com.bachatgat.model.RepaymentStatus.PARTIAL
-                    : (due
-                    ? (projected.getDueDate().isBefore(asOf)
-                    ? com.bachatgat.model.RepaymentStatus.OVERDUE
-                    : com.bachatgat.model.RepaymentStatus.DUE)
+                    : (due ? (contractual.getDueDate().isBefore(asOf)
+                    ? com.bachatgat.model.RepaymentStatus.OVERDUE : com.bachatgat.model.RepaymentStatus.DUE)
                     : com.bachatgat.model.RepaymentStatus.UPCOMING)));
 
-            unpaidPrincipal = principalDue.subtract(paidPrincipal).max(BigDecimal.ZERO);
-            unpaidInterest = interestDue.subtract(paidInterest).max(BigDecimal.ZERO);
+            // The first upcoming installment includes arrears. Later installments
+            // project repayment on schedule after that catch-up.
+            unpaidPrincipal = actual ? pendingPrincipal : BigDecimal.ZERO;
+            unpaidInterest = actual ? pendingInterest : BigDecimal.ZERO;
             actualOpening = entry.getClosingPrincipal();
-            // Any unpaid balance creates arrears, including a partial payment
-            // recorded before the due date. This is important for an
-            // interest-only payment: the principal is still outstanding, so
-            // the next future row must open on the unchanged principal and
-            // include the carried principal due. A fully paid installment has
-            // no outstanding balance and therefore does not enter arrears.
-            if (outstanding.signum() > 0) {
-                arrearsMode = true;
-            }
             result.add(entry);
         }
         return result;
@@ -426,31 +421,27 @@ public final class FinancialCalculator {
      */
     private static BigDecimal latePriorPrincipalPaid(
             java.util.List<com.bachatgat.model.LoanRepaymentSchedule> recordedSchedule,
-            int currentInstallment,
-            java.time.LocalDate currentDueDate) {
-        if (recordedSchedule == null || currentDueDate == null) return BigDecimal.ZERO;
-        BigDecimal latePaid = BigDecimal.ZERO;
-        for (com.bachatgat.model.LoanRepaymentSchedule prior : recordedSchedule) {
-            if (prior == null || prior.getInstallmentNo() >= currentInstallment
-                    || prior.getPaidDate() == null || prior.getDueDate() == null
-                    || prior.getPaidPrincipalAmount().signum() == 0) continue;
-            boolean sameCatchUpMonth = prior.getPaidDate().getYear() == currentDueDate.getYear()
-                    && prior.getPaidDate().getMonthValue() == currentDueDate.getMonthValue();
-            if (prior.getPaidDate().isAfter(prior.getDueDate()) && sameCatchUpMonth) {
-                latePaid = latePaid.add(prior.getPaidPrincipalAmount());
-            }
-        }
-        return round(latePaid);
+            int installment, java.time.LocalDate previousDue, java.time.LocalDate currentDue, boolean last) {
+        if (recordedSchedule == null || previousDue == null) return BigDecimal.ZERO;
+        return recordedSchedule.stream().filter(row -> row.getInstallmentNo() < installment)
+                .map(row -> principalPaidBetween(row, previousDue, last ? null : currentDue))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private static boolean isLatePaymentForMonth(
-            com.bachatgat.model.LoanRepaymentSchedule source,
-            com.bachatgat.model.LoanRepaymentSchedule projected) {
-        if (source == null || projected == null || source.getPaidDate() == null
-                || projected.getDueDate() == null || source.getPaidPrincipalAmount().signum() == 0) {
-            return false;
+    private static BigDecimal principalPaidBetween(com.bachatgat.model.LoanRepaymentSchedule row,
+            java.time.LocalDate after, java.time.LocalDate through) {
+        if (row == null) return BigDecimal.ZERO;
+        if (row.getPrincipalReceipts() == null) {
+            return receiptInPeriod(row.getPaidDate(), after, through) ? row.getPaidPrincipalAmount() : BigDecimal.ZERO;
         }
-        return source.getPaidDate().isAfter(projected.getDueDate());
+        return row.getPrincipalReceipts().entrySet().stream()
+                .filter(receipt -> receiptInPeriod(java.time.LocalDate.parse(receipt.getKey()), after, through))
+                .map(java.util.Map.Entry::getValue).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static boolean receiptInPeriod(java.time.LocalDate date, java.time.LocalDate after,
+                                           java.time.LocalDate through) {
+        return date != null && date.isAfter(after) && (through == null || !date.isAfter(through));
     }
 
     /**

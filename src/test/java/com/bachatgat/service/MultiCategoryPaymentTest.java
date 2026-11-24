@@ -174,4 +174,22 @@ class MultiCategoryPaymentTest {
         Member after = dataService.getMemberById(memberId);
         assertEquals(beforeSavings, after.getTotalSavings(), "Savings balance must NOT change on failed payment");
     }
+    @Test
+    void rejectsExtraPrincipalForAnUnrelatedLoanBeforeRecordingTheCollection() {
+        Loan unrelatedLoan = dataService.findLoanById("LN-2026-002").orElseThrow();
+        CollectionPaymentRequest request = new CollectionPaymentRequest();
+        request.setMemberId("MPBG-M001");
+        request.setMonth(7);
+        request.setYear(2026);
+        request.setAmount(new BigDecimal("1000.00"));
+        request.setExtraLoanPaymentAmount(request.getAmount());
+        request.setLoanId(unrelatedLoan.getId());
+        request.setPaymentDate(LocalDate.of(2026, 7, 5));
+        request.setPaymentMethod("CASH");
+        request.setReferenceNumber("TEST-UNRELATED-LOAN");
+
+        assertThrows(com.bachatgat.exception.InvalidFinancialOperationException.class,
+                () -> collectionService.recordPayment("bg-001", request, "admin"));
+        assertTrue(dataService.findTransactionByReference(request.getReferenceNumber()).isEmpty());
+    }
 }

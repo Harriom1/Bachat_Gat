@@ -19,13 +19,6 @@ public final class LoanScheduleCalculatorSupport {
     public static void reconcileReducingLoanSummary(Loan loan, List<LoanRepaymentSchedule> schedule) {
         if (loan == null || schedule == null || schedule.isEmpty()) return;
         BigDecimal principal = loan.getPrincipalAmount() != null ? loan.getPrincipalAmount() : BigDecimal.ZERO;
-        boolean monthlyRate = "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis());
-        List<LoanRepaymentSchedule> contractualSchedule = FinancialCalculator.generateAmortizationSchedule(
-                principal,
-                loan.getInterestRate() != null ? loan.getInterestRate() : BigDecimal.ZERO,
-                monthlyRate,
-                loan.getDurationMonths() > 0 ? loan.getDurationMonths() : schedule.size(),
-                loan.getDisbursementDate() != null ? loan.getDisbursementDate() : LocalDate.now());
         // Use the recalculated schedule's current-month interest. If a
         // principal installment was missed, the next month's interest is
         // correctly calculated on the temporarily higher opening balance.
@@ -38,33 +31,34 @@ public final class LoanScheduleCalculatorSupport {
         BigDecimal paidInterest = schedule.stream()
                 .map(LoanRepaymentSchedule::getPaidInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        paidPrincipal = paidPrincipal.add(schedule.stream()
+                .map(item -> item.getPrincipalPrepayment().add(item.getPostMaturityPrepayment()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
         BigDecimal pendingPrincipal = schedule.stream()
-                .map(item -> item.getPendingPrincipal() != null ? item.getPendingPrincipal() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal remainingPrincipal = schedule.stream()
-                .filter(item -> item.getStatus() == RepaymentStatus.UPCOMING)
-                .findFirst()
-                .map(LoanRepaymentSchedule::getOpeningPrincipal)
-                .orElseGet(() -> schedule.get(schedule.size() - 1).getClosingPrincipal())
-                .max(BigDecimal.ZERO);
+                .filter(item -> item.getStatus() != RepaymentStatus.UPCOMING)
+                .reduce((earlier, later) -> later)
+                .map(LoanRepaymentSchedule::getPendingPrincipal).orElse(BigDecimal.ZERO);
+        BigDecimal remainingPrincipal = FinancialCalculator.round(principal.subtract(paidPrincipal).max(BigDecimal.ZERO));
         BigDecimal remainingInterest = totalInterest.subtract(paidInterest).max(BigDecimal.ZERO);
         loan.setTotalInterest(totalInterest);
         loan.setInterestPaid(paidInterest);
         loan.setOutstandingInterest(remainingInterest);
         loan.setPendingInterest(remainingInterest);
-        loan.setPrincipalPaid(paidPrincipal);
+        loan.setPrincipalPaid(FinancialCalculator.round(paidPrincipal));
+        loan.setTotalPaid(FinancialCalculator.round(paidPrincipal.add(paidInterest)));
         loan.setOutstandingPrincipal(remainingPrincipal);
         loan.setPendingPrincipal(pendingPrincipal);
         // remainingPrincipal already includes any unpaid scheduled principal;
         // adding pendingPrincipal again would double-count it.
         loan.setTotalOutstanding(remainingPrincipal.add(remainingInterest));
         loan.setTotalPayable(principal.add(totalInterest));
-        loan.setMonthlyInstallment(contractualSchedule.isEmpty()
-                ? schedule.get(0).getEmiAmount()
-                : contractualSchedule.get(0).getEmiAmount());
-        schedule.stream().filter(item -> item.getOutstandingAmount() != null
-                        && item.getOutstandingAmount().signum() > 0)
-                .findFirst().ifPresent(item -> loan.setNextDueDate(item.getDueDate()));
+        LoanRepaymentSchedule currentTerms = schedule.stream()
+                .filter(row -> row.getPrincipalPrepayment().signum() > 0)
+                .reduce((earlier, later) -> later).orElse(schedule.getFirst());
+        loan.setMonthlyInstallment(currentTerms.getOriginalScheduledEmi());
+        loan.setNextDueDate(schedule.stream().filter(item -> item.getStatus() != RepaymentStatus.PAID
+                        && item.getTotalDue().compareTo(item.getPaidAmount()) > 0)
+                .findFirst().map(LoanRepaymentSchedule::getDueDate).orElse(null));
     }
 
     public static List<LoanRepaymentSchedule> generateFlatSchedule(

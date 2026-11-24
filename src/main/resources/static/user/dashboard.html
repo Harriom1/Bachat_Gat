@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Dashboard - Bachat Gat Platform</title>
   <meta name="description" content="Member dashboard for viewing Bachat Gat savings, collections, loans, payments, and financial reports.">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/responsive.css">
-  <link rel="stylesheet" href="/css/user.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/style.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/forms.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/user.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"></noscript>
 </head>
 <body>
   <div class="app-wrapper">
@@ -74,6 +75,8 @@
       </header>
 
       <div class="page-content">
+        <p id="dashboard-freshness" class="text-muted" role="status">Loading dashboard…</p>
+        <div id="dashboard-data" hidden>
         <!-- Welcome Hero -->
         <div class="content-card" style="padding: 1.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -262,7 +265,7 @@
               </table>
             </div>
 
-            <button type="button" id="btn-pay-now" class="btn-primary-custom" onclick="openPaymentModal()" style="width: 100%; justify-content: center; padding: 0.65rem;">
+            <button type="button" id="btn-pay-now" class="btn-primary-custom" onclick="loadPaymentDetails()" style="width: 100%; justify-content: center; padding: 0.65rem;">
               <i class="bi bi-credit-card-2-front-fill"></i> <span data-i18n="payNow">Pay Now</span>
             </button>
           </div>
@@ -535,16 +538,18 @@
           </div>
         </div>
 
+        </div>
       </div>
     </main>
   </div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/i18n.js"></script>
+  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/auth.js"></script>
+  <script src="/assets/perf-v1/js/common.js"></script>
+  <script src="/assets/perf-v1/js/i18n.js"></script>
   <script>
     let currentDashGroupLoans = [];
+    let dashboardRequest = 0;
 
     document.addEventListener('DOMContentLoaded', async () => {
       // Guard: strictly require logged in user
@@ -552,10 +557,9 @@
         window.location.href = '/login.html';
         return;
       }
-      await Promise.all([
-        loadUserDashboard(),
-        loadGroupLoansOverview()
-      ]);
+      const refresh = () => Promise.all([loadUserDashboard(), loadGroupLoansOverview()]);
+      watchDashboardRefresh(() => Auth.getUser()?.groupId, refresh);
+      void refresh();
     });
 
     async function loadGroupLoansOverview() {
@@ -605,9 +609,25 @@
     });
 
     async function loadUserDashboard() {
+      const request = ++dashboardRequest;
+      const content = document.getElementById('dashboard-data');
+      const freshness = document.getElementById('dashboard-freshness');
       try {
-        const d = await api.getUserDashboard();
-        
+        await api.getUserDashboard((data, snapshot) => {
+          if (request !== dashboardRequest) return;
+          renderUserDashboard(data);
+          content.hidden = false;
+          freshness.textContent = dashboardFreshness(snapshot);
+        });
+      } catch (err) {
+        if (request !== dashboardRequest) return;
+        content.hidden = true;
+        window.currentPaymentContext = null;
+        freshness.textContent = 'Dashboard unavailable. ' + err.message;
+      }
+    }
+
+    function renderUserDashboard(d) {
         document.getElementById('welcome-title').textContent = `Welcome, ${d.memberName || 'Member'}`;
         document.getElementById('hero-member-id').textContent = d.memberId;
         document.getElementById('hero-reg-id').textContent = d.registrationId || 'BG-MH-2026-0001';
@@ -739,8 +759,25 @@
         // Transactions
         renderRecentTransactions(d.recentTransactions || []);
 
+    }
+
+    async function loadPaymentDetails() {
+      const button = document.getElementById('btn-pay-now');
+      button.disabled = true;
+      try {
+        const data = await api.getUserDashboard();
+        ++dashboardRequest;
+        renderUserDashboard(data);
+        document.getElementById('dashboard-freshness').textContent =
+          dashboardFreshness({state: 'network', savedAt: Date.now()});
+        if (!button.disabled) openPaymentModal();
       } catch (err) {
-        Common.showToast('Failed to load dashboard: ' + err.message, 'danger');
+        if (err.status === 401 || err.status === 403) {
+          document.getElementById('dashboard-data').hidden = true;
+          window.currentPaymentContext = null;
+        }
+        button.disabled = false;
+        Common.showToast('Could not verify the amount due: ' + err.message, 'danger');
       }
     }
 

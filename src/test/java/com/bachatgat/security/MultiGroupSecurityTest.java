@@ -2,6 +2,8 @@ package com.bachatgat.security;
 
 import com.bachatgat.DemoLoginRequests;
 import com.bachatgat.dto.LoginRequest;
+import com.bachatgat.service.MonthlyBachatCalendar;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,6 +17,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -54,7 +58,11 @@ class MultiGroupSecurityTest {
         mockMvc.perform(get("/api/admin/dashboard?groupId=bg-001")
                         .header("Authorization", "Bearer " + group1AdminToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.upcomingCollections").isArray())
+                .andExpect(jsonPath("$.data.pendingShareCount").isNumber())
+                .andExpect(jsonPath("$.data.pendingLoanCount").isNumber())
+                .andExpect(header().string("Cache-Control", containsString("no-store")));
     }
 
     @Test
@@ -103,6 +111,33 @@ class MultiGroupSecurityTest {
         mockMvc.perform(get("/api/admin/groups/bg-002/collections/pending")
                         .header("Authorization", "Bearer " + group1AdminToken))
                 .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/admin/groups/bg-002/collections/pending/year")
+                        .param("year", Integer.toString(MonthlyBachatCalendar.today().getYear()))
+                        .header("Authorization", "Bearer " + group1AdminToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void yearlyPendingCollectionsMatchTheSingleMonthEndpoint() throws Exception {
+        var today = MonthlyBachatCalendar.today();
+        int year = today.getYear();
+        int month = today.getMonthValue();
+        String path = "/api/admin/groups/bg-001/collections/pending";
+        var monthly = mockMvc.perform(get(path).param("month", Integer.toString(month))
+                        .param("year", Integer.toString(year)).header("Authorization", "Bearer " + group1AdminToken))
+                .andExpect(status().isOk()).andReturn();
+        var yearly = mockMvc.perform(get(path + "/year").param("year", Integer.toString(year))
+                        .header("Authorization", "Bearer " + group1AdminToken))
+                .andExpect(status().isOk()).andReturn();
+        var sameMonth = objectMapper.createArrayNode();
+        for (JsonNode row : objectMapper.readTree(yearly.getResponse().getContentAsString()).path("data")) {
+            if (row.path("month").asInt() == month) {
+                var entry = ((com.fasterxml.jackson.databind.node.ObjectNode) row).deepCopy();
+                entry.remove(java.util.List.of("month", "year"));
+                sameMonth.add(entry);
+            }
+        }
+        assertEquals(objectMapper.readTree(monthly.getResponse().getContentAsString()).path("data"), sameMonth);
     }
 
     @Test

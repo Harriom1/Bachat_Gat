@@ -14,9 +14,11 @@ const Auth = {
 
   setUser(user) {
     const previous = this.getUser();
-    const previousScope = previous && (previous.id || previous.userId || previous.memberId || previous.username);
-    const nextScope = user && (user.id || user.userId || user.memberId || user.username);
-    if (previousScope !== nextScope && typeof clearApiCache === 'function') clearApiCache();
+    const scope = value => value && JSON.stringify([
+      value.id || value.userId || value.memberId || value.username,
+      value.groupId, value.role, value.designation
+    ]);
+    if (scope(previous) !== scope(user) && typeof clearApiCache === 'function') void clearApiCache();
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     } else {
@@ -115,10 +117,11 @@ const Auth = {
     return this.requireAuth('USER');
   },
 
-  logout() {
-    if (typeof clearApiCache === 'function') clearApiCache();
+  async logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('activeGroupId');
+    if (typeof clearApiCache === 'function') await clearApiCache();
     window.location.href = '/login.html';
   }
 };

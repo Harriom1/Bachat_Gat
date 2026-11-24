@@ -373,17 +373,13 @@ const Common = {
    * Pulls clean dropdown data from /api/admin/groups/dropdown.
    * Auto-refreshes when language changes.
    */
-  cachedGroups: null,
   async initGroupSelector() {
     const selects = document.querySelectorAll('#active-group-select, .group-select');
     if (!selects || selects.length === 0) return;
     if (!Auth.isAuthenticated()) return;
 
     try {
-      if (!this.cachedGroups) {
-        this.cachedGroups = await api.getGroupDropdown();
-      }
-      const groups = this.cachedGroups || [];
+      const groups = (await api.getGroupDropdown()) || [];
       const currentLang = window.i18n ? window.i18n.currentLang : (localStorage.getItem('app_lang') || 'en');
       let activeGroupId = localStorage.getItem('activeGroupId');
 

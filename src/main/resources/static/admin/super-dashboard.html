@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Super Admin Dashboard - Bachat Gat Platform</title>
   <meta name="description" content="Bachat Gat super administrator dashboard for managing groups, administrators, and platform operations.">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/dashboard.css">
-  <link rel="stylesheet" href="/css/forms.css">
-  <link rel="stylesheet" href="/css/tables.css">
-  <link rel="stylesheet" href="/css/responsive.css">
-  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/style.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/forms.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v1/css/admin.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     .dashboard-metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
@@ -589,11 +589,11 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-  <script src="/js/api.js?v=20261120-403-fix"></script>
-  <script src="/js/auth.js"></script>
-  <script src="/js/common.js"></script>
-  <script src="/js/i18n.js"></script>
-  <script src="/js/bank-directory.js"></script>
+  <script src="/assets/perf-v1/js/api.js?v=20261120-403-fix"></script>
+  <script src="/assets/perf-v1/js/auth.js"></script>
+  <script src="/assets/perf-v1/js/common.js"></script>
+  <script src="/assets/perf-v1/js/i18n.js"></script>
+  <script src="/assets/perf-v1/js/bank-directory.js"></script>
   <script>
     let allGroups = [];
     let allAdmins = [];
@@ -991,7 +991,6 @@
       try {
         const created = await api.createGroup(groupData);
         closeCreateModal();
-        Common.cachedGroups = null; // Invalidate dropdown cache
 
         // Show Safe Account Information Modal
         document.getElementById('success-group-name').textContent = created.groupName || groupData.groupName;

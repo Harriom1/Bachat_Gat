@@ -17,12 +17,15 @@ public class LoanRepaymentSchedule {
     private BigDecimal emiAmount = BigDecimal.ZERO;
     private BigDecimal principalAmount = BigDecimal.ZERO;
     /** Principal scheduled for this original installment, excluding carried arrears. */
-    private BigDecimal scheduledPrincipalAmount = BigDecimal.ZERO;
+    private BigDecimal scheduledPrincipalAmount;
     private BigDecimal interestAmount = BigDecimal.ZERO;
     private BigDecimal penaltyAmount = BigDecimal.ZERO;
     private BigDecimal totalDue = BigDecimal.ZERO;
     private BigDecimal paidAmount = BigDecimal.ZERO;
     private BigDecimal paidPrincipalAmount = BigDecimal.ZERO;
+    private BigDecimal principalPrepayment = BigDecimal.ZERO;
+    private BigDecimal postMaturityPrepayment = BigDecimal.ZERO;
+    private java.util.Map<String, BigDecimal> principalReceipts;
     private BigDecimal paidInterestAmount = BigDecimal.ZERO;
     private BigDecimal outstandingAmount = BigDecimal.ZERO;
     private BigDecimal pendingInterest = BigDecimal.ZERO;
@@ -79,7 +82,7 @@ public class LoanRepaymentSchedule {
     public BigDecimal getPrincipalComponent() { return principalAmount; }
     public void setPrincipalAmount(BigDecimal principalAmount) { this.principalAmount = principalAmount; }
     public BigDecimal getScheduledPrincipalAmount() {
-        return scheduledPrincipalAmount != null && scheduledPrincipalAmount.signum() != 0
+        return scheduledPrincipalAmount != null
                 ? scheduledPrincipalAmount : principalAmount;
     }
     public void setScheduledPrincipalAmount(BigDecimal scheduledPrincipalAmount) {
@@ -96,6 +99,12 @@ public class LoanRepaymentSchedule {
     public void setPaidAmount(BigDecimal paidAmount) { this.paidAmount = paidAmount; }
     public BigDecimal getPaidPrincipalAmount() { return paidPrincipalAmount != null ? paidPrincipalAmount : BigDecimal.ZERO; }
     public void setPaidPrincipalAmount(BigDecimal paidPrincipalAmount) { this.paidPrincipalAmount = paidPrincipalAmount; }
+    public BigDecimal getPrincipalPrepayment() { return principalPrepayment == null ? BigDecimal.ZERO : principalPrepayment; }
+    public void setPrincipalPrepayment(BigDecimal amount) { principalPrepayment = amount; }
+    public BigDecimal getPostMaturityPrepayment() { return postMaturityPrepayment == null ? BigDecimal.ZERO : postMaturityPrepayment; }
+    public void setPostMaturityPrepayment(BigDecimal amount) { postMaturityPrepayment = amount; }
+    public java.util.Map<String, BigDecimal> getPrincipalReceipts() { return principalReceipts; }
+    public void setPrincipalReceipts(java.util.Map<String, BigDecimal> receipts) { principalReceipts = receipts; }
     public BigDecimal getPaidInterestAmount() { return paidInterestAmount != null ? paidInterestAmount : BigDecimal.ZERO; }
     public void setPaidInterestAmount(BigDecimal paidInterestAmount) { this.paidInterestAmount = paidInterestAmount; }
     public BigDecimal getOutstandingAmount() { return outstandingAmount; }

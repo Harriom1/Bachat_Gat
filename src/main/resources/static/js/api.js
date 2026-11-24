@@ -5,179 +5,292 @@
 
 const API_BASE = '/api';
 
-// Read-only API cache. The backend remains the authority: this cache only
-// improves repeat navigation and is never used to authorize an operation.
-const API_CACHE_DB = 'bachatgat-api-cache-v1';
-const API_CACHE_STORE = 'responses';
-const apiMemoryCache = new Map();
+// These policies apply only to explicitly opted-in read-only displays.
+const cachePolicies = {
+  adminDashboard: [30_000, 300_000],
+  userDashboard: [45_000, 300_000],
+  groupDropdown: [300_000, 600_000]
+};
+const cacheSessionKey = 'bachatgat.cache.session';
+const cacheChangePrefix = 'bachatgat.cache.change.';
+const memoryCache = new Map();
+const inFlightReads = new Map();
+let cacheDatabase;
 
-function apiCacheScope() {
+function cachePolicy(name, group = '') {
+  const [defaultTtl, defaultMax] = cachePolicies[name];
+  const configured = window.BachatGatCachePolicy?.[name];
+  const duration = (value, fallback, max) => Number.isFinite(value) ? Math.max(0, Math.min(value, max)) : fallback;
+  const ttl = duration(configured?.ttlMs, defaultTtl, 600_000);
+  return { family: name === 'groupDropdown' ? 'groups' : 'dashboard', group, ttl,
+    maxAge: Math.max(ttl, duration(configured?.maxAgeMs, defaultMax, 1_800_000)) };
+}
+
+function cacheScope(token, policy, url) {
+  if (!policy || !token) return null;
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return String(user.id || user.userId || user.memberId || user.username || 'anonymous');
-  } catch (e) {
-    return 'anonymous';
+    const user = JSON.parse(localStorage.getItem('user'));
+    const identity = user?.id || user?.userId || user?.memberId || user?.username;
+    const expires = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000;
+    if (!identity || user.firstLogin || !Number.isFinite(expires) || expires <= Date.now()) return null;
+    let session = localStorage.getItem(cacheSessionKey);
+    if (!session) {
+      session = crypto.randomUUID();
+      localStorage.setItem(cacheSessionKey, session);
+    }
+    const group = policy.group || user.groupId || '';
+    const revision = cacheRevision(policy.family, group);
+    const key = JSON.stringify([session, identity, user.role, user.designation, user.groupId, group, url]);
+    return { session, revision, key, expires, group };
+  } catch {
+    return null;
   }
 }
 
-function openApiCache() {
-  if (!window.indexedDB) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const request = indexedDB.open(API_CACHE_DB, 1);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains(API_CACHE_STORE)) {
-        request.result.createObjectStore(API_CACHE_STORE, { keyPath: 'key' });
+function openCacheDatabase() {
+  if (!cacheDatabase) {
+    cacheDatabase = new Promise(resolve => {
+      try {
+        if (!window.indexedDB) return resolve(null);
+        indexedDB.deleteDatabase('bachatgat-api-cache-v1');
+        const request = indexedDB.open('bachatgat-display-cache-v2', 1);
+        const timeout = setTimeout(() => resolve(null), 250);
+        request.onupgradeneeded = () => {
+          const store = request.result.createObjectStore('responses', { keyPath: 'key' });
+          store.createIndex('session', 'session');
+          store.createIndex('expires', 'expires');
+        };
+        request.onsuccess = () => {
+          clearTimeout(timeout);
+          const db = request.result;
+          db.onversionchange = () => { db.close(); cacheDatabase = null; };
+          resolve(db);
+        };
+        request.onerror = request.onblocked = () => { clearTimeout(timeout); resolve(null); };
+      } catch {
+        resolve(null);
       }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => resolve(null);
-  });
+    });
+  }
+  return cacheDatabase;
 }
 
 async function readApiCache(key) {
-  if (apiMemoryCache.has(key)) return apiMemoryCache.get(key);
-  const db = await openApiCache();
+  if (memoryCache.has(key)) return memoryCache.get(key);
+  const db = await openCacheDatabase();
   if (!db) return null;
-  return new Promise((resolve) => {
-    const request = db.transaction(API_CACHE_STORE, 'readonly')
-      .objectStore(API_CACHE_STORE).get(key);
-    request.onsuccess = () => {
-      if (request.result) apiMemoryCache.set(key, request.result);
-      resolve(request.result || null);
-    };
-    request.onerror = () => resolve(null);
+  return new Promise(resolve => {
+    try {
+      const read = db.transaction('responses').objectStore('responses').get(key);
+      read.onsuccess = () => resolve(read.result || null);
+      read.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
+    }
   });
 }
 
-async function writeApiCache(key, data) {
-  const record = { key, scope: apiCacheScope(), savedAt: Date.now(), data };
-  apiMemoryCache.set(key, record);
-  const db = await openApiCache();
-  if (!db) return;
-  const tx = db.transaction(API_CACHE_STORE, 'readwrite');
-  tx.objectStore(API_CACHE_STORE).put(record);
+function deleteCacheRecords(store, index, range) {
+  store.index(index).openKeyCursor(range).onsuccess = event => {
+    const cursor = event.target.result;
+    if (!cursor) return;
+    store.delete(cursor.primaryKey);
+    cursor.continue();
+  };
+}
+
+async function writeApiCache(record, isCurrent) {
+  if (memoryCache.size >= 32) memoryCache.delete(memoryCache.keys().next().value);
+  memoryCache.set(record.key, record);
+  const db = await openCacheDatabase();
+  if (!db || !isCurrent()) return;
+  try {
+    const store = db.transaction('responses', 'readwrite').objectStore('responses');
+    store.put(record);
+    deleteCacheRecords(store, 'expires', IDBKeyRange.upperBound(Date.now()));
+  } catch {
+    // Browser storage is optional.
+  }
 }
 
 async function clearApiCache() {
-  apiMemoryCache.clear();
-  const db = await openApiCache();
+  const session = localStorage.getItem(cacheSessionKey);
+  localStorage.removeItem(cacheSessionKey);
+  memoryCache.clear();
+  if (!session) return;
+  const db = await openCacheDatabase();
   if (!db) return;
-  const tx = db.transaction(API_CACHE_STORE, 'readwrite');
-  tx.objectStore(API_CACHE_STORE).clear();
+  try {
+    const cleanup = db.transaction('responses', 'readwrite');
+    deleteCacheRecords(cleanup.objectStore('responses'), 'session', IDBKeyRange.only(session));
+    await new Promise(resolve => {
+      const timeout = setTimeout(resolve, 250);
+      cleanup.oncomplete = cleanup.onabort = () => { clearTimeout(timeout); resolve(); };
+    });
+  } catch {
+    // Old entries are inaccessible after the session key is removed.
+  }
+}
+
+function cacheRevision(family, group = '') {
+  const prefix = cacheChangePrefix + family;
+  return [localStorage.getItem(prefix), group && localStorage.getItem(prefix + '.' + encodeURIComponent(group))].join('|');
+}
+
+function invalidateApiReads(endpoint, token) {
+  const path = endpoint.split('?')[0];
+  if (!token || /^(\/auth\/login|\/verification\/|\/admin\/reports\/|.*\/documents\/?$|.*\/meetings\/?$|\/payments\/order$)/.test(path)) return;
+  const groupMatch = path.match(/^\/admin\/groups\/([^/]+)(?:\/|$)/);
+  const groupKey = groupMatch?.[1] || '';
+  const groupChange = /^\/admin\/groups(?:\/[^/]+(?:\/(?:archive|restore))?)?$/.test(path)
+    || /\/office-bearers$|^\/admin\/client-admins/.test(path);
+  const revision = Date.now() + ':' + Math.random();
+  const scoped = groupKey && !/\/enroll-existing-member$/.test(path);
+  try {
+    localStorage.setItem(cacheChangePrefix + 'reads', revision);
+    if (groupChange) localStorage.setItem(cacheChangePrefix + 'groups', revision);
+    localStorage.setItem(cacheChangePrefix + 'dashboard' + (scoped ? '.' + groupKey : ''), revision);
+  } catch {
+    // A confirmed server mutation must still succeed if browser storage is full.
+    void clearApiCache();
+  }
+}
+
+function dashboardFreshness({ state, savedAt }) {
+  const time = new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const labels = {
+    network: ['dashboardUpdated', 'Updated'],
+    cached: ['dashboardSaved', 'Saved snapshot from'],
+    refreshing: ['dashboardRefreshing', 'Refreshing saved snapshot from'],
+    stale: ['dashboardStale', 'Refresh failed. Showing saved snapshot from'],
+    offline: ['dashboardOffline', 'Offline. Showing saved snapshot from']
+  };
+  const [key, fallback] = labels[state];
+  return (window.Common?.t(key, fallback) || fallback) + ' ' + time;
+}
+
+function watchDashboardRefresh(getGroup, refresh) {
+  const visibleRefresh = () => { if (!document.hidden) void refresh(); };
+  document.addEventListener('visibilitychange', visibleRefresh);
+  window.addEventListener('online', visibleRefresh);
+  window.addEventListener('offline', visibleRefresh);
+  window.addEventListener('pageshow', event => { if (event.persisted) visibleRefresh(); });
+  window.addEventListener('storage', event => {
+    if (event.key === 'token' || event.key === 'user') {
+      window.location.reload();
+    } else if (event.key === cacheChangePrefix + 'dashboard' ||
+               event.key === cacheChangePrefix + 'dashboard.' + encodeURIComponent(getGroup() || '')) {
+      visibleRefresh();
+    }
+  });
 }
 
 class ApiClient {
-  constructor() {
-    this.token = localStorage.getItem('token') || null;
-  }
-
   setToken(token) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('token', token);
-    } else {
-      localStorage.removeItem('token');
-    }
+    if (token === this.getToken()) return;
+    void clearApiCache();
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
   }
 
   getToken() {
-    if (!this.token) {
-      this.token = localStorage.getItem('token');
-    }
-    return this.token;
+    return localStorage.getItem('token');
   }
 
   async request(endpoint, options = {}) {
-    const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+    const url = endpoint.startsWith('http') ? endpoint : API_BASE + endpoint;
+    const { displayCache, onSnapshot, ...fetchOptions } = options;
     const method = (options.method || 'GET').toUpperCase();
-    const cacheTtlMs = Number(options.cacheTtlMs || 0);
-    const cacheKey = cacheTtlMs > 0 && method === 'GET'
-      ? `${apiCacheScope()}|${url}` : null;
-    const cached = cacheKey ? await readApiCache(cacheKey) : null;
-    if (cached && Date.now() - cached.savedAt <= cacheTtlMs) return cached.data;
-
-    const headers = {
-      'Accept': 'application/json',
-      ...options.headers
-    };
-
-    // Login and other authentication endpoints must start a fresh session.
-    // Reusing an old browser token here can make a public login request look
-    // like an already-authenticated request and result in a misleading 403.
-    const isAuthEndpoint = url.includes('/api/auth/login')
-      || url.includes('/api/auth/member-login')
-      || url.includes('/api/auth/member-first-login-setup')
-      || url.includes('/api/auth/change-password');
-
-    // Attach JWT Bearer Token only to non-authenticated API calls.
     const token = this.getToken();
-    if (token && !isAuthEndpoint) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const relative = url.startsWith('/api/');
+    const auth = /^\/auth\/(?:login|member-login|member-first-login-setup|change-password)$/.test(endpoint);
+    const scope = relative && method === 'GET' && cacheScope(token, displayCache, url);
+    const sameSession = () => this.getToken() === token && (!scope
+      || (localStorage.getItem(cacheSessionKey) === scope.session && scope.expires > Date.now()));
+    const isCurrent = () => sameSession() && (!scope
+      || cacheRevision(displayCache.family, scope.group) === scope.revision);
+    const stored = scope ? await readApiCache(scope.key) : null;
+    // An identical GET can finish while this caller is waiting on IndexedDB.
+    const cached = scope ? (memoryCache.get(scope.key) || stored) : null;
+    const age = cached ? Date.now() - cached.savedAt : Infinity;
+    const usable = cached && isCurrent() && cached.revision === scope.revision && cached.expires > Date.now()
+      && age >= 0 && age <= displayCache.maxAge;
+    const deliver = (record, state) => {
+      onSnapshot?.(record.data, { state, savedAt: record.savedAt });
+      return record.data;
+    };
+    if (usable && (age <= displayCache.ttl || !navigator.onLine)) {
+      return deliver(cached, navigator.onLine ? 'cached' : 'offline');
     }
+    if (usable && onSnapshot) deliver(cached, 'refreshing');
 
-    if (options.body && !(options.body instanceof FormData)) {
+    const headers = { Accept: 'application/json', ...fetchOptions.headers };
+    if (token && relative && !auth) headers.Authorization = 'Bearer ' + token;
+    if (fetchOptions.body && !(fetchOptions.body instanceof FormData)) {
       headers['Content-Type'] = 'application/json';
-      options.body = JSON.stringify(options.body);
+      fetchOptions.body = JSON.stringify(fetchOptions.body);
     }
-
+    const canShare = relative && method === 'GET' && Object.keys(fetchOptions).every(key => key === 'method');
+    const readKey = canShare ? JSON.stringify([token, cacheRevision('reads'), url]) : null;
+    let pending = readKey && inFlightReads.get(readKey);
+    if (!pending) {
+      pending = this.fetchResult(url, { ...fetchOptions, headers }, token, auth);
+      if (readKey) {
+        inFlightReads.set(readKey, pending);
+        const remove = () => { if (inFlightReads.get(readKey) === pending) inFlightReads.delete(readKey); };
+        pending.then(remove, remove);
+      }
+    }
     try {
-      const requestOptions = { ...options, headers };
-      delete requestOptions.cacheTtlMs;
-      const response = await fetch(url, requestOptions);
-
-      if (response.status === 401) {
-        if (!isAuthEndpoint) {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          await clearApiCache();
-          if (!window.location.pathname.includes('login.html')) {
-            window.location.href = '/login.html?expired=true';
-          }
-          throw new Error('Session expired. Please log in again.');
-        } else {
-          let errData;
-          try {
-            errData = await response.json();
-          } catch (e) {}
-          const msg = (errData && (errData.message || (errData.error && errData.error.message))) 
-            || 'Invalid credentials. Please check your username, email, or password.';
-          throw new Error(msg);
-        }
-      }
-
-      if (response.status === 403) {
-        let errData;
-        try { errData = await response.clone().json(); } catch (e) {}
-        const accessDeniedMessage = errData?.message
-          || window.Common?.t('apiAccessDenied', 'Access denied: You do not have permission to view or execute this action.');
-        if (window.Common && window.Common.showToast) {
-          window.Common.showToast(accessDeniedMessage, 'danger');
-        } else {
-          alert(accessDeniedMessage);
-        }
-        throw new Error('Access forbidden: 403');
-      }
-
-      const data = await response.json();
-      if (!response.ok || data.success === false) {
-        const errorMsg = data.message || `Server error (${response.status})`;
-        const error = new Error(errorMsg);
-        error.status = response.status;
-        error.details = data.data || null;
-        error.code = data.data && data.data.code ? data.data.code : null;
-        throw error;
-      }
-
-      const result = data.data !== undefined ? data.data : data;
-      if (cacheKey) await writeApiCache(cacheKey, result);
-      if (method !== 'GET') await clearApiCache();
-      return result;
+      const result = await pending;
+      if (method !== 'GET' && relative) invalidateApiReads(endpoint, token);
+      if (method === 'GET' && !sameSession()) throw new Error('Session changed. Reload the page to continue.');
+      if (method === 'GET' && !isCurrent()) return this.request(endpoint, options);
+      const savedAt = Date.now();
+      if (scope) void writeApiCache({ ...scope, savedAt,
+        expires: Math.min(savedAt + displayCache.maxAge, scope.expires), data: result }, isCurrent);
+      return deliver({ data: result, savedAt }, 'network');
     } catch (err) {
-      if (cached) return cached.data;
-      console.error(`API Error [${endpoint}]:`, err);
+      if (usable && isCurrent() && cached.expires > Date.now()
+          && (err.network === true || err.status >= 500)) {
+        return deliver(cached, navigator.onLine ? 'stale' : 'offline');
+      }
       throw err;
     }
   }
+
+  async fetchResult(url, requestOptions, token, auth) {
+    let response;
+    try {
+      response = await fetch(url, requestOptions);
+    } catch (cause) {
+      if (cause.name === 'AbortError') throw cause;
+      throw Object.assign(new Error('Could not connect to the server.', { cause }), { network: true });
+    }
+    const data = await response.json().catch(() => null);
+    if (response.status === 401 && !auth && this.getToken() === token) {
+      this.setToken(null);
+      localStorage.removeItem('user');
+      if (!window.location.pathname.includes('login.html')) window.location.href = '/login.html?expired=true';
+    }
+    if (response.status === 403 && this.getToken() === token) {
+      void clearApiCache();
+      const message = data?.message || window.Common?.t('apiAccessDenied',
+        'Access denied: You do not have permission to view or execute this action.');
+      if (window.Common?.showToast) window.Common.showToast(message, 'danger');
+      else alert(message || 'Access denied.');
+    }
+    if (!response.ok || !data || data.success === false) {
+      const message = data?.message || data?.error?.message;
+      throw Object.assign(new Error(message || (response.status === 401
+        ? (auth ? 'Invalid credentials. Please check your username, email, or password.' : 'Session expired. Please log in again.')
+        : 'Server error (' + response.status + ')')), {
+        status: response.status, details: data?.data || null, code: data?.data?.code || null
+      });
+    }
+    return data.data !== undefined ? data.data : data;
+  }
+
 
   // ==========================================
   // AUTHENTICATION APIs
@@ -246,8 +359,8 @@ class ApiClient {
     return this.request('/me');
   }
 
-  getUserDashboard() {
-    return this.request('/me/dashboard', { cacheTtlMs: 60 * 1000 });
+  getUserDashboard(onSnapshot) {
+    return this.request('/me/dashboard', { displayCache: onSnapshot && cachePolicy('userDashboard'), onSnapshot });
   }
 
   getMySavings() {
@@ -331,10 +444,10 @@ class ApiClient {
     return groupId || (user ? user.groupId : 'bg-001');
   }
 
-  getAdminDashboard(groupId) {
+  getAdminDashboard(groupId, onSnapshot) {
     const targetGroupId = this.resolveAdminGroupId(groupId);
     const query = targetGroupId ? `?groupId=${encodeURIComponent(targetGroupId)}` : '';
-    return this.request(`/admin/dashboard${query}`, { cacheTtlMs: 30 * 1000 });
+    return this.request(`/admin/dashboard${query}`, { displayCache: onSnapshot && targetGroupId && cachePolicy('adminDashboard', targetGroupId), onSnapshot });
   }
 
   getGroups() {
@@ -346,7 +459,7 @@ class ApiClient {
   }
 
   getGroupDropdown() {
-    return this.request('/admin/groups/dropdown', { cacheTtlMs: 10 * 60 * 1000 });
+    return this.request('/admin/groups/dropdown', { displayCache: cachePolicy('groupDropdown') });
   }
 
   // ==========================================
@@ -599,6 +712,12 @@ class ApiClient {
     if (year) params.append('year', year);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return this.request(`/admin/groups/${encodeURIComponent(targetGroupId)}/collections/pending${qs}`);
+  }
+
+  getPendingSavingsForYear(groupId, year) {
+    const targetGroupId = this.resolveAdminGroupId(groupId);
+    return this.request('/admin/groups/' + encodeURIComponent(targetGroupId)
+      + '/collections/pending/year?year=' + encodeURIComponent(year));
   }
 
   getMyGroupInfo() {

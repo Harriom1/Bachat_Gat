@@ -123,4 +123,101 @@ class LoanApprovalAndRepaymentTest {
         assertEquals(0, after.getInterestPaid().subtract(interestPaidBefore).compareTo(new BigDecimal("500.00")));
         assertTrue(dataService.getLoanSchedule(after.getId()).stream().anyMatch(item -> item.getStatus() == RepaymentStatus.PARTIAL));
     }
+    @Test
+    void reducingPrepaymentSurvivesScheduleReloadAndRejectsDuplicateReference() {
+        LocalDate today = LocalDate.now();
+        Loan loan = reducingLoan("PREPAY", today.minusDays(5));
+        LoanExtraPaymentRequest request = new LoanExtraPaymentRequest();
+        request.setAmount(new BigDecimal("10000.00"));
+        request.setPaymentDate(today);
+        request.setPaymentMethod("BANK_TRANSFER");
+        request.setReferenceNumber("TEST-PREPAY");
+
+        Loan saved = loanService.recordExtraPayment(loan.getId(), request, "admin");
+        assertEquals(new BigDecimal("10000.00"), saved.getPrincipalPaid());
+        assertEquals(new BigDecimal("50000.00"), saved.getOutstandingPrincipal());
+        var freshSchedule = loanService.getLoanSchedule(loan.getId());
+        assertEquals(new BigDecimal("50000.00"), freshSchedule.getFirst().getOpeningPrincipal());
+        assertEquals(new BigDecimal("500.00"), freshSchedule.getFirst().getInterestAmount());
+        assertEquals(new BigDecimal("50000.00"), loanService.getLoanById(loan.getId()).getOutstandingPrincipal());
+        assertThrows(com.bachatgat.exception.InvalidFinancialOperationException.class,
+                () -> loanService.recordExtraPayment(loan.getId(), request, "admin"));
+        assertEquals(1, dataService.getTransactionsByMemberId(loan.getMemberId()).stream()
+                .filter(entry -> entry.getType() == TransactionType.EXTRA_LOAN_PAYMENT).count());
+    }
+
+    @Test
+    void principalOnlyCarriesInterestOnceAndProjectsNormalLaterPayments() {
+        LocalDate today = LocalDate.now();
+        Loan loan = reducingLoan("PRINCIPAL", today.minusDays(5));
+        recordComponents(loan, today, "4731.00", "0.00");
+        var rows = loanService.getLoanSchedule(loan.getId());
+        assertEquals(new BigDecimal("600.00"), rows.getFirst().getPendingInterest());
+        assertEquals(new BigDecimal("0.00"), rows.getFirst().getPendingPrincipal());
+        assertEquals(new BigDecimal("55269.00"), rows.getFirst().getClosingPrincipal());
+        assertEquals(new BigDecimal("552.69"), rows.get(1).getInterestAmount());
+        assertEquals(new BigDecimal("5931.00"), rows.get(1).getTotalDue());
+        assertEquals(new BigDecimal("0.00"), rows.get(1).getOutstandingAmount());
+        assertEquals(new BigDecimal("0.00"), rows.get(2).getPreviousPendingInterest());
+        assertEquals(new BigDecimal("50490.69"), rows.get(2).getOpeningPrincipal());
+    }
+
+    @Test
+    void catchUpCollectsMissedPrincipalAndCurrentInstallmentWithoutDoubleCharging() {
+        LocalDate today = LocalDate.now();
+        Loan loan = reducingLoan("CATCHUP", today.minusMonths(2));
+        recordComponents(loan, loan.getDisbursementDate().plusMonths(1), "0.00", "600.00");
+        var arrears = loanService.getLoanSchedule(loan.getId());
+        assertEquals(new BigDecimal("60000.00"), arrears.getFirst().getClosingPrincipal());
+        assertEquals(new BigDecimal("4731.00"), arrears.get(1).getPreviousPendingPrincipal());
+        assertEquals(new BigDecimal("600.00"), arrears.get(1).getInterestAmount());
+        recordComponents(loan, today, "9509.31", "600.00");
+        var caughtUp = loanService.getLoanSchedule(loan.getId());
+        assertEquals(new BigDecimal("60000.00"), caughtUp.getFirst().getClosingPrincipal());
+        assertEquals(new BigDecimal("50490.69"), caughtUp.get(1).getClosingPrincipal());
+        assertEquals(new BigDecimal("504.91"), caughtUp.get(2).getInterestAmount());
+        assertEquals(new BigDecimal("0.00"), caughtUp.get(2).getPreviousPendingPrincipal());
+    }
+
+    @Test
+    void stalePaymentCannotOverwriteAnAlreadyCommittedPrepayment() {
+        LocalDate today = LocalDate.now();
+        Loan loan = reducingLoan("STALE", today.minusDays(5));
+        var stale = dataService.beginLoanPayment(loan);
+        var staleSchedule = dataService.getLoanScheduleForPayment(loan.getId());
+        LoanExtraPaymentRequest request = new LoanExtraPaymentRequest();
+        request.setAmount(new BigDecimal("10000.00"));
+        request.setPaymentDate(today);
+        request.setReferenceNumber("TEST-STALE-COMMITTED");
+        loanService.recordExtraPayment(loan.getId(), request, "admin");
+
+        Transaction staleReceipt = new Transaction("TEST-STALE-RECEIPT", loan.getGroupId(), loan.getMemberId(),
+                loan.getMemberName(), loan.getLoanId(), TransactionType.EXTRA_LOAN_PAYMENT, request.getAmount(),
+                request.getAmount(), BigDecimal.ZERO, today, "TEST-STALE-REJECTED", "Test", "CASH", "admin");
+        assertThrows(IllegalStateException.class, () -> dataService.saveLoanPayment(stale, staleSchedule, staleReceipt));
+        assertTrue(dataService.findTransactionByReference("TEST-STALE-REJECTED").isEmpty());
+        assertEquals(new BigDecimal("50000.00"), loanService.getLoanSchedule(loan.getId()).getFirst().getOpeningPrincipal());
+    }
+
+    private Loan reducingLoan(String suffix, LocalDate disbursed) {
+        Loan loan = new Loan();
+        loan.setLoanId("TEST-" + suffix);
+        loan.setGroupId("TEST-PAYMENT-GROUP");
+        loan.setMemberId("TEST-" + suffix);
+        loan.setMemberName("Payment test");
+        loan.setPrincipalAmount(new BigDecimal("60000.00"));
+        loan.setDisbursementDate(disbursed);
+        return dataService.saveLoan(loan);
+    }
+
+    private void recordComponents(Loan loan, LocalDate date, String principal, String interest) {
+        LoanPartialPaymentRequest request = new LoanPartialPaymentRequest();
+        request.setLoanPrincipalAmount(new BigDecimal(principal));
+        request.setLoanInterestAmount(new BigDecimal(interest));
+        request.setAmount(request.getLoanPrincipalAmount().add(request.getLoanInterestAmount()));
+        request.setPaymentDate(date);
+        request.setPaymentMethod("CASH");
+        request.setReferenceNumber(loan.getLoanId() + "-" + date);
+        loanService.recordPartialPayment(loan.getId(), request, "admin");
+    }
 }

@@ -34,6 +34,14 @@ gcloud builds submit `
 
 The build packages the application, builds and pushes the container, and deploys Cloud Run with production demo data disabled. Confirm the build ends with `STATUS: SUCCESS`.
 
+Run the Java test suite against a fresh local Firestore emulator before submitting the build. The Docker build packages the JAR once. The existing Cloud Run scaling and resource settings apply.
+
+### Static asset releases
+
+Bump the `perf-v1` prefix together in the static pages, stylesheet and dictionary URLs, Spring's resource mappings, and the service worker when changing any release-prefixed asset. Those URLs carry a one-year immutable cache policy. HTML and the service worker script are revalidated. The offline shell saves the public landing and sign-in pages, the admin and member dashboard shells, and versioned static files.
+
+The optional `window.BachatGatCachePolicy` object can override `ttlMs` and `maxAgeMs` for `adminDashboard`, `userDashboard`, and `groupDropdown` when set before `api.js` loads. The respective defaults are 30 seconds / 5 minutes, 45 seconds / 5 minutes, and 5 minutes / 10 minutes. Dashboard snapshots are for display. Payments use a fresh server check and a server-confirmed result.
+
 ## Verify
 
 ```powershell
@@ -44,6 +52,8 @@ $serviceUrl = gcloud run services describe bachatgat-service `
 
 Invoke-RestMethod "$serviceUrl/actuator/health"
 ```
+
+Verify a new browser session can sign in and access its own group after a cold start. Test the landing page, both dashboards, member registration, and the Collections pending view. Confirm versioned static files return `immutable` and authenticated API responses return `no-store`. Check cold and warm timings, dashboard request counts, Cloud Run startup and pending latency, and Firestore document reads before promoting the revision. Roll back by routing traffic to the prior Cloud Run revision if those checks fail.
 
 Before promoting a revision, verify that both exact Cloud Run HTTPS origins in `cloudbuild.yaml` are in `CORS_ALLOWED_ORIGINS` and that both hostnames are authorized in Firebase Authentication for phone verification. If a custom domain is introduced, add its HTTPS origin to Cloud Run and its hostname to Firebase Authentication.
 

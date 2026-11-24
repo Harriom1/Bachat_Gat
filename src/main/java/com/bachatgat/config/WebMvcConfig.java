@@ -12,6 +12,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Release-scoped URLs can be reused across navigations without an HTTP
+        // round trip. Publish a new URL prefix when any of these assets change.
+        for (String directory : new String[]{"js", "css", "i18n", "fonts"}) {
+            registry.addResourceHandler("/assets/perf-v1/" + directory + "/**")
+                    .addResourceLocations("classpath:/static/" + directory + "/")
+                    .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
+        }
+
         // Static assets keep the same content until the next application build.
         // Reusing them avoids downloading CSS, JavaScript, translations, and
         // icons again on every device visit. HTML remains revalidated below so

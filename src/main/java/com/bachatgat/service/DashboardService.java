@@ -9,7 +9,11 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
@@ -18,11 +22,14 @@ public class DashboardService {
     private final GroupFundService groupFundService;
 
     private final CollectionService collectionService;
+    private final MemberService memberService;
 
-    public DashboardService(FirestoreDataService dataService, GroupFundService groupFundService, CollectionService collectionService) {
+    public DashboardService(FirestoreDataService dataService, GroupFundService groupFundService,
+                            CollectionService collectionService, MemberService memberService) {
         this.dataService = dataService;
         this.groupFundService = groupFundService;
         this.collectionService = collectionService;
+        this.memberService = memberService;
     }
 
     public DashboardAdminDTO getAdminDashboard(String groupId) {
@@ -36,14 +43,9 @@ public class DashboardService {
         long activeCount = groupMembers.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE).count();
         dto.setTotalActiveMembers((int) activeCount);
 
-        // Monthly collections (Current month & year)
-        int curMonth = MonthlyBachatCalendar.today().getMonthValue();
-        int curYear = MonthlyBachatCalendar.today().getYear();
-
-        List<CollectionRecord> collections = collectionService.getGroupCollections(targetGroupId);
-        List<CollectionRecord> currentMonthRecords = collections.stream()
-                .filter(c -> c.getMonth() == curMonth && c.getYear() == curYear)
-                .toList();
+        LocalDate today = MonthlyBachatCalendar.today();
+        List<CollectionRecord> currentMonthRecords = collectionService.getGroupCollectionsForPeriod(
+                targetGroupId, today, YearMonth.from(today));
 
         BigDecimal expected = currentMonthRecords.stream()
                 .map(CollectionRecord::getExpectedAmount)
@@ -60,13 +62,19 @@ public class DashboardService {
         dto.setMonthlyExpectedCollection(expected);
         dto.setMonthlyCollected(collected);
         dto.setMonthlyPending(pending);
+        List<CollectionRecord> openShares = currentMonthRecords.stream()
+                .filter(record -> nz(record.getPendingAmount()).signum() > 0).toList();
+        dto.setPendingShareCount(openShares.size());
+        dto.setPendingShareTotal(openShares.stream().map(CollectionRecord::getPendingAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         if (expected.compareTo(BigDecimal.ZERO) > 0) {
             double pct = collected.doubleValue() / expected.doubleValue() * 100.0;
             dto.setCollectionPercentage(Math.round(pct * 10.0) / 10.0);
         }
 
-        GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(targetGroupId);
+        List<Transaction> ledger = dataService.getTransactionsByGroupId(targetGroupId);
+        GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(targetGroupId, ledger);
         dto.setTotalSavings(fund.savings());
 
         // Loans Aggregates
@@ -93,8 +101,8 @@ public class DashboardService {
         BigDecimal availableCash = fund.availableFund();
         dto.setGroupAvailableFund(availableCash);
         dto.setTotalGroupCorpus(availableCash.add(outstandingPrincipal));
-        dto.setBankBalance(groupFundService.getBalanceByPaymentMethod(targetGroupId, true));
-        dto.setCashBalance(groupFundService.getBalanceByPaymentMethod(targetGroupId, false));
+        dto.setBankBalance(groupFundService.getBalanceByPaymentMethod(ledger, true));
+        dto.setCashBalance(groupFundService.getBalanceByPaymentMethod(ledger, false));
 
         // Loan Application pending counts
         List<LoanApplication> apps = dataService.getLoanApplicationsByGroupId(targetGroupId);
@@ -108,11 +116,42 @@ public class DashboardService {
         dto.setActiveLoansCount((int) activeLoans);
         dto.setOverdueLoansCount((int) overdueLoans);
 
-        // Recent transactions
-        List<Transaction> txns = dataService.getTransactionsByGroupId(targetGroupId);
-        dto.setRecentTransactions(txns.stream().limit(10).toList());
+        List<Loan> pendingLoans = groupLoans.stream().filter(loan -> loan.getStatus() == LoanStatus.ACTIVE
+                && (nz(loan.getTotalOutstanding()).signum() != 0
+                    ? nz(loan.getTotalOutstanding()) : nz(loan.getOutstandingPrincipal())).signum() > 0).toList();
+        dto.setPendingLoanCount(pendingLoans.size());
+        dto.setPendingLoanTotal(pendingLoans.stream().map(loan -> nz(loan.getTotalOutstanding()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        Group group = allGroups.stream().filter(candidate -> candidate.getId().equals(targetGroupId))
+                .findFirst().orElse(null);
+        dto.setUpcomingCollections(upcomingCollections(group, today, groupMembers, currentMonthRecords, groupLoans));
+        dto.setRecentTransactions(ledger.stream().limit(10).toList());
 
         return dto;
+    }
+
+    private List<DashboardAdminDTO.UpcomingCollection> upcomingCollections(Group group, LocalDate today,
+            List<Member> members, List<CollectionRecord> currentMonthRecords, List<Loan> loans) {
+        if (members.isEmpty()) return List.of();
+        BigDecimal monthlyBachat = group == null ? null : memberService.getEffectiveGroupMonthlyBachat(group);
+        Map<String, List<CollectionRecord>> collectionsByMember = currentMonthRecords.stream()
+                .filter(record -> record.getMemberId() != null)
+                .collect(Collectors.groupingBy(CollectionRecord::getMemberId));
+        Map<String, Loan> activeByMember = new LinkedHashMap<>();
+        loans.stream().filter(loan -> loan.getStatus() == LoanStatus.ACTIVE)
+                .forEach(loan -> activeByMember.putIfAbsent(loan.getMemberId(), loan));
+        return members.stream().filter(member -> member.getStatus() == null || member.getStatus() == MemberStatus.ACTIVE)
+                .limit(10).map(member -> {
+                    Loan loan = activeByMember.get(member.getMemberId());
+                    LocalDate dueDate = group == null ? member.getNextDueDate()
+                            : collectionService.getNextBachatDueDate(group, member,
+                                    collectionsByMember.getOrDefault(member.getMemberId(), List.of()), today);
+                    return new DashboardAdminDTO.UpcomingCollection(member.getFullName(), member.getFullNameMr(),
+                            member.getFullNameHi(), dueDate, group == null ? member.getMonthlyBachatAmount() : monthlyBachat,
+                            loan != null ? loan.getMonthlyInstallment() : null,
+                            loan != null ? loan.getOutstandingPrincipal() : null,
+                            loan != null ? loan.getInterestRate() : null);
+                }).toList();
     }
 
     public DashboardUserDTO getUserDashboard(String memberId) {
@@ -126,14 +165,15 @@ public class DashboardService {
         dto.setMembershipStatus(member.getStatus().name());
 
         Group group = dataService.findGroupById(member.getGroupId()).orElse(null);
+        LocalDate today = MonthlyBachatCalendar.today();
+        List<CollectionRecord> history = null;
         if (group != null) {
             dto.setRegistrationId(group.getRegistrationId());
 
-            LocalDate today = MonthlyBachatCalendar.today();
             var currentMonth = java.time.YearMonth.from(today);
             boolean bachatStarted = MonthlyBachatCalendar.eligible(group, member, currentMonth);
             dto.setBachatStarted(bachatStarted);
-            var history = collectionService.getMemberHistory(member.getMemberId());
+            history = collectionService.getMemberHistory(member.getMemberId());
             dto.setNextBachatDueDate(collectionService.getNextBachatDueDate(group, member, history, today));
             GroupMasterData currentRules = dataService.getMasterDataForDate(group.getId(), today).orElse(null);
             BigDecimal monthlyBachat = currentRules != null && currentRules.getMonthlyBachatAmount() != null
@@ -156,12 +196,6 @@ public class DashboardService {
                 dto.setPendingCollection(expected.subtract(paid).max(BigDecimal.ZERO));
             });
 
-            List<Member> groupMembers = dataService.getMembersByGroupId(group.getId());
-            BigDecimal totalSavings = groupMembers.stream()
-                    .map(m -> m.getTotalSavingsBalance() != null ? m.getTotalSavingsBalance() : BigDecimal.ZERO)
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            List<Loan> groupLoans = dataService.getLoansByGroupId(group.getId());
             GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(group.getId());
             BigDecimal availableCash = fund.availableFund();
 
@@ -172,7 +206,7 @@ public class DashboardService {
         dto.setMyTotalSavings(member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO);
         dto.setMyCurrentShare(member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO);
         dto.setMyIncome(member.getMyIncome());
-        dto.setMyPenalties(collectionService.getCurrentPenalty(member));
+        dto.setMyPenalties(collectionService.getCurrentPenalty(member, today, history));
         dto.setNetFinancialPosition(member.getTotalFinancialPosition());
 
         // Fetch active loan
@@ -186,7 +220,6 @@ public class DashboardService {
             dto.setNextPaymentDueDate(loan.getNextDueDate());
             List<LoanRepaymentSchedule> remainingSchedule = dataService.getLoanSchedule(loan.getId()).stream()
                     .filter(item -> item.getStatus() != RepaymentStatus.PAID)
-                    .limit(2)
                     .toList();
             if (!remainingSchedule.isEmpty()) {
                 LoanRepaymentSchedule current = remainingSchedule.get(0);
@@ -201,8 +234,7 @@ public class DashboardService {
                 dto.setCurrentInterest(interestDue);
                 dto.setNextPaymentAmount(currentDue);
                 dto.setNextPaymentDueDate(current.getDueDate());
-                dto.setRemainingTenure(dataService.getLoanSchedule(loan.getId()).stream()
-                        .filter(item -> item.getStatus() != RepaymentStatus.PAID).toList().size());
+                dto.setRemainingTenure(remainingSchedule.size());
             }
             if (remainingSchedule.size() > 1) {
                 LoanRepaymentSchedule next = remainingSchedule.get(1);

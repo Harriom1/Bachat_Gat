@@ -51,6 +51,8 @@ class FirestorePersistenceTest {
                 firestore, passwordEncoder, objectMapper, false);
         restarted.init();
 
+        assertTrue(restarted.findUsersByIdentifier(saved.getUsername()).stream()
+                .anyMatch(user -> id.equals(user.getId())));
         assertTrue(restarted.findUserById(id).isPresent());
         assertEquals(saved.getUsername(), restarted.findUserById(id).orElseThrow().getUsername());
 

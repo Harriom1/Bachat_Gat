@@ -89,11 +89,11 @@ public class FirestoreDataService {
     public void init() {
         log.info("Initializing Bachat Gat repository...");
         if (firestore != null) {
-            // Authentication and group selection are needed immediately.
-            // Operational collections are loaded lazily by their first read.
-            loadCollectionOnce("users", User.class, users, User::setId);
-            loadCollectionOnce("groups", Group.class, groups, Group::setId);
+            // A request for the public HTML does not need any Firestore documents.
+            // Only explicit demo initialization and migration need startup reads.
+            if (demoDataEnabled || normalizeRegistrationIdsOnStartup) ensureLoaded("groups");
             if (demoDataEnabled && groups.isEmpty()) {
+                ensureLoaded("users");
                 log.info("No Firestore groups found and demo data is enabled; creating development seed data.");
                 seedInitialDemoData();
                 persistAllToFirestore();
@@ -163,7 +163,6 @@ public class FirestoreDataService {
             case "groupMasterData" -> loadCollectionOnce(collectionName, GroupMasterData.class, masterDataMap, FirestoreDataService::loadGroupMasterData);
             case "paymentOrders" -> loadCollectionOnce(collectionName, PaymentOrder.class, paymentOrders, PaymentOrder::setOrderId);
             case "otpChallenges" -> loadCollectionOnce(collectionName, OtpChallenge.class, otpChallenges, OtpChallenge::setId);
-            case "loanSchedules" -> { loadCollectionOnce("loans", Loan.class, loans, Loan::setId); loadLoanSchedules(); loadedCollections.add(collectionName); }
             default -> throw new IllegalArgumentException("Unknown Firestore collection: " + collectionName);
         }
     }
@@ -304,6 +303,7 @@ public class FirestoreDataService {
 
     public List<User> findUsersByIdentifier(String identifier) {
         if (identifier == null || identifier.isBlank()) return java.util.Collections.emptyList();
+        ensureLoaded("users");
         String cleanId = identifier.trim();
         String digitsOnly = cleanId.replaceAll("[^0-9]", "");
         return users.values().stream()
@@ -451,10 +451,12 @@ public class FirestoreDataService {
     }
 
     public synchronized String generateNextGroupCode() {
+        ensureLoaded("groups");
         return RegistrationIdGenerator.nextGroupCode(groups.values());
     }
 
     public synchronized String generateNextGroupRegistrationId() {
+        ensureLoaded("groups");
         return RegistrationIdGenerator.nextGroupRegistrationId(groups.values());
     }
 
@@ -519,6 +521,7 @@ public class FirestoreDataService {
     }
 
     public boolean deleteMember(String id) {
+        ensureLoaded("groups");
         Member m = members.remove(id);
         if (m != null) {
             Group group = groups.get(m.getGroupId());
@@ -624,7 +627,8 @@ public class FirestoreDataService {
     private boolean isVisibleMember(Member member) {
         return member != null
                 && member.getStatus() != MemberStatus.ARCHIVED
-                && Optional.ofNullable(groups.get(member.getGroupId())).map(g -> !isArchivedStatus(g.getStatus())).orElse(false);
+                && member.getGroupId() != null
+                && findGroupById(member.getGroupId()).isPresent();
     }
 
     private boolean isArchivedStatus(String status) {
@@ -668,6 +672,7 @@ public class FirestoreDataService {
     }
 
     public Member saveMember(Member member) {
+        ensureLoaded("groups");
         if (member.getId() == null) {
             member.setId("mem-" + UUID.randomUUID().toString().substring(0, 8));
         }
@@ -901,8 +906,8 @@ public class FirestoreDataService {
     }
 
     public List<LoanRepaymentSchedule> getLoanSchedule(String loanId) {
-        ensureLoaded("loanSchedules");
         if (loanId == null) return new ArrayList<>();
+        refreshLoanSchedule(loanId);
         List<LoanRepaymentSchedule> s = loanSchedules.get(loanId);
         if (s != null && !s.isEmpty()) {
             Optional<Loan> storedLoan = findLoanById(loanId);
@@ -916,7 +921,6 @@ public class FirestoreDataService {
                 reconcileReducingLoanSummary(l, recalculated);
                 loanSchedules.put(l.getId(), recalculated);
                 if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), recalculated);
-                saveLoan(l);
                 return recalculated;
             }
             return s;
@@ -949,7 +953,6 @@ public class FirestoreDataService {
                 reconcileReducingLoanSummary(l, generated);
                 loanSchedules.put(l.getId(), generated);
                 if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), generated);
-                saveLoan(l);
                 return generated;
             }
 
@@ -1025,6 +1028,31 @@ public class FirestoreDataService {
         return new ArrayList<>();
     }
 
+    private void refreshLoanSchedule(String loanId) {
+        if (firestore == null) return;
+        Optional<Loan> storedLoan = findLoanById(loanId);
+        String documentId = storedLoan.map(Loan::getId).orElse(loanId);
+        String legacyId = storedLoan.map(Loan::getLoanId).orElse(loanId);
+        try {
+            var collection = firestore.collection("loanSchedules");
+            Object schedule = collection.document(documentId).get().get().get("schedule");
+            if (schedule == null && !documentId.equals(legacyId)) {
+                schedule = collection.document(legacyId).get().get().get("schedule");
+            }
+            if (schedule == null) return;
+            List<LoanRepaymentSchedule> rows = objectMapper.convertValue(
+                    schedule, new TypeReference<List<LoanRepaymentSchedule>>() {});
+            loanSchedules.put(loanId, rows);
+            loanSchedules.put(documentId, rows);
+            loanSchedules.put(legacyId, rows);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while loading a Firestore loan schedule.", ex);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Could not load a Firestore loan schedule.", ex);
+        }
+    }
+
     private void reconcileReducingLoanSummary(Loan loan, List<LoanRepaymentSchedule> schedule) {
         LoanScheduleCalculatorSupport.reconcileReducingLoanSummary(loan, schedule);
     }
@@ -1038,6 +1066,76 @@ public class FirestoreDataService {
             BigDecimal storedMonthlyInstallment) {
         return LoanScheduleCalculatorSupport.generateFlatSchedule(
                 principal, rate, duration, startDate, storedTotalInterest, storedMonthlyInstallment);
+    }
+
+    public List<LoanRepaymentSchedule> getLoanScheduleForPayment(String loanId) {
+        return objectMapper.convertValue(getLoanSchedule(loanId), new TypeReference<List<LoanRepaymentSchedule>>() {});
+    }
+
+    public record LoanPaymentState(Loan loan, DocumentSnapshot loanVersion, DocumentSnapshot scheduleVersion) {}
+
+    public LoanPaymentState beginLoanPayment(Loan cached) {
+        if (firestore == null) {
+            return new LoanPaymentState(objectMapper.convertValue(cached, Loan.class), null, null);
+        }
+        try {
+            var loan = firestore.collection("loans").document(cached.getId()).get().get();
+            var schedule = firestore.collection("loanSchedules").document(cached.getId()).get().get();
+            return new LoanPaymentState(objectMapper.convertValue(loan.getData(), Loan.class), loan, schedule);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while loading the loan.", ex);
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new IllegalStateException("Could not load the loan for payment.", ex);
+        }
+    }
+
+    public void saveLoanDueCheck(LoanPaymentState state, List<LoanRepaymentSchedule> schedule) {
+        commitLoanAndSchedule(state, schedule, null);
+    }
+
+    public Loan saveLoanPayment(LoanPaymentState state, List<LoanRepaymentSchedule> schedule, Transaction entry) {
+        return commitLoanAndSchedule(state, schedule, Objects.requireNonNull(entry));
+    }
+
+    private Loan commitLoanAndSchedule(LoanPaymentState state, List<LoanRepaymentSchedule> schedule, Transaction entry) {
+        Loan loan = state.loan();
+        loan.setUpdatedAt(LocalDateTime.now());
+        if (firestore != null) {
+            var batch = firestore.batch();
+            var version = state.scheduleVersion();
+            var scheduleData = Map.of("loanId", loan.getId(), "schedule",
+                    objectMapper.convertValue(schedule, new TypeReference<List<Map<String, Object>>>() {}));
+            if (version.exists()) {
+                batch.update(version.getReference(), scheduleData,
+                        com.google.cloud.firestore.Precondition.updatedAt(version.getUpdateTime()));
+            } else {
+                batch.create(version.getReference(), scheduleData);
+            }
+            batch.update(state.loanVersion().getReference(), objectMapper.convertValue(loan,
+                            new TypeReference<Map<String, Object>>() {}),
+                    com.google.cloud.firestore.Precondition.updatedAt(state.loanVersion().getUpdateTime()));
+            if (entry != null) {
+                batch.create(firestore.collection("transactions").document(entry.getId()),
+                        objectMapper.convertValue(entry, new TypeReference<Map<String, Object>>() {}));
+            }
+            try {
+                batch.commit().get();
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Payment confirmation was interrupted. Check the transaction reference before retrying.", ex);
+            } catch (java.util.concurrent.ExecutionException ex) {
+                throw new IllegalStateException("Could not confirm the payment. Refresh and check the transaction reference before retrying.", ex);
+            }
+        }
+        loans.put(loan.getId(), loan);
+        loanSchedules.put(loan.getId(), schedule);
+        if (loan.getLoanId() != null) {
+            loans.put(loan.getLoanId(), loan);
+            loanSchedules.put(loan.getLoanId(), schedule);
+        }
+        if (entry != null) transactions.put(entry.getId(), entry);
+        return loan;
     }
 
     public void saveLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {

@@ -203,7 +203,9 @@ public class DashboardService {
             dto.setGroupLoansDisbursed(fund.loansDisbursed());
         }
 
-        dto.setMyTotalSavings(member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO);
+        dto.setMyTotalSavings(member.overallSavingsBalance());
+        dto.setMyBachatSavings(member.getStatus() == MemberStatus.EXITED ? dto.getMyTotalSavings()
+                : dto.getMyTotalSavings().subtract(member.getMyIncome()));
         dto.setMyCurrentShare(member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO);
         dto.setMyIncome(member.getMyIncome());
         dto.setMyPenalties(collectionService.getCurrentPenalty(member, today, history));

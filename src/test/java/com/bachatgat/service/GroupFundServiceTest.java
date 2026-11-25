@@ -2,6 +2,8 @@ package com.bachatgat.service;
 
 import com.bachatgat.model.Group;
 import com.bachatgat.model.GroupExpense;
+import com.bachatgat.model.GroupIncome;
+import com.bachatgat.dto.DistributionRequest;
 import com.bachatgat.model.Member;
 import com.bachatgat.model.MemberStatus;
 import com.bachatgat.model.Loan;
@@ -16,8 +18,94 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
 
 class GroupFundServiceTest {
+
+    @Test
+    void equalIncomeDistributionKeepsTheCashAndCreditsEachDashboardOnce() {
+        FirestoreDataService data = new FirestoreDataService(null, null, null);
+        Group group = new Group();
+        group.setId("income-example");
+        data.saveGroup(group);
+        for (int i = 1; i <= 10; i++) {
+            Member member = new Member();
+            member.setMemberId("INCOME-" + i);
+            member.setGroupId(group.getId());
+            member.setTotalSavingsBalance(new BigDecimal("10000.00"));
+            member.setCurrentShareBalance(new BigDecimal("10000.00"));
+            data.saveMember(member);
+        }
+        LocalDate date = LocalDate.of(2026, 11, 25);
+        Transaction bachat = new Transaction();
+        bachat.setGroupId(group.getId());
+        bachat.setType(TransactionType.SHARE_CONTRIBUTION);
+        bachat.setAmount(new BigDecimal("100000.00"));
+        bachat.setDate(date.minusDays(1));
+        data.saveTransaction(bachat);
+        GroupIncome income = data.saveIncome(new GroupIncome(group.getId(), "DONATION", "Group income",
+                new BigDecimal("100000.00"), date, "BANK_TRANSFER", null, "EQUAL", "admin"));
+        Transaction receipt = new Transaction();
+        receipt.setGroupId(group.getId());
+        receipt.setType(TransactionType.OTHER_INCOME);
+        receipt.setAmount(income.getAmount());
+        receipt.setDate(date);
+        receipt.setReference(income.getId());
+        receipt.setPaymentMethod("BANK_TRANSFER");
+        data.saveTransaction(receipt);
+
+        GroupFundService funds = new GroupFundService(data);
+        assertEquals(new BigDecimal("200000.00"), funds.getAvailableFund(group.getId()));
+        new DistributionService(data, new NotificationService(data), new AuditService(data))
+                .distributeIncome(group.getId(), income.getId(), new DistributionRequest("EQUAL"), "admin");
+
+        var fund = funds.getFundBreakdown(group.getId());
+        assertEquals(new BigDecimal("100000.00"), fund.savings());
+        assertEquals(new BigDecimal("100000.00"), fund.otherIncome());
+        assertEquals(new BigDecimal("200000.00"), fund.availableFund());
+        assertEquals(new BigDecimal("200000.00"), funds.getAvailableFundBefore(group.getId(), date.plusDays(1)));
+        assertEquals(new BigDecimal("100000.00"), funds.getBalanceByPaymentMethod(group.getId(), true));
+
+        DashboardService dashboard = new DashboardService(data, funds, mock(CollectionService.class), null);
+        for (int i = 1; i <= 10; i++) {
+            var result = dashboard.getUserDashboard("INCOME-" + i);
+            assertEquals(new BigDecimal("20000.00"), result.getMyTotalSavings());
+            assertEquals(new BigDecimal("10000.00"), result.getMyBachatSavings());
+            assertEquals(new BigDecimal("10000.00"), result.getMyIncome());
+            assertEquals(new BigDecimal("200000.00"), result.getGroupRemainingFunds());
+        }
+        // Older allocations also wrote the income into the stored savings field.
+        data.findMemberByMemberId("INCOME-1").orElseThrow().setTotalSavingsBalance(new BigDecimal("20000.00"));
+        assertEquals(new BigDecimal("20000.00"), dashboard.getUserDashboard("INCOME-1").getMyTotalSavings());
+        assertEquals(new BigDecimal("200000.00"), funds.getAvailableFund(group.getId()));
+    }
+
+    @Test
+    void legacyDistributedIncomeCoexistsWithRecordedCashReceipts() {
+        FirestoreDataService data = new FirestoreDataService(null, null, null);
+        Group group = new Group();
+        group.setId("mixed-income");
+        data.saveGroup(group);
+        LocalDate date = LocalDate.of(2026, 11, 25);
+        for (String name : List.of("first", "second", "failed")) {
+            GroupIncome income = new GroupIncome(group.getId(), "DONATION", name, new BigDecimal("1000"),
+                    date, "CASH", null, "EQUAL", "admin");
+            income.setDistributed(true);
+            data.saveIncome(income);
+            if ("second".equals(name)) continue;
+            Transaction receipt = new Transaction();
+            receipt.setGroupId(group.getId());
+            receipt.setType(TransactionType.OTHER_INCOME);
+            receipt.setAmount(income.getAmount());
+            receipt.setDate(date);
+            receipt.setReference(income.getId());
+            receipt.setPaymentStatus("failed".equals(name) ? "FAILED" : "SUCCESS");
+            data.saveTransaction(receipt);
+        }
+        GroupFundService funds = new GroupFundService(data);
+        assertEquals(new BigDecimal("2000"), funds.getAvailableFund(group.getId()));
+        assertEquals(new BigDecimal("2000"), funds.getAvailableFundBefore(group.getId(), date.plusDays(1)));
+    }
 
     @Test
     void countsDistributedExpensesOnceWhenHistoricalRecordsAndLedgerCoexist() {

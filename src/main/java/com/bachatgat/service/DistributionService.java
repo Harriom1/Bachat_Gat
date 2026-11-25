@@ -82,6 +82,7 @@ public class DistributionService {
 
             if (share.compareTo(BigDecimal.ZERO) > 0) {
                 // Update member's income balance and credit directly to total savings balance
+                BigDecimal prevShare = member.overallSavingsBalance();
                 BigDecimal prevInterestReceived = member.getTotalLoanInterestReceived() != null
                         ? member.getTotalLoanInterestReceived() : BigDecimal.ZERO;
                 member.setTotalLoanInterestReceived(prevInterestReceived.add(share));
@@ -89,7 +90,6 @@ public class DistributionService {
                 BigDecimal prevSavings = member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO;
                 member.setTotalSavingsBalance(prevSavings.add(share));
 
-                BigDecimal prevShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
                 member.setCurrentShareBalance(prevShare.add(share));
 
                 dataService.saveMember(member);
@@ -167,7 +167,7 @@ public class DistributionService {
             Member member = entry.getKey();
             BigDecimal amount = entry.getValue();
 
-            BigDecimal prevShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
+            BigDecimal prevShare = member.overallSavingsBalance();
             BigDecimal newShare = prevShare.add(amount);
             member.setCurrentShareBalance(newShare);
 
@@ -251,7 +251,7 @@ public class DistributionService {
             Member member = entry.getKey();
             BigDecimal amount = entry.getValue();
 
-            BigDecimal prevShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
+            BigDecimal prevShare = member.overallSavingsBalance();
             BigDecimal newShare = prevShare.subtract(amount); // Deduct share
             member.setCurrentShareBalance(newShare);
             BigDecimal savings = member.getTotalSavingsBalance();

@@ -16,6 +16,7 @@ public class DashboardUserDTO {
 
     // Self savings & shares
     private BigDecimal myTotalSavings = BigDecimal.ZERO;
+    private BigDecimal myBachatSavings = BigDecimal.ZERO;
     private BigDecimal myCurrentShare = BigDecimal.ZERO;
     private BigDecimal myIncome = BigDecimal.ZERO;           // Allocated loan interest + other group income
     private BigDecimal myPenalties = BigDecimal.ZERO;        // Pending penalties/late fees
@@ -63,6 +64,8 @@ public class DashboardUserDTO {
     public void setMembershipStatus(String membershipStatus) { this.membershipStatus = membershipStatus; }
     public BigDecimal getMyTotalSavings() { return myTotalSavings; }
     public void setMyTotalSavings(BigDecimal myTotalSavings) { this.myTotalSavings = myTotalSavings; }
+    public BigDecimal getMyBachatSavings() { return myBachatSavings; }
+    public void setMyBachatSavings(BigDecimal myBachatSavings) { this.myBachatSavings = myBachatSavings; }
     public BigDecimal getMyCurrentShare() { return myCurrentShare; }
     public void setMyCurrentShare(BigDecimal myCurrentShare) { this.myCurrentShare = myCurrentShare; }
     public BigDecimal getMyIncome() { return myIncome; }

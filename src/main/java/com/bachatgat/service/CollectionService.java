@@ -639,7 +639,7 @@ public class CollectionService {
             // Update Member total savings balance and current share balance
             if (sharePart.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal oldSavings = member.getTotalSavingsBalance() != null ? member.getTotalSavingsBalance() : BigDecimal.ZERO;
-                BigDecimal oldShare = member.getCurrentShareBalance() != null ? member.getCurrentShareBalance() : BigDecimal.ZERO;
+                BigDecimal oldShare = member.overallSavingsBalance();
                 member.setTotalSavingsBalance(oldSavings.add(sharePart));
                 member.setCurrentShareBalance(oldShare.add(sharePart));
 

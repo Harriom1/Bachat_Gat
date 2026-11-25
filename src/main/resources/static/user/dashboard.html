@@ -107,7 +107,7 @@
               <div class="metric-icon-wrap icon-green"><i class="bi bi-piggy-bank-fill"></i></div>
             </div>
             <div id="u-total-savings" class="metric-value">₹0</div>
-            <div class="metric-sub"><i class="bi bi-check-circle-fill text-success"></i> Accumulated savings fund</div>
+            <div class="metric-sub">Bachat balance <strong id="u-bachat-savings">—</strong></div>
           </div>
 
           <!-- My Income From Group -->
@@ -636,6 +636,7 @@
 
         // Savings & Shares
         document.getElementById('u-total-savings').textContent = Common.formatIndianCurrency(d.myTotalSavings);
+        document.getElementById('u-bachat-savings').textContent = Common.formatIndianCurrency(d.myBachatSavings);
         if (document.getElementById('u-my-income')) {
           document.getElementById('u-my-income').textContent = Common.formatIndianCurrency(d.myIncome || 0);
         }

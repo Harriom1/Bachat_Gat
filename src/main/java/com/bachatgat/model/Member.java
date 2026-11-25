@@ -43,7 +43,7 @@ public class Member {
     /** Member-level legacy value retained only to read old records; group Monthly Bachat is now the source of truth. */
     private BigDecimal monthlyBachatAmount = BigDecimal.valueOf(5000);
     private BigDecimal initialShareAmount = BigDecimal.ZERO;
-    private BigDecimal currentShareBalance = BigDecimal.ZERO;
+    private BigDecimal currentShareBalance;
     private BigDecimal membershipFee = BigDecimal.valueOf(200);
     private BigDecimal totalSavingsBalance = BigDecimal.ZERO;
     private BigDecimal pendingSavings = BigDecimal.ZERO;
@@ -100,12 +100,27 @@ public class Member {
         return loanInt.add(otherInc);
     }
 
-    public BigDecimal getNetMemberBalance() {
+    public BigDecimal overallSavingsBalance() {
         BigDecimal savings = totalSavingsBalance != null ? totalSavingsBalance : BigDecimal.ZERO;
-        BigDecimal income = getMyIncome();
+        if (status == MemberStatus.EXITED) return savings;
+        // The share ledger includes both kinds of income. Older releases also
+        // included other income in stored savings, so adding it again would
+        // give those members a duplicate credit.
+        return currentShareBalance != null ? currentShareBalance : savings.add(getTotalOtherIncomeDistributed());
+    }
+
+    public BigDecimal bachatCapitalBeforeExpenses() {
+        if (currentShareBalance != null) {
+            return currentShareBalance.subtract(getMyIncome()).add(getTotalOtherExpenseDistributed());
+        }
+        BigDecimal savings = totalSavingsBalance != null ? totalSavingsBalance : BigDecimal.ZERO;
+        return savings.subtract(getTotalLoanInterestReceived()).add(getTotalExpenseDeductedFromSavings());
+    }
+
+    public BigDecimal getNetMemberBalance() {
         BigDecimal loanOut = currentLoanOutstanding != null ? currentLoanOutstanding : BigDecimal.ZERO;
         BigDecimal penalties = pendingLateFees != null ? pendingLateFees : BigDecimal.ZERO;
-        return savings.add(income).subtract(loanOut).subtract(penalties);
+        return overallSavingsBalance().subtract(loanOut).subtract(penalties);
     }
 
     public BigDecimal getTotalFinancialPosition() {

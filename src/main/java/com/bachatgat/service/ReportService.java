@@ -381,6 +381,7 @@ public class ReportService {
         Group group = dataService.findGroupById(member.getGroupId()).orElse(null);
         statement.put("group", group);
         statement.put("member", member);
+        statement.put("overallSavingsBalance", member.overallSavingsBalance());
 
         List<CollectionRecord> collections = collectionService.getMemberHistory(member.getMemberId());
         statement.put("collections", collections);

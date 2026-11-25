@@ -215,7 +215,7 @@
       });
 
       const member = (statement && statement.member) ? statement.member : {};
-      const totalSavingsBalance = parseFloat(member.totalSavingsBalance != null ? member.totalSavingsBalance : totalPaid);
+      const totalSavingsBalance = Number(statement?.overallSavingsBalance ?? member.totalSavingsBalance ?? totalPaid);
       const totalLoanInterestReceived = parseFloat(member.totalLoanInterestReceived || 0);
       const totalOtherIncomeDistributed = parseFloat(member.totalOtherIncomeDistributed || 0);
       const totalDividends = totalLoanInterestReceived + totalOtherIncomeDistributed;

@@ -112,6 +112,7 @@
 
           <!-- Total Savings Fund -->
               <tr><th scope="row"><i class="bi bi-piggy-bank-fill"></i> <span data-i18n="totalSavings">Total Group Savings</span></th><td id="metric-total-savings">₹5,40,000</td><td><i class="bi bi-shield-lock-fill"></i> Separately ledged share capital</td></tr>
+              <tr><th scope="row" data-i18n="totalOtherIncome">Other Group Income</th><td id="metric-other-income">—</td><td>Includes income shared with members</td></tr>
 
           <!-- Loans Outstanding -->
               <tr><th scope="row"><i class="bi bi-hourglass-split"></i> <span data-i18n="outstandingLoans">Loan Outstanding</span></th><td id="metric-loans-outstanding">₹26,400</td><td>Disbursed: <span id="metric-loans-disbursed">₹40,000</span> | Interest: <span id="metric-interest-collected" class="text-success">₹1,600</span></td></tr>
@@ -424,6 +425,7 @@
           document.getElementById('trans-savings').textContent = '+ ' + Common.formatINR(data.totalSavings || 0);
           document.getElementById('trans-interest').textContent = '+ ' + Common.formatINR(data.totalInterestCollected || 0);
           document.getElementById('trans-other-income').textContent = '+ ' + Common.formatINR(data.totalOtherIncome || 0);
+          document.getElementById('metric-other-income').textContent = Common.formatINR(data.totalOtherIncome || 0);
           document.getElementById('trans-expenses').textContent = '- ' + Common.formatINR(data.totalExpenses || 0);
           document.getElementById('trans-disbursed').textContent = '- ' + Common.formatINR(data.totalLoansDisbursed || 0);
           document.getElementById('trans-principal-repaid').textContent = '+ ' + Common.formatINR(data.totalPrincipalRecovered || 0);

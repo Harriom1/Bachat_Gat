@@ -352,7 +352,7 @@ public class ReportService {
                 .map(Member::getTotalSavingsBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalShareContributions = members.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE)
                 .map(Member::getCurrentShareBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalLoansDisbursed = loans.stream().map(Loan::getPrincipalAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalLoansDisbursed = loans.stream().map(loan -> loan.getTopUpAmount() != null ? loan.getTopUpAmount() : loan.getPrincipalAmount()).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalPrincipalRecovered = loans.stream().map(Loan::getPrincipalPaid).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalInterestCollected = loans.stream().map(Loan::getInterestPaid).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalExpenses = expenses.stream().map(GroupExpense::getAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -367,7 +367,10 @@ public class ReportService {
         summary.put("totalExpenses", totalExpenses);
         summary.put("outstandingPrincipal", outstandingPrincipal);
         summary.put("outstandingInterest", outstandingInterest);
-        summary.put("totalOutstanding", outstandingPrincipal.add(outstandingInterest));
+        BigDecimal outstandingPenalty = loans.stream().map(Loan::getOutstandingPenalty).map(this::nz)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        summary.put("outstandingPenalty", outstandingPenalty);
+        summary.put("totalOutstanding", outstandingPrincipal.add(outstandingInterest).add(outstandingPenalty));
 
         return summary;
     }

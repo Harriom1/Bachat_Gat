@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Group {
+    private Integer loanDueDay;
+    private BigDecimal loanLatePenalty;
     public static final BigDecimal DEFAULT_LOAN_LIMIT = BigDecimal.valueOf(500_000);
     @DocumentId
     private String id;
@@ -205,4 +207,13 @@ public class Group {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Integer getLoanDueDay() { return loanDueDay != null ? loanDueDay : 10; }
+    public void setLoanDueDay(Integer value) { this.loanDueDay = value; }
+    public BigDecimal getLoanLatePenalty() {
+        if (loanLatePenalty != null) return loanLatePenalty;
+        String name = groupName == null ? "" : groupName.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z]", "");
+        return name.contains("mitrisankpla") ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
+    }
+    public void setLoanLatePenalty(BigDecimal value) { this.loanLatePenalty = value; }
 }

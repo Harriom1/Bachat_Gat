@@ -65,7 +65,7 @@ class LoanApplicationAndPasswordResetTest {
 
         // Step 1: Member submits loan application
         LoanApplicationRequest appReq = new LoanApplicationRequest();
-        doReturn(BigDecimal.valueOf(40_000)).when(groupFundService).getLendingCapacity("bg-001");
+        doReturn(BigDecimal.valueOf(40_000)).when(groupFundService).getCurrentLendingCapacity("bg-001");
         appReq.setRequestedAmount(BigDecimal.valueOf(40_001));
         appReq.setPurpose("Education");
         appReq.setPreferredDurationMonths(12);

@@ -53,6 +53,62 @@ class MultiGroupSecurityTest {
     }
 
     @Test
+    void settingsPersistsMultipleLoanPolicyForTheSelectedGroup() throws Exception {
+        String group = "/api/admin/groups/bg-001";
+        String endpoint = group + "/business-rules";
+        var response = mockMvc.perform(get(group).header("Authorization", "Bearer " + group1AdminToken))
+                .andExpect(status().isOk()).andReturn();
+        JsonNode previous = objectMapper.readTree(response.getResponse().getContentAsString()).path("data");
+        var original = objectMapper.createObjectNode();
+        for (String field : new String[]{"monthlyBachatAmount", "defaultInterestRate", "gracePeriodDays",
+                "lateFeeAmount", "allowMultipleLoans", "maxActiveLoans"}) {
+            original.set(field, previous.get(field));
+        }
+        var changed = original.deepCopy();
+        changed.put("allowMultipleLoans", true);
+        changed.put("maxActiveLoans", 4);
+        mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group2AdminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(changed.toString()))
+                .andExpect(status().isForbidden());
+        try {
+            mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group1AdminToken)
+                            .contentType(MediaType.APPLICATION_JSON).content(changed.toString()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.maxActiveLoans").value(4));
+            mockMvc.perform(get(group).header("Authorization", "Bearer " + group1AdminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.allowMultipleLoans").value(true))
+                    .andExpect(jsonPath("$.data.maxActiveLoans").value(4));
+        } finally {
+            mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group1AdminToken)
+                            .contentType(MediaType.APPLICATION_JSON).content(original.toString()))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    void memberLoanCapacityCanBeEditedOnlyByTheMembersGroupAdmin() throws Exception {
+        String endpoint = "/api/admin/members/mem-1/loan-capacity";
+        mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group2AdminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"loanCapacity\":300000}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group1AdminToken)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"loanCapacity\":300000}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.loanCapacity").value(300000));
+        try {
+            mockMvc.perform(get(endpoint).header("Authorization", "Bearer " + group1AdminToken))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.loanCapacity").value(300000));
+        } finally {
+            mockMvc.perform(patch(endpoint).header("Authorization", "Bearer " + group1AdminToken)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"loanCapacity\":null}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isMap());
+        }
+    }
+
+    @Test
     @DisplayName("Group 1 Admin accessing Group 1 Dashboard succeeds with 200 OK")
     void testGroup1AdminAccessesOwnDashboard() throws Exception {
         mockMvc.perform(get("/api/admin/dashboard?groupId=bg-001")

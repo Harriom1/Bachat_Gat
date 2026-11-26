@@ -69,6 +69,22 @@ public class MemberService {
                 .orElseThrow(() -> new ResourceNotFoundException("Member not found with ID: " + id));
     }
 
+    public Member getMemberLoanCapacity(Member member) {
+        return dataService.getMemberForLending(member.getMemberId(), member.getGroupId());
+    }
+
+    public Member updateLoanCapacity(Member member, BigDecimal capacity, String actor) {
+        if (capacity != null && (capacity.signum() < 0 || capacity.scale() > 2
+                || capacity.compareTo(new BigDecimal("999999999999.99")) > 0)) {
+            throw new IllegalArgumentException("Loan capacity must be non-negative with at most two decimals.");
+        }
+        Member latest = getMemberLoanCapacity(member);
+        AuditLog audit = new AuditLog(latest.getGroupId(), actor, actor, "MEMBER_LOAN_CAPACITY_UPDATED",
+                "MEMBER", latest.getMemberId(), String.valueOf(latest.getLoanCapacity()), String.valueOf(capacity), "127.0.0.1");
+        dataService.updateMemberLoanCapacity(latest, capacity, audit);
+        return latest;
+    }
+
     public Member archiveMember(String id, String actor) {
         Member current = getMemberById(id);
         if (!dataService.findGroupById(current.getGroupId()).isPresent()) {

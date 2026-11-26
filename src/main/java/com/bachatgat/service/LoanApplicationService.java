@@ -8,6 +8,9 @@ import com.bachatgat.exception.InsufficientGroupFundsException;
 import com.bachatgat.exception.ResourceNotFoundException;
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
+import com.bachatgat.repository.LoanScheduleCalculatorSupport;
+
+import java.util.Map;
 import com.bachatgat.util.FinancialCalculator;
 import org.springframework.stereotype.Service;
 
@@ -52,78 +55,45 @@ public class LoanApplicationService {
     }
 
     public LoanRepaymentPreview previewRepayment(String memberId, BigDecimal amount, int durationMonths) {
-        Member member = dataService.findMemberByMemberId(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("Member not found: " + memberId));
-        Group group = dataService.findGroupById(member.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + member.getGroupId()));
-        if (amount == null || amount.signum() <= 0) {
-            throw new InvalidFinancialOperationException("Loan amount must be greater than zero.");
-        }
+        return previewRepayment(memberId, amount, durationMonths, null);
+    }
+
+    public LoanRepaymentPreview previewRepayment(String memberId, BigDecimal amount, int durationMonths, String topUpLoanId) {
+        return previewRepayment(memberId, null, amount, durationMonths, topUpLoanId);
+    }
+
+    public LoanRepaymentPreview previewRepayment(String memberId, String groupId, BigDecimal amount, int durationMonths, String topUpLoanId) {
+        LendingContext context = lendingContext(memberId, groupId);
+        Loan source = topUpLoanId == null ? null : topUpSource(context, topUpLoanId);
+        BigDecimal additional = positiveAmount(amount);
         validateDuration(durationMonths);
-        LocalDate today = LocalDate.now();
-        GroupMasterData rules = dataService.getCurrentLoanRules(group.getId()).orElse(null);
-        LoanLimits limits = loanLimits(group, rules);
-        validateLoanAmount(amount, limits, outstandingPrincipal(activeLoans(memberId)));
-        BigDecimal principal = FinancialCalculator.round(amount);
-        if (principal.signum() <= 0) {
-            throw new InvalidFinancialOperationException("Loan amount must be greater than zero.");
-        }
-        RepaymentPlan plan = calculateRepayment(principal, defaultRate(group, rules),
-                false, durationMonths, normalizeInterestType(defaultInterestType(group, rules)), today);
-        return plan.preview();
+        validateLoanAmount(additional, context, source);
+        return calculateRepayment(additional.add(sourcePrincipal(source)), defaultRate(context.group(), context.rules()),
+                false, durationMonths, interestType(context, source), LoanScheduleCalculatorSupport.today(), null, null).preview();
     }
 
     /**
      * Submits a new loan application by the logged-in Member/User.
      */
     public LoanApplication submitApplication(String memberId, LoanApplicationRequest request) {
-        Member member = dataService.findMemberByMemberId(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("Member profile not found for: " + memberId));
+        return submitApplication(memberId, null, request);
+    }
 
-        if (member.getStatus() != MemberStatus.ACTIVE) {
-            throw new InvalidFinancialOperationException("Only active members can submit loan applications.");
-        }
-
-        Group group = dataService.findGroupById(member.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + member.getGroupId()));
-
-        if (request.getRequestedAmount() == null || request.getRequestedAmount().signum() <= 0) {
-            throw new InvalidFinancialOperationException("Requested loan amount must be greater than zero.");
-        }
+    public synchronized LoanApplication submitApplication(String memberId, String groupId, LoanApplicationRequest request) {
+        LendingContext context = lendingContext(memberId, groupId);
+        Member member = context.member();
+        Group group = context.group();
+        BigDecimal additional = positiveAmount(request.getRequestedAmount());
         validateDuration(request.getPreferredDurationMonths());
+        Loan source = request.getTopUpLoanId() == null ? null : topUpSource(context, request.getTopUpLoanId());
+        validateBorrower(context, source);
+        validateLoanAmount(additional, context, source);
+        validateAvailableFund(group.getId(), additional);
 
-        // Check if member already has an active or pending loan application under review
-        List<LoanApplication> existingPending = dataService.getLoanApplicationsByMemberId(memberId).stream()
-                .filter(la -> la.getStatus() == LoanApplicationStatus.PENDING)
-                .toList();
-        if (!existingPending.isEmpty()) {
+        if (dataService.getLoanApplicationsByMemberId(memberId).stream()
+                .anyMatch(app -> app.getGroupId().equals(group.getId()) && app.getStatus() == LoanApplicationStatus.PENDING)) {
             throw new InvalidFinancialOperationException("You already have a pending loan application under review.");
         }
-
-        // Fetch active loans of the member
-        List<Loan> activeLoans = activeLoans(memberId);
-
-        // 1. Multiple Active Loans Check
-        if (!group.isAllowMultipleLoans()) {
-            if (!activeLoans.isEmpty() || (member.getActiveLoanId() != null && member.getCurrentLoanOutstanding() != null && member.getCurrentLoanOutstanding().compareTo(BigDecimal.ZERO) > 0)) {
-                throw new InvalidFinancialOperationException("Your group does not allow multiple active loans. Please clear your current loan first.");
-            }
-        } else {
-            int maxActive = group.getMaxActiveLoans() > 0 ? group.getMaxActiveLoans() : 2;
-            if (activeLoans.size() >= maxActive) {
-                throw new InvalidFinancialOperationException("You already have " + activeLoans.size() + " active loan(s), which reaches the group maximum limit of " + maxActive + " active loans.");
-            }
-        }
-
-        // 2. Check for Overdue EMI on existing loans
-        boolean hasOverdue = activeLoans.stream().anyMatch(l -> l.getOverdueInstallments() > 0);
-        if (hasOverdue) {
-            throw new InvalidFinancialOperationException("You have overdue loan installments on an active loan. Please clear all overdue installments before applying for a new loan.");
-        }
-
-        GroupMasterData activeRules = dataService.getCurrentLoanRules(group.getId()).orElse(null);
-        validateLoanAmount(request.getRequestedAmount(), loanLimits(group, activeRules), outstandingPrincipal(activeLoans));
-        validateAvailableFund(group.getId(), request.getRequestedAmount());
 
         String appId = "LA-" + LocalDate.now().getYear() + "-" + String.format("%03d", (dataService.getLoanApplicationsByGroupId(member.getGroupId()).size() + 1));
         LoanApplication app = new LoanApplication();
@@ -132,7 +102,8 @@ public class LoanApplicationService {
         app.setGroupName(member.getGroupName());
         app.setMemberId(member.getMemberId());
         app.setMemberName(member.getFullName());
-        app.setRequestedAmount(FinancialCalculator.round(request.getRequestedAmount()));
+        app.setRequestedAmount(additional);
+        if (source != null) app.setTopUpLoanId(source.getId());
         app.setPurpose(request.getPurpose());
         app.setPreferredDurationMonths(request.getPreferredDurationMonths());
         app.setOptionalMessage(request.getOptionalMessage());
@@ -159,67 +130,50 @@ public class LoanApplicationService {
      * interest rate, duration, and automatically creating the Loan, Repayment Schedule,
      * Disbursement Transaction, and Member balance.
      */
-    public Loan approveApplication(String applicationId, LoanApprovalRequest request, String adminUsername) {
-        LoanApplication app = getApplicationById(applicationId);
-
+    public synchronized Loan approveApplication(String applicationId, LoanApprovalRequest request, String adminUsername) {
+        var approval = dataService.beginLoanApproval(getApplicationById(applicationId));
+        LoanApplication app = approval.application();
         if (app.getStatus() != LoanApplicationStatus.PENDING) {
             throw new InvalidFinancialOperationException("Application is already " + app.getStatus());
         }
-
-        BigDecimal approvedPrincipal = request.getApprovedAmount() != null
-                ? FinancialCalculator.round(request.getApprovedAmount())
-                : FinancialCalculator.round(app.getRequestedAmount());
-
-        if (approvedPrincipal.signum() <= 0) {
-            throw new InvalidFinancialOperationException("Approved loan amount must be greater than zero.");
+        LendingContext context = lendingContext(approval.member(), approval.group());
+        Loan selected = app.getTopUpLoanId() == null ? null : topUpSource(context, app.getTopUpLoanId());
+        var source = selected == null ? null : dataService.beginLoanPayment(selected);
+        Loan previous = source == null ? null : source.loan();
+        validateBorrower(context, previous);
+        LocalDate today = LoanScheduleCalculatorSupport.today();
+        List<LoanRepaymentSchedule> previousRows = previous == null ? List.of()
+                : dataService.getLoanScheduleForSettlement(source, today);
+        if (previous != null) {
+            if (!LoanScheduleCalculatorSupport.isServicing(previous) || previous.getOutstandingPrincipal().signum() <= 0) {
+                throw new InvalidFinancialOperationException("The loan selected for top-up is no longer active.");
+            }
+            if (previousRows.stream().anyMatch(row -> !row.getDueDate().isAfter(today)
+                    && row.getTotalDue().compareTo(row.getPaidAmount()) > 0)) {
+                throw new InvalidFinancialOperationException("Settle all due installments and penalties before approving a top-up.");
+            }
+            if (request.getExpectedOutstandingPrincipal() == null
+                    || request.getExpectedOutstandingPrincipal().compareTo(previous.getOutstandingPrincipal()) != 0) {
+                throw new InvalidFinancialOperationException("The outstanding principal changed. Refresh the top-up calculation before approval.");
+            }
         }
-
-        Group groupForLimit = dataService.findGroupById(app.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + app.getGroupId()));
-        LocalDate today = LocalDate.now();
-        GroupMasterData activeRules = dataService.getCurrentLoanRules(app.getGroupId()).orElse(null);
-        validateLoanAmount(approvedPrincipal, loanLimits(groupForLimit, activeRules),
-                outstandingPrincipal(activeLoans(app.getMemberId())));
+        ApprovalTerms terms = approvalTerms(context, previous, request);
+        LocalDate disbursementDate = terms.start().isAfter(today) ? today : terms.start();
+        if (previous != null && dataService.getGroupTransactionsForLending(app.getGroupId()).stream()
+                .anyMatch(entry -> previous.getLoanId().equals(entry.getLoanId()) && entry.getDate() != null
+                        && entry.getDate().isAfter(disbursementDate))) {
+            throw new InvalidFinancialOperationException("Top-up start date cannot precede a recorded loan transaction.");
+        }
         boolean disburseNow = request.getDisburseImmediately();
-        if (disburseNow) validateAvailableFund(app.getGroupId(), approvedPrincipal);
-
-        BigDecimal rate = request.getInterestRate() != null ? request.getInterestRate() : defaultRate(groupForLimit, activeRules);
-
-        if (rate == null || rate.signum() < 0 || rate.scale() > 2) {
-            throw new InvalidFinancialOperationException("Interest rate must be non-negative with at most two decimals.");
+        if (previous != null && !disburseNow) {
+            throw new InvalidFinancialOperationException("A top-up must be disbursed when its existing loan is settled.");
         }
+        if (disburseNow) validateAvailableFund(app.getGroupId(), terms.additional());
 
-        int durationMonths = (request.getDurationMonths() != null && request.getDurationMonths() > 0)
-                ? request.getDurationMonths()
-                : (app.getPreferredDurationMonths() > 0 ? app.getPreferredDurationMonths() : 12);
-
-        validateDuration(durationMonths);
-
-        String rawInterestType = request.getInterestType();
-        if (rawInterestType == null || rawInterestType.isBlank()) {
-            rawInterestType = defaultInterestType(groupForLimit, activeRules);
-        }
-        String interestType = normalizeInterestType(rawInterestType);
-        boolean isMonthlyRate = Boolean.TRUE.equals(request.getIsMonthlyRate());
-        RepaymentPlan plan = calculateRepayment(approvedPrincipal, rate, isMonthlyRate, durationMonths, interestType, today);
-        BigDecimal totalInterest = plan.preview().totalInterest();
-        BigDecimal totalPayable = plan.preview().totalRepayment();
-        BigDecimal monthlyInstallment = plan.preview().monthlyEmi();
-        List<LoanRepaymentSchedule> schedules = plan.schedules();
-
-        app.setApprovedAmount(approvedPrincipal);
-        app.setApprovedInterestRate(rate);
-        app.setApprovedDurationMonths(durationMonths);
-        app.setInterestType(interestType);
-        app.setAdminNotes(request.getAdminNotes());
-        app.setReviewedBy(adminUsername);
-        app.setReviewedAt(LocalDateTime.now());
-        app.setStatus(LoanApplicationStatus.APPROVED);
-
-        // 2. Create the Loan Record
-        String loanId = "LN-" + LocalDate.now().getYear() + "-" + String.format("%03d", (dataService.getLoansByGroupId(app.getGroupId()).size() + 1));
+        RepaymentPlan plan = repaymentPlan(terms);
         Loan loan = new Loan();
-        loan.setLoanId(loanId);
+        loan.setId("loan-" + UUID.randomUUID());
+        loan.setLoanId("LN-" + today.getYear() + "-" + String.format("%03d", context.groupLoans().size() + 1));
         loan.setApplicationId(app.getApplicationId());
         loan.setGroupId(app.getGroupId());
         loan.setGroupName(app.getGroupName());
@@ -227,88 +181,178 @@ public class LoanApplicationService {
         loan.setMemberName(app.getMemberName());
         loan.setPurpose(app.getPurpose() != null ? app.getPurpose() : "Member Personal / Household Need");
         loan.setChequeNumber(normalizeChequeNumber(request.getChequeNumber()));
-        loan.setPrincipalAmount(approvedPrincipal);
-        loan.setInterestRate(rate);
-        loan.setInterestRateBasis(isMonthlyRate ? "MONTHLY" : "ANNUAL");
-        loan.setDurationMonths(durationMonths);
-        loan.setInterestType(interestType);
-        loan.setTotalInterest(totalInterest);
-        loan.setTotalPayable(totalPayable);
-        loan.setPrincipalPaid(BigDecimal.ZERO);
-        loan.setInterestPaid(BigDecimal.ZERO);
-        loan.setTotalPaid(BigDecimal.ZERO);
-        loan.setOutstandingPrincipal(approvedPrincipal);
-        loan.setOutstandingInterest(totalInterest);
-        loan.setTotalOutstanding(totalPayable);
-        loan.setMonthlyInstallment(monthlyInstallment);
-        loan.setNextDueDate(LocalDate.now().plusMonths(1));
+        loan.setPrincipalAmount(terms.principal());
+        loan.setInterestRate(terms.rate());
+        loan.setInterestRateBasis(terms.monthly() ? "MONTHLY" : "ANNUAL");
+        loan.setDurationMonths(terms.months());
+        loan.setInterestType(terms.type());
+        loan.setTotalInterest(plan.preview().totalInterest());
+        loan.setTotalPayable(plan.preview().totalRepayment());
+        loan.setOutstandingPrincipal(terms.principal());
+        loan.setOutstandingInterest(plan.preview().totalInterest());
+        loan.setTotalOutstanding(plan.preview().totalRepayment());
+        loan.setMonthlyInstallment(plan.preview().monthlyEmi());
+        loan.setStartDate(terms.start());
+        loan.setFirstEmiDueDate(terms.firstDue());
+        loan.setEmiDueDay(terms.dueDay());
+        loan.setNextDueDate(terms.firstDue());
+        loan.setEmiLatePenalty(terms.penalty());
         loan.setCreatedBy(adminUsername);
+        loan.setStatus(disburseNow ? LoanStatus.ACTIVE : LoanStatus.APPROVED);
+        loan.setDisbursementDate(disburseNow ? disbursementDate : null);
 
+        app.setApprovedAmount(terms.additional());
+        app.setApprovedInterestRate(terms.rate());
+        app.setApprovedDurationMonths(terms.months());
+        app.setInterestType(terms.type());
+        app.setAdminNotes(request.getAdminNotes());
+        app.setReviewedBy(adminUsername);
+        app.setReviewedAt(LocalDateTime.now());
+        app.setUpdatedAt(app.getReviewedAt());
+        app.setStatus(LoanApplicationStatus.APPROVED);
+        app.setGeneratedLoanId(loan.getLoanId());
+
+        List<LoanRepaymentSchedule> rows = plan.schedules();
+        for (LoanRepaymentSchedule row : rows) {
+            row.setId("sch-" + loan.getId() + "-" + row.getInstallmentNo());
+            row.setLoanId(loan.getId());
+            row.setGroupId(loan.getGroupId());
+            row.setMemberId(loan.getMemberId());
+        }
+        List<Transaction> entries = new ArrayList<>();
+        BigDecimal previousOutstanding = source == null ? BigDecimal.ZERO : source.originalOutstanding();
+        BigDecimal transferred = sourcePrincipal(previous);
+        if (previous != null) {
+            entries.add(settleForTopUp(previous, loan, transferred, disbursementDate, adminUsername));
+            previousRows.stream().filter(row -> row.getStatus() != RepaymentStatus.PAID).forEach(row -> {
+                row.setStatus(RepaymentStatus.SETTLED);
+                row.setOutstandingAmount(BigDecimal.ZERO);
+                row.setPendingPrincipal(BigDecimal.ZERO);
+                row.setPendingInterest(BigDecimal.ZERO);
+                row.setRemainingPendingPrincipal(BigDecimal.ZERO);
+                row.setRemainingPendingInterest(BigDecimal.ZERO);
+            });
+        }
         if (disburseNow) {
-            loan.setDisbursementDate(LocalDate.now());
-            loan.setStatus(LoanStatus.ACTIVE);
-        } else {
-            loan.setStatus(LoanStatus.APPROVED);
+            entries.add(approvalEntry(loan, TransactionType.LOAN_DISBURSEMENT, terms.additional(),
+                    loan.getDisbursementDate(), "DISB-" + loan.getLoanId(),
+                    previous == null ? "Loan disbursement" : "Additional cash disbursed for loan top-up",
+                    "BANK_TRANSFER", adminUsername));
         }
+        BigDecimal groupDelta = loan.getTotalOutstanding().subtract(previousOutstanding);
+        BigDecimal memberOutstanding = context.memberLoans().stream()
+                .filter(LoanScheduleCalculatorSupport::isServicing)
+                .filter(existing -> selected == null || !existing.getId().equals(selected.getId()))
+                .map(Loan::getTotalOutstanding).reduce(loan.getTotalOutstanding(), BigDecimal::add);
+        String action = previous != null ? "LOAN_TOP_UP_APPROVED"
+                : disburseNow ? "LOAN_APPROVED_AND_DISBURSED" : "LOAN_APPROVED";
+        AuditLog audit = new AuditLog(app.getGroupId(), adminUsername, adminUsername, action, "LOAN", loan.getLoanId(),
+                previous == null ? "Requested " + app.getRequestedAmount()
+                        : previous.getLoanId() + " principal transferred: " + transferred,
+                "Principal " + terms.principal() + ", additional " + terms.additional() + ", start " + terms.start()
+                        + ", first EMI " + terms.firstDue() + ", penalty " + terms.penalty()
+                        + ", duration " + terms.months() + ", rate " + terms.rate(), "127.0.0.1");
+        dataService.confirmLoanApproval(approval, loan, rows, source, previousRows, entries, audit,
+                groupDelta, disburseNow ? memberOutstanding : null);
 
-        Loan savedLoan = dataService.saveLoan(loan);
+        dataService.findUserByMemberId(app.getMemberId()).ifPresent(user ->
+                notificationService.sendNotification(app.getGroupId(), user.getId(), "USER",
+                        previous != null ? "Loan top-up approved" : disburseNow ? "Loan sanctioned and disbursed" : "Loan sanctioned",
+                        "Approved amount: ₹" + terms.additional() + ". Loan ID: " + loan.getLoanId(), "LOAN_APPROVED"));
+        return loan;
+    }
 
-        // Link back to application
-        app.setGeneratedLoanId(savedLoan.getLoanId());
-        dataService.saveLoanApplication(app);
+    private Transaction settleForTopUp(Loan previous, Loan replacement, BigDecimal amount, LocalDate date, String admin) {
+        replacement.setRefinancedLoanId(previous.getLoanId());
+        replacement.setTopUpAmount(replacement.getPrincipalAmount().subtract(amount));
+        previous.setReplacementLoanId(replacement.getLoanId());
+        previous.setSettlementDate(date);
+        previous.setStatus(LoanStatus.CLOSED);
+        previous.setOutstandingPrincipal(BigDecimal.ZERO);
+        previous.setOutstandingInterest(BigDecimal.ZERO);
+        previous.setOutstandingPenalty(BigDecimal.ZERO);
+        previous.setPendingPrincipal(BigDecimal.ZERO);
+        previous.setPendingInterest(BigDecimal.ZERO);
+        previous.setTotalOutstanding(BigDecimal.ZERO);
+        previous.setNextDueDate(null);
+        previous.setOverdueInstallments(0);
+        previous.setUpdatedAt(LocalDateTime.now());
+        Transaction entry = approvalEntry(previous, TransactionType.ADJUSTMENT, amount, date,
+                "TOPUP-" + replacement.getLoanId(), "Outstanding principal transferred to " + replacement.getLoanId()
+                        + "; future interest ended at settlement", "NON_CASH", admin);
+        entry.setCategory("LOAN_TOP_UP_SETTLEMENT");
+        return entry;
+    }
 
-        // 3. Save Repayment Schedule with generated IDs
-        for (int i = 0; i < schedules.size(); i++) {
-            LoanRepaymentSchedule item = schedules.get(i);
-            item.setId("sch-" + savedLoan.getId() + "-" + (i + 1));
-            item.setLoanId(savedLoan.getId());
-            item.setGroupId(savedLoan.getGroupId());
-            item.setMemberId(savedLoan.getMemberId());
+    private Transaction approvalEntry(Loan loan, TransactionType type, BigDecimal amount, LocalDate date,
+                                      String reference, String description, String method, String admin) {
+        return new Transaction("TXN-" + UUID.randomUUID(), loan.getGroupId(), loan.getMemberId(), loan.getMemberName(),
+                loan.getLoanId(), type, amount, amount, BigDecimal.ZERO, date, reference, description, method, admin);
+    }
+
+    public Map<String, Object> getApprovalDetails(LoanApplication application) {
+        LendingContext context = lendingContext(application.getMemberId(), application.getGroupId());
+        Loan source = application.getTopUpLoanId() == null ? null : topUpSource(context, application.getTopUpLoanId());
+        return Map.of("maxAdditional", maximumAdditional(context, source), "outstandingPrincipal", sourcePrincipal(source),
+                "interestRate", defaultRate(context.group(), context.rules()), "interestType", interestType(context, source),
+                "dueDay", context.group().getLoanDueDay(), "penalty", context.group().getLoanLatePenalty(),
+                "today", LoanScheduleCalculatorSupport.today().toString());
+    }
+
+    public Map<String, Object> previewApproval(LoanApplication application, LoanApprovalRequest request) {
+        LendingContext context = lendingContext(application.getMemberId(), application.getGroupId());
+        Loan source = application.getTopUpLoanId() == null ? null : topUpSource(context, application.getTopUpLoanId());
+        ApprovalTerms terms = approvalTerms(context, source, request);
+        RepaymentPlan plan = repaymentPlan(terms);
+        return Map.of("principal", terms.principal(), "outstandingPrincipal", sourcePrincipal(source),
+                "summary", plan.preview(), "schedule", plan.schedules().stream().map(ApprovalRow::from).toList());
+    }
+
+    public record ApprovalRow(int installmentNo, LocalDate dueDate, BigDecimal emiAmount,
+                              BigDecimal principalAmount, BigDecimal interestAmount, BigDecimal closingPrincipal) {
+        private static ApprovalRow from(LoanRepaymentSchedule row) {
+            return new ApprovalRow(row.getInstallmentNo(), row.getDueDate(), row.getEmiAmount(),
+                    row.getPrincipalAmount(), row.getInterestAmount(), row.getClosingPrincipal());
         }
-        dataService.saveLoanSchedule(savedLoan.getId(), schedules);
+    }
 
-        if (disburseNow) {
-            // Update Member active loan and outstanding
-            Member member = dataService.findMemberByMemberId(app.getMemberId()).orElse(null);
-            if (member != null) {
-                member.setActiveLoanId(savedLoan.getLoanId());
-                member.setCurrentLoanOutstanding(savedLoan.getTotalOutstanding());
-                dataService.saveMember(member);
-            }
+    private record ApprovalTerms(BigDecimal additional, BigDecimal principal, BigDecimal rate, boolean monthly,
+                                 int months, String type, LocalDate start, LocalDate firstDue, int dueDay, BigDecimal penalty) {}
 
-            // Update Group aggregate outstanding
-            Group group = dataService.findGroupById(app.getGroupId()).orElse(null);
-            if (group != null) {
-                BigDecimal grpLoan = group.getTotalLoanOutstanding() != null ? group.getTotalLoanOutstanding() : BigDecimal.ZERO;
-                group.setTotalLoanOutstanding(grpLoan.add(savedLoan.getTotalOutstanding()));
-                dataService.saveGroup(group);
-            }
-
-            // Record Disbursement Transaction in Ledger
-            transactionService.recordTransaction(
-                    app.getGroupId(), app.getMemberId(), app.getMemberName(), savedLoan.getLoanId(),
-                    TransactionType.LOAN_DISBURSEMENT, approvedPrincipal, approvedPrincipal, BigDecimal.ZERO,
-                    LocalDate.now(), "DISB-" + savedLoan.getLoanId(),
-                    "Disbursement for sanctioned loan " + savedLoan.getLoanId(), "BANK_TRANSFER", adminUsername
-            );
+    private ApprovalTerms approvalTerms(LendingContext context, Loan source, LoanApprovalRequest request) {
+        BigDecimal additional = positiveAmount(request.getApprovedAmount());
+        validateLoanAmount(additional, context, source);
+        validateDuration(request.getDurationMonths());
+        BigDecimal rate = request.getInterestRate();
+        if (rate == null || rate.signum() < 0 || rate.scale() > 2) {
+            throw new InvalidFinancialOperationException("Interest rate must be non-negative with at most two decimals.");
         }
+        LocalDate start = request.getStartDate();
+        LocalDate firstDue = request.getFirstEmiDueDate();
+        if (start == null || firstDue == null || !firstDue.isAfter(start)) {
+            throw new InvalidFinancialOperationException("Select a loan start date and a first EMI due date after it.");
+        }
+        int dueDay = request.getEmiDueDay() == null ? firstDue.getDayOfMonth() : request.getEmiDueDay();
+        if (dueDay < 1 || dueDay > 31 || !FinancialCalculator.monthlyDueDate(firstDue, dueDay, 0).equals(firstDue)) {
+            throw new InvalidFinancialOperationException("The first EMI date must match the selected recurring due day.");
+        }
+        LocalDate sourceStart = source == null ? null : source.getStartDate() != null ? source.getStartDate() : source.getDisbursementDate();
+        if (sourceStart != null && start.isBefore(sourceStart)) {
+            throw new InvalidFinancialOperationException("Top-up start cannot precede the existing loan start.");
+        }
+        BigDecimal penalty = request.getEmiLatePenalty();
+        if (penalty == null || penalty.signum() < 0 || penalty.scale() > 2) {
+            throw new InvalidFinancialOperationException("Select an EMI penalty with at most two decimals. Use zero for no penalty.");
+        }
+        String type = source != null || request.getInterestType() == null || request.getInterestType().isBlank()
+                ? interestType(context, source) : normalizeInterestType(request.getInterestType());
+        return new ApprovalTerms(additional, additional.add(sourcePrincipal(source)), rate,
+                Boolean.TRUE.equals(request.getIsMonthlyRate()), request.getDurationMonths(), type, start, firstDue, dueDay, penalty);
+    }
 
-        // Notify Member
-        dataService.findUserByMemberId(app.getMemberId()).ifPresent(u ->
-                notificationService.sendNotification(app.getGroupId(), u.getId(), "USER",
-                        disburseNow ? "Loan Sanctioned and Disbursed!" : "Loan Sanctioned - Awaiting Disbursement",
-                        "Congratulations! Your loan of ₹" + approvedPrincipal + " (ID: " + savedLoan.getLoanId() + 
-                                ") has been sanctioned at " + rate + "% interest.",
-                        "LOAN_APPROVED")
-        );
-
-        // Audit Log
-        auditService.log(app.getGroupId(), adminUsername, adminUsername,
-                disburseNow ? "LOAN_APPROVED_AND_DISBURSED" : "LOAN_APPROVED", "LOAN",
-                savedLoan.getLoanId(), "REQUESTED: " + app.getRequestedAmount(),
-                "SANCTIONED: " + approvedPrincipal + " @ " + rate + "% (disbursed: " + disburseNow + ")", "127.0.0.1");
-
-        return savedLoan;
+    private RepaymentPlan repaymentPlan(ApprovalTerms terms) {
+        return calculateRepayment(terms.principal(), terms.rate(), terms.monthly(), terms.months(), terms.type(),
+                terms.start(), terms.firstDue(), terms.dueDay());
     }
 
     private String normalizeChequeNumber(String chequeNumber) {
@@ -341,10 +385,13 @@ public class LoanApplicationService {
     private record RepaymentPlan(LoanRepaymentPreview preview, List<LoanRepaymentSchedule> schedules) {}
 
     private static RepaymentPlan calculateRepayment(BigDecimal principal, BigDecimal rate, boolean monthlyRate,
-                                                    int months, String interestType, LocalDate startDate) {
+                                                    int months, String interestType, LocalDate startDate, LocalDate firstDueDate, Integer dueDay) {
         List<LoanRepaymentSchedule> schedule = "FLAT".equals(interestType)
                 ? flatSchedule(principal, monthlyRate ? rate.multiply(BigDecimal.valueOf(12)) : rate, months, startDate)
                 : FinancialCalculator.generateAmortizationSchedule(principal, rate, monthlyRate, months, startDate);
+        if (firstDueDate != null) {
+            schedule.forEach(row -> row.setDueDate(FinancialCalculator.monthlyDueDate(firstDueDate, dueDay, row.getInstallmentNo() - 1)));
+        }
         BigDecimal interest = schedule.stream().map(LoanRepaymentSchedule::getInterestAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal total = schedule.stream().map(LoanRepaymentSchedule::getTotalDue)
@@ -386,40 +433,97 @@ public class LoanApplicationService {
         return schedule;
     }
 
-    private record LoanLimits(BigDecimal groupCapacity, BigDecimal perLoan, BigDecimal outstanding) {}
+    private record LendingContext(Member member, Group group, GroupMasterData rules, List<Loan> groupLoans,
+                                  List<Loan> memberLoans, BigDecimal groupLimit, BigDecimal memberLimit,
+                                  BigDecimal outstandingLimit) {}
 
-    private static LoanLimits loanLimits(Group group, GroupMasterData rules) {
-        BigDecimal perLoan = rules == null ? null : rules.getMaxLoanAmountPerMember();
-        if (perLoan == null) perLoan = group.getMaxLoanAmountPerMember();
-        if (perLoan == null) perLoan = Group.DEFAULT_LOAN_LIMIT;
-        BigDecimal groupCapacity = rules == null ? null : rules.getMaxLoanAmount();
-        if (groupCapacity == null) groupCapacity = group.getMaxLoanAmount();
-        if (groupCapacity == null) groupCapacity = Group.DEFAULT_LOAN_LIMIT;
-        BigDecimal outstanding = rules == null ? null : rules.getMaxOutstandingLoanAmount();
-        if (outstanding == null) outstanding = group.getMaxOutstandingLoanAmount();
-        if (outstanding == null) outstanding = Group.DEFAULT_LOAN_LIMIT;
-        return new LoanLimits(groupCapacity, perLoan, outstanding);
+    private LendingContext lendingContext(String memberId, String groupId) {
+        Member member = dataService.getMemberForLending(memberId, groupId);
+        return lendingContext(member, dataService.getGroupForLending(member.getGroupId()));
     }
 
-    private static void validateLoanAmount(BigDecimal amount, LoanLimits limits, BigDecimal outstanding) {
-        if (amount.compareTo(limits.perLoan()) > 0) {
-            throw new InvalidFinancialOperationException("Loan amount of ₹" + amount
-                    + " exceeds the maximum allowed amount of ₹" + limits.perLoan() + " per loan.");
-        }
-        if (outstanding.add(amount).compareTo(limits.outstanding()) > 0) {
-            throw new InvalidFinancialOperationException("Total outstanding principal would exceed the limit of ₹"
-                    + limits.outstanding() + ".");
-        }
+    private LendingContext lendingContext(Member member, Group group) {
+        GroupMasterData rules = dataService.getCurrentLoanRules(group.getId()).orElse(null);
+        List<Loan> groupLoans = dataService.getGroupLoansForLending(group.getId());
+        List<Loan> memberLoans = groupLoans.stream().filter(LoanApplicationService::countsTowardLimits)
+                .filter(loan -> member.getMemberId().equals(loan.getMemberId())).toList();
+        BigDecimal groupLimit = limit(rules == null ? null : rules.getMaxLoanAmount(), group.getMaxLoanAmount());
+        BigDecimal memberLimit = limit(member.getLoanCapacity(),
+                limit(rules == null ? null : rules.getMaxLoanAmountPerMember(), group.getMaxLoanAmountPerMember()));
+        BigDecimal outstandingLimit = limit(rules == null ? null : rules.getMaxOutstandingLoanAmount(), group.getMaxOutstandingLoanAmount());
+        return new LendingContext(member, group, rules, groupLoans, memberLoans, groupLimit, memberLimit, outstandingLimit);
     }
 
-    private List<Loan> activeLoans(String memberId) {
-        return dataService.getLoansByMemberId(memberId).stream()
-                .filter(loan -> loan.getStatus() == LoanStatus.ACTIVE && loan.getOutstandingPrincipal().signum() > 0)
-                .toList();
+    private static BigDecimal limit(BigDecimal preferred, BigDecimal fallback) {
+        return preferred != null ? preferred : fallback != null ? fallback : Group.DEFAULT_LOAN_LIMIT;
+    }
+
+    private static boolean countsTowardLimits(Loan loan) {
+        return LoanScheduleCalculatorSupport.isServicing(loan) || loan.getStatus() == LoanStatus.APPROVED;
+    }
+
+    private static BigDecimal positiveAmount(BigDecimal amount) {
+        if (amount == null || amount.signum() <= 0 || amount.scale() > 2) {
+            throw new InvalidFinancialOperationException("Loan amount must be positive with at most two decimals.");
+        }
+        return FinancialCalculator.round(amount);
+    }
+
+    private static BigDecimal sourcePrincipal(Loan source) {
+        return source == null ? BigDecimal.ZERO : source.getOutstandingPrincipal();
     }
 
     private static BigDecimal outstandingPrincipal(List<Loan> loans) {
         return loans.stream().map(Loan::getOutstandingPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private BigDecimal maximumAdditional(LendingContext context, Loan source) {
+        BigDecimal memberOpen = outstandingPrincipal(context.memberLoans());
+        BigDecimal groupOpen = context.groupLoans().stream().filter(LoanApplicationService::countsTowardLimits)
+                .map(Loan::getOutstandingPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal individualExposure = context.member().getLoanCapacity() == null ? sourcePrincipal(source) : memberOpen;
+        return context.memberLimit().subtract(individualExposure)
+                .min(context.outstandingLimit().subtract(memberOpen))
+                .min(context.groupLimit().subtract(groupOpen)).max(BigDecimal.ZERO);
+    }
+
+    private void validateLoanAmount(BigDecimal amount, LendingContext context, Loan source) {
+        BigDecimal maximum = maximumAdditional(context, source);
+        if (amount.compareTo(maximum) > 0) {
+            throw new InvalidFinancialOperationException("The requested amount exceeds the current lending limit of ₹" + maximum + ".");
+        }
+    }
+
+    private Loan topUpSource(LendingContext context, String loanId) {
+        return context.memberLoans().stream().filter(LoanScheduleCalculatorSupport::isServicing)
+                .filter(loan -> loanId.equals(loan.getId()))
+                .filter(loan -> sourcePrincipal(loan).signum() > 0)
+                .findFirst().orElseThrow(() -> new InvalidFinancialOperationException("Select one of your active loans for a top-up."));
+    }
+
+    private int maxActiveLoans(Group group) {
+        return group.isAllowMultipleLoans() ? (group.getMaxActiveLoans() > 0 ? group.getMaxActiveLoans() : 2) : 1;
+    }
+
+    private String borrowingBlock(LendingContext context, Loan source) {
+        if (context.member().getStatus() != MemberStatus.ACTIVE) return "Member profile is not active.";
+        if (context.memberLoans().stream().anyMatch(loan -> loan.getStatus() == LoanStatus.OVERDUE || loan.getOverdueInstallments() > 0)) {
+            return "Overdue loan installments must be cleared first.";
+        }
+        if (source == null && context.memberLoans().size() >= maxActiveLoans(context.group())) {
+            return context.group().isAllowMultipleLoans() ? "Reached the group limit for active or approved loans."
+                    : "Your group allows one active or approved loan. You can request a top-up on an active loan.";
+        }
+        return null;
+    }
+
+    private void validateBorrower(LendingContext context, Loan source) {
+        String blocked = borrowingBlock(context, source);
+        if (blocked != null) throw new InvalidFinancialOperationException(blocked);
+    }
+
+    private static String interestType(LendingContext context, Loan source) {
+        return source != null ? "REDUCING" : normalizeInterestType(defaultInterestType(context.group(), context.rules()));
     }
 
     /**
@@ -444,7 +548,7 @@ public class LoanApplicationService {
 
         loan.setStatus(LoanStatus.ACTIVE);
         loan.setDisbursementDate(disbDate);
-        loan.setNextDueDate(disbDate.plusMonths(1));
+        loan.setNextDueDate(loan.getFirstEmiDueDate() != null ? loan.getFirstEmiDueDate() : disbDate.plusMonths(1));
         Loan savedLoan = dataService.saveLoan(loan);
 
         // Update Member profile
@@ -489,14 +593,15 @@ public class LoanApplicationService {
     }
 
     private void validateAvailableFund(String groupId, BigDecimal requestedAmount) {
-        BigDecimal availableFund = groupFundService.getLendingCapacity(groupId);
+        BigDecimal availableFund = groupFundService.getCurrentLendingCapacity(groupId);
         if (requestedAmount.compareTo(availableFund) > 0) {
             throw new InsufficientGroupFundsException(availableFund, requestedAmount);
         }
     }
 
-    public LoanApplication rejectApplication(String applicationId, String rejectionReason, String adminUsername) {
-        LoanApplication app = getApplicationById(applicationId);
+    public synchronized LoanApplication rejectApplication(String applicationId, String rejectionReason, String adminUsername) {
+        var review = dataService.beginLoanApproval(getApplicationById(applicationId));
+        LoanApplication app = review.application();
 
         if (app.getStatus() != LoanApplicationStatus.PENDING) {
             throw new InvalidFinancialOperationException("Application is already " + app.getStatus());
@@ -507,7 +612,10 @@ public class LoanApplicationService {
         app.setReviewedBy(adminUsername);
         app.setReviewedAt(LocalDateTime.now());
 
-        LoanApplication saved = dataService.saveLoanApplication(app);
+        app.setUpdatedAt(app.getReviewedAt());
+        AuditLog audit = new AuditLog(app.getGroupId(), adminUsername, adminUsername, "LOAN_REJECTED", "LOAN_APPLICATION",
+                app.getApplicationId(), "PENDING", "REJECTED: " + rejectionReason, "127.0.0.1");
+        LoanApplication saved = dataService.rejectLoanApplication(review, audit);
 
         // Notify member
         dataService.findUserByMemberId(app.getMemberId()).ifPresent(u ->
@@ -517,74 +625,48 @@ public class LoanApplicationService {
                         "LOAN_REJECTED")
         );
 
-        auditService.log(app.getGroupId(), adminUsername, adminUsername, "LOAN_REJECTED", "LOAN_APPLICATION",
-                app.getApplicationId(), "PENDING", "REJECTED: " + rejectionReason, "127.0.0.1");
-
         return saved;
     }
 
-    public java.util.Map<String, Object> getLoanEligibility(String memberId) {
-        Member member = dataService.findMemberByMemberId(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("Member not found: " + memberId));
-        Group group = dataService.findGroupById(member.getGroupId())
-                .orElseThrow(() -> new ResourceNotFoundException("Group not found: " + member.getGroupId()));
+    public Map<String, Object> getLoanEligibility(String memberId) {
+        return getLoanEligibility(memberId, null);
+    }
 
-        List<Loan> activeLoans = activeLoans(memberId);
-
-        int activeLoanCount = activeLoans.size();
-        BigDecimal totalOutstanding = outstandingPrincipal(activeLoans);
-
-        boolean allowMultiple = group.isAllowMultipleLoans();
-        int maxActive = allowMultiple ? (group.getMaxActiveLoans() > 0 ? group.getMaxActiveLoans() : 2) : 1;
-        GroupMasterData activeRules = dataService.getCurrentLoanRules(group.getId()).orElse(null);
-        LoanLimits limits = loanLimits(group, activeRules);
-        BigDecimal maxPerMember = limits.perLoan();
-        BigDecimal maxOutstanding = limits.outstanding();
-
-        boolean hasOverdue = activeLoans.stream().anyMatch(l -> l.getOverdueInstallments() > 0);
-        BigDecimal availableFund = groupFundService.getLendingCapacity(group.getId());
-        boolean eligible = true;
-        String reason = "Eligible to apply for a loan.";
-
-        if (member.getStatus() != MemberStatus.ACTIVE) {
-            eligible = false;
-            reason = "Member profile is not active.";
-        } else if (hasOverdue) {
-            eligible = false;
-            reason = "Overdue installments on an active loan must be cleared first.";
-        } else if (!allowMultiple && activeLoanCount > 0) {
-            eligible = false;
-            reason = "Your group does not allow multiple active loans.";
-        } else if (activeLoanCount >= maxActive) {
-            eligible = false;
-            reason = "Reached maximum limit of " + maxActive + " active loans.";
-        } else if (totalOutstanding.compareTo(maxOutstanding) >= 0) {
-            eligible = false;
-            reason = "Current total outstanding loan balance has reached the group limit.";
-        }
-
-        java.util.Map<String, Object> res = new java.util.HashMap<>();
-        res.put("eligible", eligible);
-        res.put("reason", reason);
-        res.put("activeLoanCount", activeLoanCount);
-        res.put("activeLoans", activeLoans);
-        res.put("totalOutstanding", totalOutstanding);
-        res.put("allowMultipleLoans", allowMultiple);
-        res.put("maxActiveLoans", maxActive);
-        res.put("maxPerMember", maxPerMember);
-        res.put("maxIndividualLoanLimit", maxPerMember);
-        res.put("maxLoanAmountPerMember", maxPerMember);
-        res.put("maxLoanAmount", limits.groupCapacity());
-        res.put("maxGroupLoanCapacity", limits.groupCapacity());
-        res.put("maxOutstandingLoanAmount", maxOutstanding);
-        res.put("maxOutstandingLimit", maxOutstanding);
-        res.put("availableGroupFund", availableFund);
-        BigDecimal rate = defaultRate(group, activeRules);
-        String interestType = defaultInterestType(group, activeRules);
-        res.put("defaultInterestRate", rate);
-        res.put("interestRate", rate);
-        res.put("loanInterestType", interestType);
-        res.put("interestType", interestType);
-        return res;
+    public Map<String, Object> getLoanEligibility(String memberId, String groupId) {
+        LendingContext context = lendingContext(memberId, groupId);
+        List<Loan> active = context.memberLoans().stream().filter(LoanScheduleCalculatorSupport::isServicing).toList();
+        BigDecimal maximum = maximumAdditional(context, null);
+        String blocked = borrowingBlock(context, null);
+        if (blocked == null && maximum.signum() == 0) blocked = "The available lending limit has been reached.";
+        var topUps = active.stream().filter(loan -> sourcePrincipal(loan).signum() > 0)
+                .map(loan -> Map.of("id", loan.getId(), "loanId", loan.getLoanId(),
+                        "outstandingPrincipal", sourcePrincipal(loan), "maxAdditional", maximumAdditional(context, loan),
+                        "eligible", borrowingBlock(context, loan) == null && maximumAdditional(context, loan).signum() > 0))
+                .toList();
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("eligible", blocked == null);
+        result.put("reason", blocked == null ? "Eligible to apply for a loan." : blocked);
+        result.put("activeLoanCount", active.size());
+        result.put("activeLoans", active);
+        result.put("topUpOptions", topUps);
+        result.put("totalOutstanding", outstandingPrincipal(active));
+        result.put("allowMultipleLoans", context.group().isAllowMultipleLoans());
+        result.put("maxActiveLoans", maxActiveLoans(context.group()));
+        result.put("maxPerMember", context.memberLimit());
+        result.put("maxIndividualLoanLimit", context.memberLimit());
+        result.put("maxLoanAmountPerMember", context.memberLimit());
+        result.put("maxAdditional", maximum);
+        result.put("maxLoanAmount", context.groupLimit());
+        result.put("maxGroupLoanCapacity", context.groupLimit());
+        result.put("maxOutstandingLoanAmount", context.outstandingLimit());
+        result.put("maxOutstandingLimit", context.outstandingLimit());
+        result.put("availableGroupFund", groupFundService.getCurrentLendingCapacity(context.group().getId()));
+        BigDecimal rate = defaultRate(context.group(), context.rules());
+        String type = interestType(context, null);
+        result.put("defaultInterestRate", rate);
+        result.put("interestRate", rate);
+        result.put("loanInterestType", type);
+        result.put("interestType", type);
+        return result;
     }
 }

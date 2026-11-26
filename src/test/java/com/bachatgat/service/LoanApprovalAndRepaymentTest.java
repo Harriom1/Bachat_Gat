@@ -54,6 +54,9 @@ class LoanApprovalAndRepaymentTest {
         approvalReq.setApprovedAmount(BigDecimal.valueOf(40000));
         approvalReq.setInterestRate(BigDecimal.valueOf(12.0));
         approvalReq.setDurationMonths(10);
+        approvalReq.setStartDate(LocalDate.now());
+        approvalReq.setFirstEmiDueDate(LocalDate.now().plusMonths(1));
+        approvalReq.setEmiLatePenalty(BigDecimal.ZERO);
         approvalReq.setInterestType("FLAT");
         approvalReq.setAdminNotes("Sanctioned ₹40,000 based on savings record");
 

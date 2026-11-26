@@ -2,6 +2,7 @@ package com.bachatgat.controller;
 
 import com.bachatgat.dto.ApiResponse;
 import com.bachatgat.dto.GroupDTO;
+import com.bachatgat.dto.GroupBusinessRulesRequest;
 import com.bachatgat.dto.GroupDropdownDTO;
 import com.bachatgat.dto.OfficeBearerDTO;
 import com.bachatgat.model.Group;
@@ -107,6 +108,15 @@ public class AdminGroupController {
         groupSecurityService.validateGroupAccess(principal, id);
         Group updated = groupService.updateGroup(id, dto, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("Group updated successfully", updated));
+    }
+
+    @PatchMapping("/{id}/business-rules")
+    public ResponseEntity<ApiResponse<Group>> updateBusinessRules(
+            @PathVariable String id, @Valid @RequestBody GroupBusinessRulesRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        groupSecurityService.validateGroupAccess(principal, id);
+        return ResponseEntity.ok(ApiResponse.ok("Group business rules saved",
+                groupService.updateBusinessRules(id, request, principal.getUsername())));
     }
 
     @PostMapping("/{id}/archive")

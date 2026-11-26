@@ -710,6 +710,8 @@ public class CollectionService {
                 LoanRepaymentRequest loanReq = new LoanRepaymentRequest(
                         totalLoanPayment, payDate, request.getPaymentMethod(), request.getReferenceNumber());
                 loanReq.setNotes("Multi-category Collection Payment [Principal: ₹" + loanPrincPart + ", Interest: ₹" + loanIntPart + "]");
+                // Collection components here are earmarked for principal and interest.
+                loanReq.setLoanPenaltyAmount(BigDecimal.ZERO);
                 loanService.recordRepayment(paymentLoanId, loanReq, recordedBy);
             }
             if (extraLoanPart.signum() > 0) {

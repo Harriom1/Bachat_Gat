@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
 public class LoanApplicationRequest {
+    private String topUpLoanId;
     @NotNull(message = "Requested loan amount is required")
     @Positive(message = "Loan amount must be greater than zero")
     private BigDecimal requestedAmount;
@@ -39,4 +40,7 @@ public class LoanApplicationRequest {
     public void setNotes(String notes) { this.optionalMessage = notes; }
     public String getSupportingDocPath() { return supportingDocPath; }
     public void setSupportingDocPath(String supportingDocPath) { this.supportingDocPath = supportingDocPath; }
+
+    public String getTopUpLoanId() { return topUpLoanId; }
+    public void setTopUpLoanId(String value) { this.topUpLoanId = value; }
 }

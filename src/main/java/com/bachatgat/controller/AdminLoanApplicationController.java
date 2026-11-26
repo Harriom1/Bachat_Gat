@@ -51,6 +51,23 @@ public class AdminLoanApplicationController {
         return ResponseEntity.ok(ApiResponse.ok(app));
     }
 
+    @GetMapping("/{id}/approval-details")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getApprovalDetails(
+            @PathVariable String id, @AuthenticationPrincipal UserPrincipal principal) {
+        LoanApplication application = loanApplicationService.getApplicationById(id);
+        groupSecurityService.validateGroupAccess(principal, application.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok(loanApplicationService.getApprovalDetails(application)));
+    }
+
+    @PostMapping("/{id}/approval-preview")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> previewApproval(
+            @PathVariable String id, @Valid @RequestBody LoanApprovalRequest request,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        LoanApplication application = loanApplicationService.getApplicationById(id);
+        groupSecurityService.validateGroupAccess(principal, application.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok(loanApplicationService.previewApproval(application, request)));
+    }
+
     @PostMapping("/{id}/approve")
     public ResponseEntity<ApiResponse<Loan>> approveApplication(
             @PathVariable String id,
@@ -59,7 +76,7 @@ public class AdminLoanApplicationController {
         LoanApplication app = loanApplicationService.getApplicationById(id);
         groupSecurityService.validateGroupAccess(principal, app.getGroupId());
         Loan loan = loanApplicationService.approveApplication(id, request, principal.getUsername());
-        return ResponseEntity.ok(ApiResponse.ok("Loan approved and disbursed successfully. Loan ID: " + loan.getLoanId(), loan));
+        return ResponseEntity.ok(ApiResponse.ok("Loan approved. Loan ID: " + loan.getLoanId(), loan));
     }
 
     @PostMapping("/{id}/reject")

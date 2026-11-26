@@ -90,17 +90,18 @@
             <form id="form-rules">
               <table class="data-table compact-settings-table">
                 <tbody>
-                  <tr><th>Monthly Savings Share (₹)</th><td><input type="number" id="rule-monthly-share" class="form-control" value="5000" min="100" required><small class="text-muted">Standard monthly contribution expected from each active member.</small></td></tr>
-                  <tr><th>Default Loan Interest (%)</th><td><input type="number" id="rule-interest-rate" class="form-control" value="12" min="1" max="36" step="0.5" required></td></tr>
-                  <tr><th>Grace Period (Days)</th><td><input type="number" id="rule-grace-days" class="form-control" value="5" min="0" max="30" required></td></tr>
-                  <tr><th>Late Payment Fee (₹)</th><td><input type="number" id="rule-late-fee" class="form-control" value="100" min="0" required></td></tr>
-                  <tr><th>Member Loan Limit (₹)</th><td><a href="/admin/groups.html">Edit in Group Profile</a></td></tr>
-                  <tr><th>Max Active Loans</th><td><input type="number" id="rule-max-active-loans" class="form-control" value="1" min="1" max="3" required></td></tr>
-                  <tr><th>Min Membership (Months)</th><td><input type="number" id="rule-min-months" class="form-control" value="3" min="0" max="12" required></td></tr>
+                  <tr><th>Monthly Savings Share (₹)</th><td><input type="number" id="rule-monthly-share" class="form-control" min="0.01" step="0.01" required><small class="text-muted">Standard monthly contribution expected from each active member.</small></td></tr>
+                  <tr><th>Default Loan Interest (%)</th><td><input type="number" id="rule-interest-rate" class="form-control" min="0" step="0.01" required></td></tr>
+                  <tr><th>Bachat Grace Period (Days)</th><td><input type="number" id="rule-grace-days" class="form-control" min="0" required></td></tr>
+                  <tr><th>Bachat Late Payment Fee (₹)</th><td><input type="number" id="rule-late-fee" class="form-control" min="0" step="0.01" required></td></tr>
+                  <tr><th>Group Loan Limits &amp; EMI Settings</th><td><a id="rule-group-limits" href="/admin/groups.html?edit=loan-rules">Edit in Group Profile</a></td></tr>
+                  <tr><th>Individual Loan Capacity</th><td><a href="/admin/members.html">Edit in a member’s profile</a></td></tr>
+                  <tr><th>Allow Multiple Active Loans</th><td><input type="checkbox" id="rule-allow-multiple" aria-label="Allow multiple active loans"></td></tr>
+                  <tr><th>Max Active Loans</th><td><input type="number" id="rule-max-active-loans" class="form-control" min="1" required></td></tr>
                 </tbody>
               </table>
 
-              <button type="submit" class="btn-primary-custom" style="width: 100%; margin-top: 1rem;">
+              <button id="btn-save-rules" type="submit" class="btn-primary-custom" style="width: 100%; margin-top: 1rem;" disabled>
                 <i class="bi bi-check2-circle"></i> Save Business Rules
               </button>
             </form>
@@ -164,7 +165,7 @@
     </main>
   </div>
 
-  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/api.js?v=loan-review-fix"></script>
   <script src="/assets/perf-v1/js/auth.js"></script>
   <script src="/assets/perf-v1/js/common.js"></script>
   <script src="/assets/perf-v1/js/i18n.js"></script>
@@ -172,9 +173,65 @@
     document.addEventListener('DOMContentLoaded', () => {
       Auth.requireAdmin();
 
-      document.getElementById('form-rules').addEventListener('submit', (e) => {
-        e.preventDefault();
-        Common.showToast('Group rules updated and propagated across all calculation engines!', 'success');
+      const field = id => document.getElementById(id);
+      const form = field('form-rules');
+      const save = field('btn-save-rules');
+      const multiple = field('rule-allow-multiple');
+      const maxActive = field('rule-max-active-loans');
+      let loadedGroupId = null;
+      let loadRevision = 0;
+      const syncMultiple = () => { maxActive.disabled = !multiple.checked; };
+      multiple.addEventListener('change', syncMultiple);
+
+      async function loadRules(groupId) {
+        const revision = ++loadRevision;
+        loadedGroupId = null;
+        save.disabled = true;
+        try {
+          const [group, rules] = await Promise.all([
+            api.getGroupById(groupId), api.getMasterData(groupId, true)
+          ]);
+          if (revision !== loadRevision) return;
+          field('rule-monthly-share').value = rules.monthlyBachatAmount ?? group.monthlyBachatAmount;
+          field('rule-interest-rate').value = rules.loanInterestRate ?? group.defaultInterestRate;
+          field('rule-grace-days').value = rules.gracePeriodDays ?? group.gracePeriodDays;
+          field('rule-late-fee').value = rules.latePaymentFee ?? group.lateFeeAmount;
+          multiple.checked = Boolean(group.allowMultipleLoans);
+          maxActive.value = group.maxActiveLoans || 1;
+          syncMultiple();
+          field('rule-group-limits').href = '/admin/groups.html?id=' + encodeURIComponent(groupId) + '&edit=loan-rules';
+          loadedGroupId = groupId;
+          save.disabled = false;
+        } catch (error) {
+          if (revision === loadRevision) Common.showToast(error.message, 'danger');
+        }
+      }
+
+      window.addEventListener('groupChanged', event => loadRules(event.detail.groupId));
+      Common.initGroupSelector().then(() => loadRules(Common.getSelectedGroupId()));
+
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!loadedGroupId || !form.reportValidity()) return;
+        const groupId = loadedGroupId;
+        const revision = loadRevision;
+        save.disabled = true;
+        try {
+          await api.updateGroupBusinessRules(groupId, {
+            monthlyBachatAmount: field('rule-monthly-share').valueAsNumber,
+            defaultInterestRate: field('rule-interest-rate').valueAsNumber,
+            gracePeriodDays: field('rule-grace-days').valueAsNumber,
+            lateFeeAmount: field('rule-late-fee').valueAsNumber,
+            allowMultipleLoans: multiple.checked,
+            maxActiveLoans: maxActive.valueAsNumber
+          });
+          if (revision === loadRevision) await loadRules(groupId);
+          Common.showToast('Group business rules saved.', 'success');
+        } catch (error) {
+          Common.showToast(error.message, 'danger');
+        } finally {
+          if (revision === loadRevision) save.disabled = false;
+        }
       });
 
       document.getElementById('form-change-password').addEventListener('submit', async (e) => {

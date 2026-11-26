@@ -98,6 +98,11 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("Resource not found: " + ex.getResourcePath()));
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableRequest() {
+        return ResponseEntity.badRequest().body(ApiResponse.error("The request contains invalid data. Check the form values and try again."));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
         log.warn("Invalid request: {}", ex.getMessage());

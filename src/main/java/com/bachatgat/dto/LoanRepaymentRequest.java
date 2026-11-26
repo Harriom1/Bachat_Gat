@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class LoanRepaymentRequest {
+    private BigDecimal loanPenaltyAmount;
     @NotNull(message = "Payment amount is required")
     @Positive(message = "Payment amount must be greater than zero")
     private BigDecimal amount;
@@ -40,4 +41,7 @@ public class LoanRepaymentRequest {
     public void setArrangementType(String arrangementType) { this.arrangementType = arrangementType; }
     public String getApprovalNote() { return approvalNote; }
     public void setApprovalNote(String approvalNote) { this.approvalNote = approvalNote; }
+
+    public BigDecimal getLoanPenaltyAmount() { return loanPenaltyAmount; }
+    public void setLoanPenaltyAmount(BigDecimal value) { this.loanPenaltyAmount = value; }
 }

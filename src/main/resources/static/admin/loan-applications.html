@@ -10,6 +10,12 @@
   <link rel="stylesheet" href="/assets/perf-v1/css/tables.css">
   <link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    #btn-approve-app:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
 <body>
   <div class="app-wrapper">
@@ -143,23 +149,23 @@
             <label class="form-label">Approved Sanction Amount (₹) *</label>
             <div class="input-currency-group">
               <span class="currency-prefix">₹</span>
-              <input type="number" id="rev-approvedAmount" class="form-control" required min="1000">
+              <input type="number" id="rev-approvedAmount" class="form-control" required min="0.01" step="0.01">
             </div>
-            <div class="form-help">You can approve an amount lower than the requested amount.</div>
+            <div class="form-help" id="rev-capacity"></div>
           </div>
 
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label">Monthly Interest Rate (% / month)</label>
               <div class="input-currency-group">
-                <input type="number" id="rev-monthlyInterestRate" class="form-control" step="0.05" min="0.1" max="15" placeholder="e.g. 2.0" oninput="syncRevFromMonthly()">
+                <input type="number" id="rev-monthlyInterestRate" class="form-control" step="0.01" min="0" placeholder="e.g. 2.0" oninput="syncRevFromMonthly()">
               </div>
               <div class="form-help">e.g. 2% / month (२ रुपये शेकडा)</div>
             </div>
             <div class="form-group">
               <label class="form-label">Annual Interest Rate (%) *</label>
               <div class="input-currency-group">
-                <input type="number" id="rev-interestRate" class="form-control" value="12" step="0.01" min="0" max="60" required oninput="syncRevFromAnnual()">
+                <input type="number" id="rev-interestRate" class="form-control" value="12" step="0.01" min="0" required oninput="syncRevFromAnnual()">
               </div>
               <div class="form-help">Annual equivalent rate</div>
             </div>
@@ -183,6 +189,23 @@
                    placeholder="Optional cheque / disbursement reference">
           </div>
 
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required" for="rev-startDate">Loan Start Date</label>
+              <input type="date" id="rev-startDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" for="rev-firstDue">First EMI Due Date</label>
+              <input type="date" id="rev-firstDue" class="form-control" required>
+              <button class="btn-outline-custom" id="rev-default-due" type="button" disabled>Use group due day</button>
+            </div>
+            <div class="form-group">
+              <label class="form-label required" for="rev-penalty">Overdue EMI Penalty (₹)</label>
+              <input type="number" id="rev-penalty" class="form-control" min="0" step="0.01" required>
+            </div>
+          </div>
+          <p id="rev-top-up" hidden></p>
+          <p id="rev-top-up-timing" class="form-help" hidden>The old loan will close and the top-up will be disbursed when you approve. The new EMI schedule uses your selected dates.</p>
           <div id="rev-interest-details" style="padding: 0.75rem 1rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.825rem; line-height: 1.4; border-left: 4px solid var(--primary); background: #f8fafc;">
             <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.25rem;" id="rev-interest-title">
               Flat Interest Method (स्थिर व्याज)
@@ -196,6 +219,13 @@
             </div>
           </div>
 
+          <p id="rev-preview-status" class="form-help" aria-live="polite"></p>
+          <div id="rev-schedule" class="table-responsive" style="max-height: 20rem; overflow: auto;" hidden>
+            <table class="data-table">
+              <thead><tr><th>Month</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Closing Principal</th></tr></thead>
+              <tbody id="rev-schedule-body"></tbody>
+            </table>
+          </div>
           <div class="form-group">
             <label class="form-label">Admin Approval Notes / Minutes Reference</label>
             <textarea id="rev-adminNotes" class="form-control" rows="2" placeholder="e.g. Approved in Monthly Meeting #12 on 1st March"></textarea>
@@ -208,7 +238,7 @@
           </button>
           <div style="display: flex; gap: 0.5rem;">
             <button type="button" class="btn-outline-custom" id="btn-cancel-review">Cancel</button>
-            <button type="submit" id="btn-approve-app" class="btn-primary-custom">
+            <button type="submit" id="btn-approve-app" class="btn-primary-custom" aria-describedby="rev-preview-status" disabled>
               <i class="bi bi-check-circle-fill"></i> Sanction & Disburse Loan
             </button>
           </div>
@@ -217,7 +247,7 @@
     </div>
   </div>
 
-  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/api.js?v=loan-review-fix"></script>
   <script src="/assets/perf-v1/js/auth.js"></script>
   <script src="/assets/perf-v1/js/common.js"></script>
   <script src="/assets/perf-v1/js/i18n.js"></script>
@@ -230,22 +260,50 @@
       await loadApplications(groupId);
 
       const modal = document.getElementById('review-app-modal');
+      document.getElementById('loan-apps-tbody').addEventListener('click', event => {
+        const button = event.target.closest('[data-review-id]');
+        if (button) openReviewModal(button.dataset.reviewId);
+      });
       document.getElementById('btn-close-review-modal').addEventListener('click', () => modal.classList.remove('active'));
       document.getElementById('btn-cancel-review').addEventListener('click', () => modal.classList.remove('active'));
+
+      const form = document.getElementById('review-app-form');
+      form.addEventListener('input', event => {
+        if (event.target.matches('#rev-approvedAmount, #rev-durationMonths, #rev-startDate, #rev-firstDue, #rev-penalty, #rev-interestType')) {
+          if (event.target.id === 'rev-firstDue') groupDueDaySelected = false;
+          if (event.target.id === 'rev-startDate' && groupDueDaySelected && event.target.value) {
+            applyGroupDueDay();
+          } else {
+            recalculateInterestDetails();
+          }
+        }
+      });
+      document.getElementById('rev-default-due').addEventListener('click', applyGroupDueDay);
+      window.addEventListener('focus', async () => {
+        const id = document.getElementById('rev-appId').value;
+        if (!approvalDetails || !modal.classList.contains('active')) return;
+        try {
+          const details = await api.getLoanApprovalDetails(id);
+          if (document.getElementById('rev-appId').value !== id) return;
+          updateApprovalLimit(details.maxAdditional);
+          recalculateInterestDetails();
+        } catch (error) {
+          Common.showToast(error.message, 'danger');
+        }
+      });
 
       // Approve Submit
       document.getElementById('review-app-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = document.getElementById('rev-appId').value;
         const approveBtn = document.getElementById('btn-approve-app');
+        if (!currentQuote || !form.reportValidity()) return;
         approveBtn.disabled = true;
         approveBtn.textContent = 'Sanctioning & Disbursing...';
 
         const payload = {
-          approvedAmount: Number(document.getElementById('rev-approvedAmount').value),
-          interestRate: Number(document.getElementById('rev-interestRate').value),
-          durationMonths: Number(document.getElementById('rev-durationMonths').value),
-          interestType: document.getElementById('rev-interestType').value,
+          ...readApprovalTerms(),
+          expectedOutstandingPrincipal: currentQuote.outstandingPrincipal,
           chequeNumber: document.getElementById('rev-chequeNumber').value.trim() || null,
           adminNotes: document.getElementById('rev-adminNotes').value
         };
@@ -257,8 +315,9 @@
           await loadApplications(groupId);
         } catch (err) {
           Common.showToast(err.message, 'danger');
+          recalculateInterestDetails();
         } finally {
-          approveBtn.disabled = false;
+          approveBtn.disabled = !currentQuote;
           approveBtn.innerHTML = '<i class="bi bi-check-circle-fill"></i> Sanction & Disburse Loan';
         }
       });
@@ -299,149 +358,177 @@
 
       tbody.innerHTML = apps.map(a => `
         <tr>
-          <td><code>${a.applicationId}</code></td>
+          <td><code>${Common.escapeHtml(a.applicationId)}</code></td>
           <td>${Common.formatDate(a.createdAt)}</td>
-          <td><code>${a.memberId}</code></td>
-          <td><strong>${a.memberName}</strong></td>
+          <td><code>${Common.escapeHtml(a.memberId)}</code></td>
+          <td><strong>${Common.escapeHtml(a.memberName)}</strong>${a.topUpLoanId ? '<br><small>Top-up</small>' : ''}</td>
           <td class="table-currency" style="color: var(--primary); font-weight: 700;">${Common.formatINR(a.requestedAmount)}</td>
           <td>${a.preferredDurationMonths} mos</td>
           <td class="table-currency text-success">${a.approvedAmount ? Common.formatINR(a.approvedAmount) : '-'}</td>
           <td>${Common.getStatusBadge(a.status)}</td>
           <td>
             ${a.status === 'PENDING' ? `
-              <button class="btn-primary-custom loan-action-icon" title="Review and sanction loan" aria-label="Review and sanction loan" onclick="openReviewModal('${a.id}')">
+              <button class="btn-primary-custom loan-action-icon" title="Review and sanction loan" aria-label="Review and sanction loan" data-review-id="${Common.escapeHtml(a.id)}">
                 <i class="bi bi-clipboard-check"></i>
               </button>
             ` : `
-              <span style="font-size: 0.8rem; color: var(--text-muted);">${a.generatedLoanId ? 'Loan: ' + a.generatedLoanId : a.status}</span>
+              <span style="font-size: 0.8rem; color: var(--text-muted);">${a.generatedLoanId ? 'Loan ' + Common.escapeHtml(a.generatedLoanId) : a.status}</span>
             `}
           </td>
         </tr>
       `).join('');
     }
 
+    let approvalDetails = null;
+    let currentQuote = null;
+    let previewTimer;
+    let previewRevision = 0;
+    let useMonthlyRate = false;
+    let groupDueDaySelected = false;
+
     function syncRevFromMonthly() {
-      const m = parseFloat(document.getElementById('rev-monthlyInterestRate').value);
-      if (!isNaN(m)) {
-        document.getElementById('rev-interestRate').value = (m * 12).toFixed(2).replace(/\.00$/, '');
-        if (typeof recalculateInterestDetails === 'function') recalculateInterestDetails();
-      }
+      useMonthlyRate = true;
+      const rate = document.getElementById('rev-monthlyInterestRate').valueAsNumber;
+      document.getElementById('rev-interestRate').value = Number.isFinite(rate) ? (rate * 12).toFixed(2) : '';
+      recalculateInterestDetails();
     }
 
     function syncRevFromAnnual() {
-      const a = parseFloat(document.getElementById('rev-interestRate').value);
-      if (!isNaN(a)) {
-        document.getElementById('rev-monthlyInterestRate').value = (a / 12).toFixed(2).replace(/\.00$/, '');
-        if (typeof recalculateInterestDetails === 'function') recalculateInterestDetails();
-      }
+      useMonthlyRate = false;
+      const rate = document.getElementById('rev-interestRate').valueAsNumber;
+      document.getElementById('rev-monthlyInterestRate').value = Number.isFinite(rate) ? (rate / 12).toFixed(2) : '';
+      recalculateInterestDetails();
     }
 
-    let recalculateInterestDetails = null;
+    function readApprovalTerms() {
+      return {
+        approvedAmount: document.getElementById('rev-approvedAmount').valueAsNumber,
+        interestRate: document.getElementById(useMonthlyRate ? 'rev-monthlyInterestRate' : 'rev-interestRate').valueAsNumber,
+        isMonthlyRate: useMonthlyRate,
+        durationMonths: document.getElementById('rev-durationMonths').valueAsNumber,
+        interestType: document.getElementById('rev-interestType').value,
+        startDate: document.getElementById('rev-startDate').value,
+        firstEmiDueDate: document.getElementById('rev-firstDue').value,
+        emiDueDay: groupDueDaySelected ? approvalDetails?.dueDay : null,
+        emiLatePenalty: document.getElementById('rev-penalty').valueAsNumber
+      };
+    }
 
-    function openReviewModal(appId) {
-      const app = currentApplications.find(a => a.id === appId);
+    function applyGroupDueDay() {
+      const start = document.getElementById('rev-startDate').value;
+      if (!start || !approvalDetails) return;
+      const [year, month] = start.split('-').map(Number);
+      const daysInNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+      const day = Math.min(approvalDetails.dueDay, daysInNextMonth);
+      const nextDue = new Date(Date.UTC(year, month, day));
+      document.getElementById('rev-firstDue').value = nextDue.toISOString().slice(0, 10);
+      groupDueDaySelected = true;
+      recalculateInterestDetails();
+    }
+
+    function recalculateInterestDetails() {
+      clearTimeout(previewTimer);
+      const revision = ++previewRevision;
+      currentQuote = null;
+      document.getElementById('btn-approve-app').disabled = true;
+      document.getElementById('rev-schedule').hidden = true;
+      document.getElementById('rev-est-emi').textContent = '—';
+      document.getElementById('rev-est-total-int').textContent = '—';
+      const status = document.getElementById('rev-preview-status');
+      const terms = readApprovalTerms();
+      const flat = terms.interestType === 'FLAT';
+      document.getElementById('rev-interest-title').textContent = flat ? 'Flat Interest' : 'Reducing Balance';
+      document.getElementById('rev-interest-desc').textContent = flat
+        ? 'Interest is calculated on the original principal.'
+        : 'Monthly interest is calculated on the remaining principal.';
+      document.getElementById('rev-default-due').disabled = !terms.startDate || !approvalDetails;
+      if (!approvalDetails) return;
+      document.getElementById('rev-top-up-timing').hidden =
+        !approvalDetails.outstandingPrincipal || !terms.startDate || terms.startDate <= approvalDetails.today;
+
+      if (!document.getElementById('review-app-form').checkValidity() || !Number.isFinite(terms.interestRate)) {
+        status.textContent = 'Enter valid loan terms to see the repayment schedule.';
+        return;
+      }
+      status.textContent = 'Calculating repayment…';
+      const id = document.getElementById('rev-appId').value;
+      previewTimer = setTimeout(async () => {
+        try {
+          const quote = await api.previewLoanApproval(id, terms);
+          if (revision !== previewRevision) return;
+          currentQuote = quote;
+          document.getElementById('rev-est-emi').textContent = Common.formatLoanCurrency(quote.summary.monthlyEmi);
+          document.getElementById('rev-est-total-int').textContent = Common.formatLoanCurrency(quote.summary.totalInterest);
+          if (quote.outstandingPrincipal > 0) {
+            document.getElementById('rev-top-up').textContent =
+              'Outstanding principal ' + Common.formatLoanCurrency(quote.outstandingPrincipal)
+              + ' + approved top-up ' + Common.formatLoanCurrency(terms.approvedAmount)
+              + ' = new principal ' + Common.formatLoanCurrency(quote.principal);
+          }
+          document.getElementById('rev-schedule-body').innerHTML = quote.schedule.map(row =>
+            '<tr><td>' + row.installmentNo + '</td><td>' + Common.formatDate(row.dueDate) + '</td><td>'
+            + [row.emiAmount, row.principalAmount, row.interestAmount, row.closingPrincipal]
+                .map(amount => Common.formatLoanCurrency(amount)).join('</td><td>') + '</td></tr>'
+          ).join('');
+          document.getElementById('rev-schedule').hidden = false;
+          document.getElementById('btn-approve-app').disabled = false;
+          status.textContent = '';
+        } catch (error) {
+          if (revision === previewRevision) status.textContent = error.message;
+        }
+      }, 250);
+    }
+
+    function updateApprovalLimit(maximum) {
+      document.getElementById('rev-approvedAmount').max = maximum;
+      document.getElementById('rev-capacity').textContent = 'Maximum additional amount ' + Common.formatLoanCurrency(maximum);
+    }
+
+    async function openReviewModal(appId) {
+      const app = currentApplications.find(application => application.id === appId);
       if (!app) return;
-
+      document.getElementById('review-app-form').reset();
+      approvalDetails = null;
+      useMonthlyRate = false;
+      groupDueDaySelected = false;
+      const isTopUp = Boolean(app.topUpLoanId);
       document.getElementById('rev-appId').value = app.id;
-      document.getElementById('rev-memberName').textContent = `${app.memberName} (${app.memberId})`;
+      document.getElementById('rev-memberName').textContent = app.memberName + ' (' + app.memberId + ')';
       document.getElementById('rev-requestedAmt').textContent = Common.formatINR(app.requestedAmount);
-      document.getElementById('rev-purpose').textContent = app.purpose;
-      document.getElementById('rev-duration').textContent = `${app.preferredDurationMonths} Months`;
-      
-      // Default approved amount = requested amount, but admin can adjust downwards!
+      document.getElementById('rev-purpose').textContent = (isTopUp ? 'Loan top-up · ' : '') + (app.purpose || '');
+      document.getElementById('rev-duration').textContent = app.preferredDurationMonths + ' Months';
       const approvedAmount = document.getElementById('rev-approvedAmount');
       approvedAmount.value = app.requestedAmount;
       approvedAmount.removeAttribute('max');
-      document.getElementById('rev-durationMonths').value = app.preferredDurationMonths || 12;
-
-      // Dynamic interest calculation listener (Requirement 5)
-      recalculateInterestDetails = function() {
-        const type = document.getElementById('rev-interestType').value;
-        const P = parseFloat(document.getElementById('rev-approvedAmount').value || 0);
-        const annualRate = parseFloat(document.getElementById('rev-interestRate').value || 0);
-        const months = document.getElementById('rev-durationMonths').valueAsNumber;
-
-        const titleEl = document.getElementById('rev-interest-title');
-        const descEl = document.getElementById('rev-interest-desc');
-        const emiEl = document.getElementById('rev-est-emi');
-        const totalIntEl = document.getElementById('rev-est-total-int');
-
-        if (!Number.isInteger(months) || months < 1 || months > 360) {
-          emiEl.textContent = '—';
-          totalIntEl.textContent = '—';
-          return;
-        }
-
-        if (type === 'FLAT') {
-          titleEl.textContent = 'Flat Interest Method (स्थिर व्याज)';
-          titleEl.style.color = 'var(--primary)';
-          descEl.textContent = 'Interest is computed on the full sanction amount for the entire tenure. Equal principal + fixed interest split.';
-          const totalInt = Math.round(P * (annualRate / 100) * (months / 12));
-          const emi = months > 0 ? Math.round((P + totalInt) / months) : 0;
-          emiEl.textContent = Common.formatINR(emi);
-          totalIntEl.textContent = Common.formatINR(totalInt);
-        } else {
-          titleEl.textContent = 'Reducing Balance Method (घटती शिल्लक व्याज)';
-          titleEl.style.color = '#059669';
-          descEl.textContent = 'Interest is computed each month on the remaining unpaid principal. Lower cumulative interest burden for member.';
-          // Keep this preview identical to the backend reducing-balance
-          // schedule: round each month's interest and make the final EMI the
-          // exact remaining principal plus that month's interest.
-          const monthlyRate = annualRate / 12 / 100;
-          const round2 = value => Math.round((value + Number.EPSILON) * 100) / 100;
-          let emi = months > 0 ? P / months : 0;
-          if (monthlyRate > 0 && months > 0) {
-            const factor = Math.pow(1 + monthlyRate, months);
-            emi = (P * monthlyRate * factor) / (factor - 1);
-          }
-          emi = Math.round(emi);
-          let opening = round2(P);
-          let totalInt = 0;
-          let totalPayable = 0;
-          for (let i = 1; i <= months; i++) {
-            let interest = round2(opening * monthlyRate);
-            const due = i === months ? Math.round(opening + interest) : emi;
-            if (i === months) interest = round2(due - opening);
-            totalInt = round2(totalInt + interest);
-            totalPayable = round2(totalPayable + due);
-            opening = round2(Math.max(0, opening - round2(due - interest)));
-          }
-          emiEl.textContent = Common.formatINR(emi);
-          totalIntEl.textContent = Common.formatINR(totalInt);
-        }
-      };
-
-      // Prefill interest rate and calculation type from group master data
-      const groupId = app.groupId || document.getElementById('active-group-select').value;
-      api.getMasterData(groupId, true).then(md => {
-        if (document.getElementById('rev-appId').value !== app.id) return;
-        if (md) {
-          if (md.maxLoanAmountPerMember != null && md.maxOutstandingLoanAmount != null) {
-            approvedAmount.max = Math.min(md.maxLoanAmountPerMember, md.maxOutstandingLoanAmount);
-          }
-          if (md.loanInterestRate != null) {
-            document.getElementById('rev-interestRate').value = md.loanInterestRate;
-            document.getElementById('rev-monthlyInterestRate').value = (md.loanInterestRate / 12).toFixed(2).replace(/\.00$/, '');
-          }
-          if (md.loanInterestType) {
-            document.getElementById('rev-interestType').value = md.loanInterestType.includes('FLAT') ? 'FLAT' : 'REDUCING';
-          }
-          recalculateInterestDetails();
-        }
-      }).catch(e => {
-        if (document.getElementById('rev-appId').value !== app.id) return;
-        const rate = parseFloat(document.getElementById('rev-interestRate').value || 12);
-        document.getElementById('rev-monthlyInterestRate').value = (rate / 12).toFixed(2).replace(/\.00$/, '');
-        recalculateInterestDetails();
-      });
-
-      document.getElementById('rev-interestType').addEventListener('change', recalculateInterestDetails);
-      document.getElementById('rev-approvedAmount').addEventListener('input', recalculateInterestDetails);
-      document.getElementById('rev-interestRate').addEventListener('input', recalculateInterestDetails);
-      document.getElementById('rev-durationMonths').addEventListener('input', recalculateInterestDetails);
-
+      document.getElementById('rev-capacity').textContent = '';
+      document.getElementById('rev-durationMonths').value = isTopUp ? '' : app.preferredDurationMonths || 12;
+      document.getElementById('rev-interestType').disabled = isTopUp;
+      document.getElementById('rev-top-up').hidden = !isTopUp;
+      document.getElementById('rev-top-up').textContent = '';
+      document.getElementById('rev-top-up-timing').hidden = true;
       recalculateInterestDetails();
+      document.getElementById('rev-preview-status').textContent = 'Loading current lending limits…';
       document.getElementById('review-app-modal').classList.add('active');
+
+      try {
+        const details = await api.getLoanApprovalDetails(appId);
+        if (document.getElementById('rev-appId').value !== appId) return;
+        approvalDetails = details;
+        updateApprovalLimit(details.maxAdditional);
+        document.getElementById('rev-default-due').textContent = 'Use group due day (' + details.dueDay + ')';
+        document.getElementById('rev-penalty').value = details.penalty;
+        document.getElementById('rev-interestRate').value = details.interestRate;
+        document.getElementById('rev-interestType').value = details.interestType;
+        if (isTopUp) {
+          document.getElementById('rev-top-up').textContent =
+            'Outstanding principal available to transfer ' + Common.formatLoanCurrency(details.outstandingPrincipal);
+        }
+        syncRevFromAnnual();
+      } catch (error) {
+        if (document.getElementById('rev-appId').value === appId) {
+          document.getElementById('rev-preview-status').textContent = error.message;
+        }
+      }
     }
   </script>
 </body>

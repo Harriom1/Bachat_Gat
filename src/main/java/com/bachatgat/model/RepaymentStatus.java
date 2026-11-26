@@ -5,5 +5,6 @@ public enum RepaymentStatus {
     DUE,
     PARTIAL,
     PAID,
-    OVERDUE
+    OVERDUE,
+    SETTLED
 }

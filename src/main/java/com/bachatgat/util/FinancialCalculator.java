@@ -281,12 +281,23 @@ public final class FinancialCalculator {
             BigDecimal principal, BigDecimal ratePercent, boolean isMonthlyRate, int durationMonths,
             java.time.LocalDate startDate,
             java.util.List<com.bachatgat.model.LoanRepaymentSchedule> recordedSchedule) {
+        return generateReducingScheduleWithPayments(principal, ratePercent, isMonthlyRate, durationMonths,
+                startDate, recordedSchedule, null, null, java.time.LocalDate.now());
+    }
+
+    public static java.util.List<com.bachatgat.model.LoanRepaymentSchedule> generateReducingScheduleWithPayments(
+            BigDecimal principal, BigDecimal ratePercent, boolean isMonthlyRate, int durationMonths,
+            java.time.LocalDate startDate,
+            java.util.List<com.bachatgat.model.LoanRepaymentSchedule> recordedSchedule,
+            java.time.LocalDate firstDueDate, Integer dueDay, java.time.LocalDate asOf) {
         java.util.List<com.bachatgat.model.LoanRepaymentSchedule> forecast =
                 generateAmortizationSchedule(principal, ratePercent, isMonthlyRate, durationMonths, startDate);
         java.util.List<com.bachatgat.model.LoanRepaymentSchedule> result = new java.util.ArrayList<>();
         if (forecast.isEmpty()) return result;
 
-        java.time.LocalDate asOf = java.time.LocalDate.now();
+        if (firstDueDate != null) {
+            forecast.forEach(row -> row.setDueDate(monthlyDueDate(firstDueDate, dueDay, row.getInstallmentNo() - 1)));
+        }
         BigDecimal actualOpening = round(principal);
         BigDecimal unpaidPrincipal = BigDecimal.ZERO;
         BigDecimal unpaidInterest = BigDecimal.ZERO;
@@ -300,7 +311,7 @@ public final class FinancialCalculator {
                     .filter(item -> item.getInstallmentNo() == installment)
                     .findFirst().orElse(null);
             BigDecimal recordedTotal = source != null && source.getPaidAmount() != null
-                    ? source.getPaidAmount() : BigDecimal.ZERO;
+                    ? source.getPaidAmount().subtract(source.getPaidPenaltyAmount()) : BigDecimal.ZERO;
             boolean hasRecordedPayment = recordedTotal.signum() > 0
                     || (source != null && (source.getPaidPrincipalAmount().signum() > 0
                     || source.getPaidInterestAmount().signum() > 0));
@@ -328,7 +339,10 @@ public final class FinancialCalculator {
             }
             entry.setInstallmentNo(installment);
             entry.setDueDate(contractual.getDueDate());
-            entry.setPenaltyAmount(contractual.getPenaltyAmount());
+            if (source != null) {
+                entry.setPenaltyAmount(source.getPenaltyAmount());
+                entry.setPaidPenaltyAmount(source.getPaidPenaltyAmount());
+            }
 
             entry.setPrincipalPrepayment(prepayment);
             entry.setPostMaturityPrepayment(postMaturity);
@@ -410,6 +424,12 @@ public final class FinancialCalculator {
             result.add(entry);
         }
         return result;
+    }
+
+    public static java.time.LocalDate monthlyDueDate(java.time.LocalDate firstDueDate, Integer dueDay, int offset) {
+        java.time.YearMonth month = java.time.YearMonth.from(firstDueDate).plusMonths(offset);
+        int day = dueDay == null ? firstDueDate.getDayOfMonth() : dueDay;
+        return month.atDay(Math.min(day, month.lengthOfMonth()));
     }
 
     /**

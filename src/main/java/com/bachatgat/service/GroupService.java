@@ -1,6 +1,7 @@
 package com.bachatgat.service;
 
 import com.bachatgat.dto.GroupDTO;
+import com.bachatgat.dto.GroupBusinessRulesRequest;
 import com.bachatgat.dto.OfficeBearerDTO;
 import com.bachatgat.exception.DuplicateRecordException;
 import com.bachatgat.exception.ResourceNotFoundException;
@@ -254,10 +255,38 @@ public class GroupService {
         return updated;
     }
 
+    public Group updateBusinessRules(String id, GroupBusinessRulesRequest request, String actor) {
+        Group group = dataService.getGroupForLending(id);
+        var currentRules = dataService.getCurrentLoanRules(id);
+        String before = groupAuditState(group);
+        group.setMonthlyBachatAmount(request.monthlyBachatAmount());
+        group.setDefaultInterestRate(request.defaultInterestRate());
+        group.setGracePeriodDays(request.gracePeriodDays());
+        group.setLateFeeAmount(request.lateFeeAmount());
+        group.setAllowMultipleLoans(request.allowMultipleLoans());
+        group.setMaxActiveLoans(request.maxActiveLoans());
+        Group saved = dataService.saveGroup(group);
+        currentRules.ifPresent(rules -> {
+            rules.setMonthlyBachatAmount(request.monthlyBachatAmount());
+            rules.setLoanInterestRate(request.defaultInterestRate());
+            rules.setGracePeriodDays(request.gracePeriodDays());
+            rules.setLatePaymentFee(request.lateFeeAmount());
+            rules.setAllowMultipleLoans(request.allowMultipleLoans());
+            rules.setMaxActiveLoans(request.maxActiveLoans());
+            dataService.saveMasterData(rules);
+        });
+        auditService.log(id, actor, actor, "GROUP_BUSINESS_RULES_UPDATED", "GROUP", id,
+                before, groupAuditState(saved), "127.0.0.1");
+        return saved;
+    }
+
     private String groupAuditState(Group group) {
         return group.getGroupName() + " | Monthly Bachat: " + group.getMonthlyShareAmount()
                 + " | Rate: " + group.getDefaultInterestRate() + "% | Member Loan Limit: "
-                + group.getMaxLoanAmountPerMember();
+                + group.getMaxLoanAmountPerMember() + " | EMI Due Day: " + group.getLoanDueDay()
+                + " | EMI Penalty: " + group.getLoanLatePenalty() + " | Bachat Grace Days: " + group.getGracePeriodDays()
+                + " | Bachat Late Fee: " + group.getLateFeeAmount() + " | Multiple Loans: " + group.isAllowMultipleLoans()
+                + " | Max Active Loans: " + group.getMaxActiveLoans();
     }
 
     public User designateOfficeBearer(String groupId, OfficeBearerDTO dto, String createdBy) {
@@ -359,6 +388,18 @@ public class GroupService {
         if (dto.getMaxLoanAmount() != null) group.setMaxLoanAmount(dto.getMaxLoanAmount());
         if (dto.getGracePeriodDays() > 0) group.setGracePeriodDays(dto.getGracePeriodDays());
         if (dto.getLateFeeAmount() != null) group.setLateFeeAmount(dto.getLateFeeAmount());
+        if (dto.getLoanDueDay() != null) {
+            if (dto.getLoanDueDay() < 1 || dto.getLoanDueDay() > 31) {
+                throw new IllegalArgumentException("EMI due day must be between 1 and 31.");
+            }
+            group.setLoanDueDay(dto.getLoanDueDay());
+        }
+        if (dto.getLoanLatePenalty() != null) {
+            if (dto.getLoanLatePenalty().signum() < 0 || dto.getLoanLatePenalty().scale() > 2) {
+                throw new IllegalArgumentException("EMI penalty must be non-negative with at most two decimals.");
+            }
+            group.setLoanLatePenalty(dto.getLoanLatePenalty());
+        }
         group.setAllowMultipleLoans(dto.isAllowMultipleLoans());
         if (dto.getMaxActiveLoans() != null && dto.getMaxActiveLoans() > 0) group.setMaxActiveLoans(dto.getMaxActiveLoans());
         if (dto.getMaxOutstandingLoanAmount() != null) group.setMaxOutstandingLoanAmount(dto.getMaxOutstandingLoanAmount());

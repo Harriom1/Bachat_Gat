@@ -16,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -137,6 +138,27 @@ public class AdminMemberController {
         groupSecurityService.validateGroupAccess(principal, member.getGroupId());
         Member updated = memberService.updateMember(id, dto, principal.getUsername());
         return ResponseEntity.ok(ApiResponse.ok("Member details updated successfully", updated));
+    }
+
+    public record LoanCapacity(BigDecimal loanCapacity) {}
+
+    @GetMapping("/members/{id}/loan-capacity")
+    public ResponseEntity<ApiResponse<LoanCapacity>> getLoanCapacity(
+            @PathVariable String id, @AuthenticationPrincipal UserPrincipal principal) {
+        Member member = memberService.getMemberById(id);
+        groupSecurityService.validateGroupAccess(principal, member.getGroupId());
+        return ResponseEntity.ok(ApiResponse.ok(new LoanCapacity(memberService.getMemberLoanCapacity(member).getLoanCapacity())));
+    }
+
+    @PatchMapping("/members/{id}/loan-capacity")
+    public ResponseEntity<ApiResponse<LoanCapacity>> updateLoanCapacity(
+            @PathVariable String id, @RequestBody Map<String, BigDecimal> body,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        Member member = memberService.getMemberById(id);
+        groupSecurityService.validateGroupAccess(principal, member.getGroupId());
+        if (!body.containsKey("loanCapacity")) throw new IllegalArgumentException("Loan capacity is required.");
+        Member updated = memberService.updateLoanCapacity(member, body.get("loanCapacity"), principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("Loan capacity updated", new LoanCapacity(updated.getLoanCapacity())));
     }
 
     @PatchMapping("/members/{id}/status")

@@ -119,6 +119,12 @@
             </div>
 
             <form id="form-loan-app">
+              <div id="app-loan-type" class="form-group" hidden>
+                <label class="form-label" for="app-top-up-loan">Loan Type</label>
+                <select id="app-top-up-loan" class="form-select">
+                  <option value="">New Loan</option>
+                </select>
+              </div>
               <div class="form-group mb-3">
                 <label class="form-label required" data-i18n="requestedLoanAmount">Requested Loan Amount (₹)</label>
                 <div style="position: relative;">
@@ -230,7 +236,7 @@
     </main>
   </div>
 
-  <script src="/assets/perf-v1/js/api.js?v=loan-terms-20261123"></script>
+  <script src="/assets/perf-v1/js/api.js?v=loan-review-fix"></script>
   <script src="/assets/perf-v1/js/auth.js"></script>
   <script src="/assets/perf-v1/js/common.js"></script>
   <script src="/assets/perf-v1/js/i18n.js"></script>
@@ -247,6 +253,8 @@
       }
       document.getElementById('app-amount').addEventListener('input', calculateLiveEmi);
       document.getElementById('app-duration').addEventListener('input', calculateLiveEmi);
+      document.getElementById('app-top-up-loan').addEventListener('change', applyLoanEligibility);
+      window.addEventListener('focus', loadEligibility);
       document.getElementById('form-loan-app').addEventListener('submit', handleSubmitApp);
       await Promise.all([loadEligibility(), loadApplications()]);
 
@@ -264,24 +272,18 @@
         memberEligibility = el;
 
         const badgeEl = document.getElementById('el-badge-status');
-        const alertEl = document.getElementById('ineligibility-alert');
-        const reasonText = document.getElementById('ineligibility-reason-text');
-        const submitBtn = document.getElementById('btn-submit-app');
-
-        const eligibleLabel = window.i18n ? window.i18n.t('eligibleToApply', 'ELIGIBLE TO APPLY') : 'ELIGIBLE TO APPLY';
-        const notEligibleLabel = window.i18n ? window.i18n.t('notEligible', 'NOT ELIGIBLE') : 'NOT ELIGIBLE';
-
-        if (el.eligible) {
-          badgeEl.innerHTML = `<span class="status-badge badge-active"><i class="bi bi-check-circle-fill"></i> ${eligibleLabel}</span>`;
-          alertEl.style.display = 'none';
-          submitBtn.disabled = false;
-          submitBtn.title = '';
-        } else {
-          badgeEl.innerHTML = `<span class="status-badge badge-danger"><i class="bi bi-x-circle-fill"></i> ${notEligibleLabel}</span>`;
-          alertEl.style.display = 'block';
-          reasonText.textContent = el.reason || 'You do not meet the criteria to apply for a new loan under group policies.';
-          submitBtn.disabled = true;
-          submitBtn.title = reasonText.textContent;
+        const selector = document.getElementById('app-top-up-loan');
+        const previousSelection = selector.value;
+        const options = el.topUpOptions || [];
+        selector.replaceChildren(new Option('New Loan', ''));
+        options.forEach(loan => selector.add(new Option(
+          'Top-up on ' + loan.loanId + ' · ' + Common.formatIndianCurrency(loan.outstandingPrincipal) + ' principal outstanding', loan.id
+        )));
+        document.getElementById('app-loan-type').hidden = options.length === 0;
+        if (options.some(loan => loan.id === previousSelection)) {
+          selector.value = previousSelection;
+        } else if (!el.eligible && options.some(loan => loan.eligible)) {
+          selector.value = options.find(loan => loan.eligible).id;
         }
 
         const singleLoanOnlyText = window.i18n ? window.i18n.t('singleLoanOnly', 'Single Loan Only') : 'Single Loan Only';
@@ -310,21 +312,10 @@
         if (multiRuleEl) {
           multiRuleEl.textContent = el.allowMultipleLoans 
             ? (window.i18n ? window.i18n.t('multiLoanPolicyDesc', `Allowed (Max ${el.maxActiveLoans} active loans, cap ${Common.formatIndianCurrency(totalOutstandingCap)})`).replace('{max}', el.maxActiveLoans).replace('{cap}', Common.formatIndianCurrency(totalOutstandingCap)) : `Allowed (Max ${el.maxActiveLoans} active loans, cap ${Common.formatIndianCurrency(totalOutstandingCap)})`) 
-            : (window.i18n ? window.i18n.t('singleLoanPolicyDesc', 'Single Active Loan Policy (Must complete existing loan first)') : 'Single Active Loan Policy (Must complete existing loan first)');
+            : (window.i18n ? window.i18n.t('singleLoanPolicyDesc', 'One active loan at a time. Members with an active loan can request a top-up.') : 'Single Active Loan Policy (Must complete existing loan first)');
         }
 
-        const amountInput = document.getElementById('app-amount');
-        if (amountInput && memberLimit) {
-          amountInput.max = Math.max(0, Math.min(memberLimit, totalOutstandingCap - el.totalOutstanding));
-          const helpEl = document.getElementById('app-amount-help');
-          if (helpEl) {
-            const ceilingText = window.i18n ? window.i18n.t('groupCeilingPerLoan', 'Group ceiling per loan') : 'Group ceiling per loan';
-            const capText = window.i18n ? window.i18n.t('maxTotalOutstanding', 'Max total outstanding') : 'Max total outstanding';
-            helpEl.textContent = `${ceilingText}: ${Common.formatIndianCurrency(memberLimit)} • ${capText}: ${Common.formatIndianCurrency(totalOutstandingCap)}`;
-          }
-        }
-
-        calculateLiveEmi();
+        applyLoanEligibility();
 
       } catch (err) {
         console.warn('Could not load loan eligibility:', err);
@@ -335,6 +326,40 @@
           'Loan eligibility is unavailable. Refresh to try again.';
         calculateLiveEmi();
       }
+    }
+
+    function selectedTopUp() {
+      const id = document.getElementById('app-top-up-loan').value;
+      return memberEligibility?.topUpOptions?.find(loan => loan.id === id);
+    }
+
+    function canApply() {
+      return selectedTopUp()?.eligible ?? memberEligibility?.eligible ?? false;
+    }
+
+    function applyLoanEligibility() {
+      if (!memberEligibility) return;
+      const topUp = selectedTopUp();
+      const eligible = canApply();
+      const badge = document.getElementById('el-badge-status');
+      badge.textContent = eligible
+        ? (window.i18n?.t('eligibleToApply', 'Eligible to Apply') || 'Eligible to Apply')
+        : (window.i18n?.t('notEligible', 'Not Eligible') || 'Not Eligible');
+      badge.className = eligible ? 'status-badge badge-active' : 'status-badge badge-danger';
+      document.getElementById('ineligibility-alert').style.display = eligible ? 'none' : 'block';
+      document.getElementById('ineligibility-reason-text').textContent = topUp
+        ? 'This loan is currently ineligible for a top-up. Check its overdue installments and available limit.'
+        : memberEligibility.reason;
+      document.getElementById('btn-submit-app').disabled = !eligible;
+      const maximum = topUp?.maxAdditional ?? memberEligibility.maxAdditional;
+      const input = document.getElementById('app-amount');
+      input.min = topUp ? '0.01' : '1000';
+      input.step = topUp ? '0.01' : '1';
+      input.max = maximum;
+      document.getElementById('app-amount-help').textContent = eligible
+        ? (topUp ? 'Maximum additional amount ' : 'Maximum request amount ') + Common.formatIndianCurrency(maximum)
+        : 'See the eligibility message above.';
+      calculateLiveEmi();
     }
 
     function calculateLiveEmi() {
@@ -350,15 +375,16 @@
         document.getElementById(id).textContent = '—';
       }
       status.textContent = '';
-      if (!memberEligibility || !amount.value || !amount.validity.valid ||
+      if (!canApply() || !amount.value || !amount.validity.valid ||
           !duration.value || !duration.validity.valid) return;
 
       const principal = amount.valueAsNumber;
       const months = duration.valueAsNumber;
+      const topUpLoanId = selectedTopUp()?.id;
       status.textContent = window.i18n?.t('calculatingRepayment', 'Calculating repayment…') || 'Calculating repayment…';
       previewTimer = setTimeout(async () => {
         try {
-          const quote = await api.getLoanRepaymentPreview(principal, months);
+          const quote = await api.getLoanRepaymentPreview(principal, months, topUpLoanId);
           if (requestId !== previewRequestId) return;
 
           document.getElementById('live-emi-val').textContent = Common.formatLoanCurrency(quote.monthlyEmi);
@@ -432,7 +458,7 @@
       const duration = document.getElementById('app-duration').valueAsNumber;
       const message = document.getElementById('app-message').value.trim();
 
-      if (!memberEligibility?.eligible) {
+      if (!canApply()) {
         Common.showToast(memberEligibility?.reason || 'Could not confirm loan eligibility.', 'danger');
         return;
       }
@@ -447,6 +473,7 @@
       try {
         await api.submitLoanApplication({
           requestedAmount: amount,
+          topUpLoanId: selectedTopUp()?.id,
           purpose: purpose,
           preferredDurationMonths: duration,
           optionalMessage: message
@@ -466,7 +493,7 @@
           Common.showToast('Failed to submit application: ' + err.message, 'danger');
         }
       } finally {
-        btn.disabled = !memberEligibility?.eligible;
+        btn.disabled = !canApply();
         btn.innerHTML = `<i class="bi bi-check2-circle"></i> ${submitTxt}`;
       }
     }

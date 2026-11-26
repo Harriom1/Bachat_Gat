@@ -74,6 +74,10 @@ public class GroupFundService {
         return getAvailableFund(groupId).max(BigDecimal.ZERO);
     }
 
+    BigDecimal getCurrentLendingCapacity(String groupId) {
+        return getFundBreakdown(groupId, dataService.getGroupTransactionsForLending(groupId)).availableFund().max(BigDecimal.ZERO);
+    }
+
     public BigDecimal getAvailableFundBefore(String groupId, LocalDate date) {
         if (date == null) return getAvailableFund(groupId);
         List<Transaction> ledger = dataService.getTransactionsByGroupId(groupId);
@@ -177,7 +181,7 @@ public class GroupFundService {
                 .map(e -> nz(e.getAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal disbursed = dataService.getLoansByGroupId(groupId).stream()
                 .filter(l -> l.getStatus() != LoanStatus.PENDING && l.getStatus() != LoanStatus.APPROVED && l.getStatus() != LoanStatus.CANCELLED)
-                .map(l -> nz(l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .map(l -> nz(l.getTopUpAmount() != null ? l.getTopUpAmount() : l.getPrincipalAmount())).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new LegacyFundValues(savings, interest, expenses, disbursed, principalRepaid);
     }
 
@@ -233,7 +237,7 @@ public class GroupFundService {
         BigDecimal missingLegacyDisbursements = getUniqueLoans(groupId).stream()
                 .filter(this::isDisbursedLoan)
                 .filter(loan -> loan.getLoanId() == null || !ledgerLoanIds.contains(loan.getLoanId()))
-                .map(loan -> nz(loan.getPrincipalAmount()))
+                .map(loan -> nz(loan.getTopUpAmount() != null ? loan.getTopUpAmount() : loan.getPrincipalAmount()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return ledgerDisbursed.add(missingLegacyDisbursements);

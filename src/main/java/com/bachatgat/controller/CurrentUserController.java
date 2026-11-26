@@ -117,7 +117,7 @@ public class CurrentUserController {
     @GetMapping("/loans")
     public ResponseEntity<ApiResponse<List<Loan>>> getMyLoans(@AuthenticationPrincipal UserPrincipal principal) {
         String memberId = requireMemberId(principal);
-        List<Loan> loans = loanService.getLoansByMemberId(memberId);
+        List<Loan> loans = loanService.getLoansByMemberId(memberId, principal.getGroupId());
         return ResponseEntity.ok(ApiResponse.ok(loans));
     }
 
@@ -141,13 +141,13 @@ public class CurrentUserController {
             @AuthenticationPrincipal UserPrincipal principal) {
         String memberId = requireMemberId(principal);
         Loan loan = loanService.getLoanById(loanId);
-        if (!loan.getMemberId().equalsIgnoreCase(memberId)) {
+        if (!loan.getMemberId().equalsIgnoreCase(memberId) || !loan.getGroupId().equals(principal.getGroupId())) {
             throw new ForbiddenException("You are not authorized to view another member's loan schedule.");
         }
         List<LoanRepaymentSchedule> schedule = loanService.getLoanSchedule(loanId);
         List<LoanRepaymentSchedule> visibleSchedule = new ArrayList<>(2);
         for (LoanRepaymentSchedule installment : schedule) {
-            if (installment.getStatus() != RepaymentStatus.PAID) {
+            if (installment.getStatus() != RepaymentStatus.PAID && installment.getStatus() != RepaymentStatus.SETTLED) {
                 visibleSchedule.add(installment);
                 if (visibleSchedule.size() == 2) break;
             }
@@ -160,7 +160,7 @@ public class CurrentUserController {
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody LoanApplicationRequest request) {
         String memberId = requireMemberId(principal);
-        LoanApplication app = loanApplicationService.submitApplication(memberId, request);
+        LoanApplication app = loanApplicationService.submitApplication(memberId, principal.getGroupId(), request);
         return ResponseEntity.ok(ApiResponse.ok("Loan application submitted successfully and sent for admin review", app));
     }
 
@@ -174,7 +174,7 @@ public class CurrentUserController {
     @GetMapping("/loan-eligibility")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getMyLoanEligibility(@AuthenticationPrincipal UserPrincipal principal) {
         String memberId = requireMemberId(principal);
-        Map<String, Object> eligibility = loanApplicationService.getLoanEligibility(memberId);
+        Map<String, Object> eligibility = loanApplicationService.getLoanEligibility(memberId, principal.getGroupId());
         return ResponseEntity.ok(ApiResponse.ok(eligibility));
     }
 
@@ -182,9 +182,10 @@ public class CurrentUserController {
     public ResponseEntity<ApiResponse<LoanRepaymentPreview>> previewLoanRepayment(
             @AuthenticationPrincipal UserPrincipal principal,
             @RequestParam BigDecimal amount,
-            @RequestParam int durationMonths) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                loanApplicationService.previewRepayment(requireMemberId(principal), amount, durationMonths)));
+            @RequestParam int durationMonths,
+            @RequestParam(required = false) String topUpLoanId) {
+        return ResponseEntity.ok(ApiResponse.ok(loanApplicationService.previewRepayment(
+                requireMemberId(principal), principal.getGroupId(), amount, durationMonths, topUpLoanId)));
     }
 
     @GetMapping("/transactions")

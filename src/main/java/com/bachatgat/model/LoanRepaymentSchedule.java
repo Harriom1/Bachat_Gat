@@ -1,11 +1,14 @@
 package com.bachatgat.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.google.cloud.firestore.annotation.DocumentId;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class LoanRepaymentSchedule {
+    private BigDecimal paidPenaltyAmount = BigDecimal.ZERO;
     @DocumentId
     private String id;
     private String loanId;
@@ -152,4 +155,7 @@ public class LoanRepaymentSchedule {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public BigDecimal getPaidPenaltyAmount() { return paidPenaltyAmount == null ? BigDecimal.ZERO : paidPenaltyAmount; }
+    public void setPaidPenaltyAmount(BigDecimal value) { this.paidPenaltyAmount = value; }
 }

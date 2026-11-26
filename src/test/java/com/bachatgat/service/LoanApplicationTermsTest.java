@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class LoanApplicationTermsTest {
-    private final FirestoreDataService data = new FirestoreDataService(null, null, new ObjectMapper());
+    private final FirestoreDataService data = new FirestoreDataService(null, null, new ObjectMapper().findAndRegisterModules());
     private final AuditService audit = new AuditService(data);
     private final LoanApplicationService service = new LoanApplicationService(data, new TransactionService(data),
             new NotificationService(data), audit, new GroupFundService(data));
@@ -138,6 +138,9 @@ class LoanApplicationTermsTest {
         request.setInterestType(type);
         request.setInterestRate(rate);
         request.setDisburseImmediately(false);
+        request.setStartDate(LocalDate.now());
+        request.setFirstEmiDueDate(LocalDate.now().plusMonths(1));
+        request.setEmiLatePenalty(BigDecimal.ZERO);
         return request;
     }
 }

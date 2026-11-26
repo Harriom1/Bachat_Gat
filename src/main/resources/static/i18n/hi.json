@@ -437,7 +437,7 @@
   "approved": "स्वीकृत",
   "rejected": "अस्वीकृत",
   "configuredByPresident": "समूह अध्यक्ष द्वारा निर्धारित नियम",
-  "singleLoanPolicyDesc": "एकल ऋण नीति (मौजूदा ऋण चुकाने के बाद ही नया ऋण)",
+  "singleLoanPolicyDesc": "एक समय में एक सक्रिय ऋण। सक्रिय ऋण वाले सदस्य टॉप-अप के लिए आवेदन कर सकते हैं।",
   "multiLoanPolicyDesc": "अनुमत (अधिकतम {max} सक्रिय ऋण, सीमा {cap})",
   "myCollectionRecords": "मेरी मासिक बचत व किस्त प्रविष्टियाँ",
   "collectionSubtitle": "मासिक अंशदान इतिहास, सत्यापित रसीदें और विलंब शुल्क ऑडिट",

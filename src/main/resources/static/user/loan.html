@@ -268,16 +268,16 @@
         }
 
         // Display the most recent active loan
-        const loan = loans[0];
+        const loan = loans.find(item => ['ACTIVE', 'PARTIALLY_PAID', 'OVERDUE'].includes(item.status)) || loans[0];
         document.getElementById('my-loan-id').textContent = loan.id;
         document.getElementById('my-loan-principal').textContent = Common.formatIndianCurrency(loan.principalAmount);
         
-        const totalPaid = parseFloat(loan.principalPaid || 0) + parseFloat(loan.interestPaid || 0);
+        const totalPaid = loan.totalPaid ?? (Number(loan.principalPaid || 0) + Number(loan.interestPaid || 0));
         document.getElementById('my-loan-paid').textContent = Common.formatIndianCurrency(totalPaid);
         document.getElementById('my-sub-p-paid').textContent = Common.formatIndianCurrency(loan.principalPaid);
         document.getElementById('my-sub-i-paid').textContent = Common.formatIndianCurrency(loan.interestPaid);
 
-        const totalOutstanding = parseFloat(loan.outstandingPrincipal || 0) + parseFloat(loan.outstandingInterest || 0);
+        const totalOutstanding = loan.totalOutstanding ?? (Number(loan.outstandingPrincipal || 0) + Number(loan.outstandingInterest || 0));
         document.getElementById('my-loan-outstanding').textContent = Common.formatIndianCurrency(totalOutstanding);
         document.getElementById('my-sub-p-out').textContent = Common.formatIndianCurrency(loan.outstandingPrincipal);
         document.getElementById('my-sub-i-out').textContent = Common.formatIndianCurrency(loan.outstandingInterest);
@@ -310,7 +310,7 @@
       }
 
       // Find next upcoming due
-      const upcoming = schedule.find(s => s.status === 'UPCOMING' || s.status === 'PARTIAL' || s.status === 'OVERDUE');
+      const upcoming = schedule.find(s => ['UPCOMING', 'DUE', 'PARTIAL', 'OVERDUE'].includes(s.status));
       if (upcoming) {
         document.getElementById('my-next-installment').textContent = Common.formatIndianCurrency(upcoming.totalDue);
         document.getElementById('my-next-due-date').textContent = Common.formatDate(upcoming.dueDate);

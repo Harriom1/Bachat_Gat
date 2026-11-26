@@ -206,6 +206,14 @@
             <div id="loan-action-container"></div>
           </div>
           <div id="loan-card-body" style="margin-top: 1rem;"></div>
+          <form id="member-loan-capacity-form" style="margin-top: 1rem;" hidden>
+            <div class="form-group">
+              <label for="member-loan-capacity" class="form-label">Individual Loan Capacity (₹)</label>
+              <input id="member-loan-capacity" type="number" min="0" step="0.01" class="form-control">
+              <div class="form-help">Sets the member’s total principal limit. Group limits still apply. Leave blank to use the group’s default member limit.</div>
+            </div>
+            <button type="submit" class="btn-outline-custom">Save Loan Capacity</button>
+          </form>
         </div>
 
         <!-- Monthly Savings & Collection Ledger -->
@@ -269,7 +277,7 @@
     </main>
   </div>
 
-  <script src="/assets/perf-v1/js/api.js"></script>
+  <script src="/assets/perf-v1/js/api.js?v=loan-review-fix"></script>
   <script src="/assets/perf-v1/js/auth.js"></script>
   <script src="/assets/perf-v1/js/common.js"></script>
   <script src="/assets/perf-v1/js/i18n.js"></script>
@@ -281,6 +289,33 @@
       const urlParams = new URLSearchParams(window.location.search);
       const memberId = urlParams.get('id') || 'MPBG-M001';
       await loadMemberDossier(memberId);
+      const capacityForm = document.getElementById('member-loan-capacity-form');
+      const capacityInput = document.getElementById('member-loan-capacity');
+      const member = currentMemberData?.member;
+      if (member) {
+        const id = member.id || member.memberId;
+        try {
+          const capacity = await api.getMemberLoanCapacity(id);
+          capacityInput.value = capacity.loanCapacity ?? '';
+          capacityForm.hidden = false;
+          capacityForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            const button = capacityForm.querySelector('button');
+            button.disabled = true;
+            try {
+              const saved = await api.updateMemberLoanCapacity(id, capacityInput.value === '' ? null : capacityInput.valueAsNumber);
+              capacityInput.value = saved.loanCapacity ?? '';
+              Common.showToast('Loan capacity updated.', 'success');
+            } catch (error) {
+              Common.showToast(error.message, 'danger');
+            } finally {
+              button.disabled = false;
+            }
+          });
+        } catch (error) {
+          Common.showToast(error.message, 'danger');
+        }
+      }
 
       window.addEventListener('languageChanged', () => {
         if (currentMemberData) renderMemberDossier(currentMemberData);
@@ -315,9 +350,9 @@
         let out = 0;
         let activeLoans = [];
         if (stmt.loans && stmt.loans.length > 0) {
-          activeLoans = stmt.loans.filter(l => (parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0)) > 0);
+          activeLoans = stmt.loans.filter(l => Number(l.totalOutstanding || 0) > 0);
           activeLoans.forEach(l => {
-            out += (parseFloat(l.outstandingPrincipal || 0) + parseFloat(l.outstandingInterest || 0));
+            out += Number(l.totalOutstanding || 0);
           });
         }
         document.getElementById('m-loan-out').textContent = Common.formatIndianCurrency(out);

@@ -439,7 +439,7 @@
   "approved": "APPROVED",
   "rejected": "REJECTED",
   "configuredByPresident": "Configured by group president",
-  "singleLoanPolicyDesc": "Single Active Loan Policy (Must complete existing loan first)",
+  "singleLoanPolicyDesc": "One active loan at a time. Members with an active loan may request a top-up.",
   "multiLoanPolicyDesc": "Allowed (Max {max} active loans, cap {cap})",
   "myCollectionRecords": "My Collection Records & Share Deposits",
   "collectionSubtitle": "Monthly contribution history, verified receipts, and late fee audits",

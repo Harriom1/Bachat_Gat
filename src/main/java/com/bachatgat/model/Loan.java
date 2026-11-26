@@ -6,6 +6,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Loan {
+    private Integer emiDueDay;
+    private LocalDate startDate;
+    private LocalDate firstEmiDueDate;
+    private BigDecimal emiLatePenalty;
+    private BigDecimal outstandingPenalty = BigDecimal.ZERO;
+    private String refinancedLoanId;
+    private String replacementLoanId;
+    private BigDecimal topUpAmount;
+    private LocalDate settlementDate;
     @DocumentId
     private String id;
     private String loanId;               // e.g. LN-2026-001
@@ -115,4 +124,24 @@ public class Loan {
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
     public int getOverdueInstallments() { return overdueInstallments; }
     public void setOverdueInstallments(int overdueInstallments) { this.overdueInstallments = overdueInstallments; }
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate value) { this.startDate = value; }
+    public LocalDate getFirstEmiDueDate() { return firstEmiDueDate; }
+    public void setFirstEmiDueDate(LocalDate value) { this.firstEmiDueDate = value; }
+    public BigDecimal getEmiLatePenalty() { return emiLatePenalty; }
+    public void setEmiLatePenalty(BigDecimal value) { this.emiLatePenalty = value; }
+    public BigDecimal getOutstandingPenalty() { return outstandingPenalty == null ? BigDecimal.ZERO : outstandingPenalty; }
+    public void setOutstandingPenalty(BigDecimal value) { this.outstandingPenalty = value; }
+    public String getRefinancedLoanId() { return refinancedLoanId; }
+    public void setRefinancedLoanId(String value) { this.refinancedLoanId = value; }
+    public String getReplacementLoanId() { return replacementLoanId; }
+    public void setReplacementLoanId(String value) { this.replacementLoanId = value; }
+    public BigDecimal getTopUpAmount() { return topUpAmount; }
+    public void setTopUpAmount(BigDecimal value) { this.topUpAmount = value; }
+    public LocalDate getSettlementDate() { return settlementDate; }
+    public void setSettlementDate(LocalDate value) { this.settlementDate = value; }
+
+    public Integer getEmiDueDay() { return emiDueDay; }
+    public void setEmiDueDay(Integer value) { this.emiDueDay = value; }
 }

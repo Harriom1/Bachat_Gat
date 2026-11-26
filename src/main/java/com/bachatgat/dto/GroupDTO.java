@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public class GroupDTO {
+    private Integer loanDueDay;
+    private BigDecimal loanLatePenalty;
     private String id;
     
     @NotBlank(message = "Group Name is required")
@@ -194,4 +196,9 @@ public class GroupDTO {
     public void setMaxOutstandingLoanAmount(BigDecimal maxOutstandingLoanAmount) { this.maxOutstandingLoanAmount = maxOutstandingLoanAmount; }
     public BigDecimal getMaxLoanAmountPerMember() { return maxLoanAmountPerMember; }
     public void setMaxLoanAmountPerMember(BigDecimal maxLoanAmountPerMember) { this.maxLoanAmountPerMember = maxLoanAmountPerMember; }
+
+    public Integer getLoanDueDay() { return loanDueDay; }
+    public void setLoanDueDay(Integer value) { this.loanDueDay = value; }
+    public BigDecimal getLoanLatePenalty() { return loanLatePenalty; }
+    public void setLoanLatePenalty(BigDecimal value) { this.loanLatePenalty = value; }
 }

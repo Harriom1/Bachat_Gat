@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Member {
+    private BigDecimal loanCapacity;
     @DocumentId
     private String id;
     private String memberId;         // e.g. MPBG-M001
@@ -268,5 +269,7 @@ public class Member {
     public void setTotalPenaltiesPaid(BigDecimal totalPenaltiesPaid) { this.totalPenaltiesPaid = totalPenaltiesPaid; }
     public String getDesignation() { return designation != null ? designation : "MEMBER"; }
     public void setDesignation(String designation) { this.designation = designation != null ? designation : "MEMBER"; }
-}
 
+    public BigDecimal getLoanCapacity() { return loanCapacity; }
+    public void setLoanCapacity(BigDecimal value) { this.loanCapacity = value; }
+}

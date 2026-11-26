@@ -2,6 +2,7 @@ package com.bachatgat.scheduler;
 
 import com.bachatgat.model.*;
 import com.bachatgat.repository.FirestoreDataService;
+import com.bachatgat.repository.LoanScheduleCalculatorSupport;
 import com.bachatgat.service.CollectionService;
 import com.bachatgat.service.MonthlyBachatCalendar;
 import com.bachatgat.service.NotificationService;
@@ -51,57 +52,57 @@ public class ScheduledJobsService {
         }
     }
 
-    /**
-     * Daily Overdue Loan & Payment Due Checker:
-     * Checks all active loans. If today is past the installment due date plus grace period,
-     * marks loan and schedule as OVERDUE and generates notification alerts.
-     */
-    @Scheduled(cron = "0 0 6 * * ?")
+    @Scheduled(cron = "0 5 0 * * ?", zone = "Asia/Kolkata")
     public void runDailyLoanDueCheck() {
-        log.info("Executing scheduled daily loan due and overdue evaluation job...");
-        LocalDate today = LocalDate.now();
+        runLoanDueCheck(LoanScheduleCalculatorSupport.today());
+    }
 
+    void runLoanDueCheck(LocalDate today) {
         for (Group group : dataService.getAllGroups()) {
-            int graceDays = group.getGracePeriodDays() > 0 ? group.getGracePeriodDays() : 5;
-            List<Loan> groupLoans = dataService.getLoansByGroupId(group.getId());
-
-            for (Loan cachedLoan : groupLoans) {
-                if (cachedLoan.getStatus() != LoanStatus.ACTIVE && cachedLoan.getStatus() != LoanStatus.PARTIALLY_PAID) continue;
-                var state = dataService.beginLoanPayment(cachedLoan);
-                Loan loan = state.loan();
-                if (loan.getStatus() != LoanStatus.ACTIVE && loan.getStatus() != LoanStatus.PARTIALLY_PAID) continue;
-                List<LoanRepaymentSchedule> schedule = dataService.getLoanScheduleForPayment(loan.getId());
-                boolean hasOverdue = false;
-                boolean changed = false;
-                for (LoanRepaymentSchedule item : schedule) {
-                    if (item.getStatus() == RepaymentStatus.PAID) continue;
-                    if (today.isAfter(item.getDueDate().plusDays(graceDays))) {
-                        changed |= item.getStatus() != RepaymentStatus.OVERDUE;
-                        item.setStatus(RepaymentStatus.OVERDUE);
-                        hasOverdue = true;
-                    } else if (!today.isBefore(item.getDueDate()) && item.getStatus() == RepaymentStatus.UPCOMING) {
-                        item.setStatus(RepaymentStatus.DUE);
-                        changed = true;
-                    }
-                }
-                if (hasOverdue) loan.setStatus(LoanStatus.OVERDUE);
-                if (!changed && !hasOverdue) continue;
+            for (Loan cached : dataService.getGroupLoansForLending(group.getId())) {
+                if (!LoanScheduleCalculatorSupport.isServicing(cached)) continue;
                 try {
-                    dataService.saveLoanDueCheck(state, schedule);
+                    evaluateLoan(group, cached, today);
                 } catch (IllegalStateException ex) {
-                    log.warn("Could not save overdue status for loan {}. It will be reevaluated on the next run.",
-                            loan.getLoanId(), ex);
-                    continue;
-                }
-                if (hasOverdue) {
-                    dataService.findUserByMemberId(loan.getMemberId()).ifPresent(u ->
-                            notificationService.sendNotification(group.getId(), u.getId(), "USER",
-                                    "Loan Overdue Notice",
-                                    "Your installment for Loan " + loan.getLoanId() +
-                                            " is overdue. Please submit payment immediately to avoid late fees.",
-                                    "LOAN_OVERDUE"));
+                    log.warn("Could not update loan {} due status. It will be reevaluated on the next run.",
+                            cached.getLoanId(), ex);
                 }
             }
+        }
+    }
+
+    private void evaluateLoan(Group group, Loan cached, LocalDate today) {
+        var state = dataService.beginLoanPayment(cached);
+        Loan loan = state.loan();
+        if (!LoanScheduleCalculatorSupport.isServicing(loan)) return;
+        BigDecimal originalPenalty = java.util.Objects.requireNonNullElse(loan.getOutstandingPenalty(), BigDecimal.ZERO);
+        List<LoanRepaymentSchedule> rows = dataService.getLoanScheduleForPayment(state, today);
+        int grace = loan.getStartDate() != null ? 0 : group.getGracePeriodDays() > 0 ? group.getGracePeriodDays() : 5;
+        int overdue = LoanScheduleCalculatorSupport.overdueInstallments(rows, today, grace);
+        boolean newlyOverdue = overdue > loan.getOverdueInstallments();
+        boolean changed = overdue != loan.getOverdueInstallments()
+                || originalPenalty.compareTo(loan.getOutstandingPenalty()) != 0
+                || state.originalOutstanding().compareTo(loan.getTotalOutstanding()) != 0;
+        for (LoanRepaymentSchedule row : rows) {
+            if (row.getStatus() == RepaymentStatus.PAID || row.getTotalDue().compareTo(row.getPaidAmount()) <= 0) continue;
+            if (today.isAfter(row.getDueDate().plusDays(grace))) {
+                changed |= row.getStatus() != RepaymentStatus.OVERDUE;
+                row.setStatus(RepaymentStatus.OVERDUE);
+            } else if (!today.isBefore(row.getDueDate()) && row.getStatus() == RepaymentStatus.UPCOMING) {
+                row.setStatus(RepaymentStatus.DUE);
+                changed = true;
+            }
+        }
+        LoanStatus status = overdue > 0 ? LoanStatus.OVERDUE
+                : loan.getTotalPaid().signum() > 0 ? LoanStatus.PARTIALLY_PAID : LoanStatus.ACTIVE;
+        if (!changed && status == loan.getStatus()) return;
+        loan.setStatus(status);
+        loan.setOverdueInstallments(overdue);
+        dataService.saveLoanDueCheck(state, rows);
+        if (newlyOverdue) {
+            dataService.findUserByMemberId(loan.getMemberId()).ifPresent(user ->
+                    notificationService.sendNotification(group.getId(), user.getId(), "USER", "Loan overdue notice",
+                            "Loan " + loan.getLoanId() + " has " + overdue + " overdue installment(s).", "LOAN_OVERDUE"));
         }
     }
 }

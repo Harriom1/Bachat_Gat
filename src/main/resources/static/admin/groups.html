@@ -118,7 +118,7 @@
             <button id="btn-create-group" class="btn-primary-custom corner-action" onclick="openCreateGroupModal()" data-i18n="newGroupBtn" title="New Group Creation" aria-label="New Group Creation">
               <i class="bi bi-plus-circle-fill"></i><span class="action-label">New Group Creation</span>
             </button>
-            <button id="btn-edit-group" class="btn-outline-custom corner-action" onclick="openEditModal()" data-i18n="editGroupBtn" title="Edit Group Profile" aria-label="Edit Group Profile">
+            <button id="btn-edit-group" class="btn-outline-custom corner-action" data-i18n="editGroupBtn" title="Edit Group Profile" aria-label="Edit Group Profile">
               <i class="bi bi-pencil-square" aria-hidden="true"></i>
             </button>
           </div>
@@ -885,13 +885,27 @@
               <div class="form-group" style="flex: 1;">
                 <label class="form-label required" for="edit-max-loan-per-member" data-i18n="maxLoanAmountPerMember">Loan Limit for 1 Member (₹)</label>
                 <input type="number" id="edit-max-loan-per-member" class="form-control" min="1000" step="1" placeholder="500000" required>
-                <input type="hidden" id="edit-max-loan">
                 <div class="form-help" data-i18n="helpMemberLoanLimit">Per-member single loan ceiling limit.</div>
               </div>
               <div class="form-group" style="flex: 0.8;">
                 <label class="form-label" data-i18n="latePenalty">Late Penalty (₹)</label>
                 <input type="number" id="edit-late-fee" class="form-control" min="0" step="10" placeholder="100">
                 <div class="form-help" data-i18n="helpLatePenalty">Fee per delayed month.</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="edit-max-loan">Group Loan Capacity (₹)</label>
+                <input type="number" id="edit-max-loan" class="form-control" min="1" step="1" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-loan-due-day">Monthly EMI Due Day</label>
+                <input type="number" id="edit-loan-due-day" class="form-control" min="1" max="31" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="edit-loan-penalty">Overdue EMI Penalty (₹)</label>
+                <input type="number" id="edit-loan-penalty" class="form-control" min="0" step="0.01" required>
               </div>
             </div>
 
@@ -1084,6 +1098,10 @@
 
       try {
         await loadAllGroups();
+        if (currentGroup && new URLSearchParams(window.location.search).get('edit') === 'loan-rules') {
+          await openEditModal();
+          document.getElementById('edit-max-loan-per-member').focus();
+        }
       } catch (err) {
         console.error('Error in loadAllGroups:', err);
       }
@@ -1805,6 +1823,8 @@
       setVal('edit-monthly-interest-rate', (annualRate / 12).toFixed(2).replace(/\.00$/, ''));
       setVal('edit-interest-type', interestType);
       setVal('edit-max-loan', maxLoan);
+      setVal('edit-loan-due-day', currentGroup.loanDueDay ?? 10);
+      setVal('edit-loan-penalty', currentGroup.loanLatePenalty ?? 0);
       setVal('edit-late-fee', lateFee);
       setVal('edit-allow-multiple-loans', allowMulti ? "true" : "false");
       setVal('edit-max-active-loans', maxActive);
@@ -1823,9 +1843,7 @@
       const el = document.getElementById('edit-allow-multiple-loans');
       const isMulti = el && el.value === 'true';
       const maxBox = document.getElementById('edit-max-active-loans-box');
-      const outBox = document.getElementById('edit-max-outstanding-loan-box');
       if (maxBox) maxBox.style.display = isMulti ? 'block' : 'none';
-      if (outBox) outBox.style.display = isMulti ? 'block' : 'none';
     }
 
     function closeEditModal() {
@@ -1840,15 +1858,15 @@
       const limitInput = document.getElementById('edit-max-loan-per-member');
       if (!limitInput.reportValidity()) return;
       const maxLoanAmountPerMember = limitInput.valueAsNumber;
-      const maxLoan = Math.max(Number(document.getElementById('edit-max-loan').value), maxLoanAmountPerMember);
+      const maxLoan = document.getElementById('edit-max-loan').valueAsNumber;
       const lateFee = parseFloat(document.getElementById('edit-late-fee')?.value);
       const collectionDueDay = parseInt(document.getElementById('edit-collection-due-day')?.value) || 10;
       const allowMultipleLoans = document.getElementById('edit-allow-multiple-loans')?.value === 'true';
       const maxActiveLoans = parseInt(document.getElementById('edit-max-active-loans')?.value) || 2;
       const outstandingInput = document.getElementById('edit-max-outstanding-loan');
-      if (allowMultipleLoans && !outstandingInput.reportValidity()) return;
+      if (!outstandingInput.reportValidity()) return;
       const configuredOutstanding = outstandingInput.valueAsNumber || 500000;
-      const maxOutstandingLoanAmount = allowMultipleLoans ? configuredOutstanding : Math.max(configuredOutstanding, maxLoanAmountPerMember);
+      const maxOutstandingLoanAmount = configuredOutstanding;
 
       const updatedData = {
         groupName: document.getElementById('edit-name').value,
@@ -1856,6 +1874,8 @@
         defaultInterestRate: isNaN(annualRate) ? 12 : annualRate,
         loanInterestType: interestType,
         maxLoanAmount: maxLoan,
+        loanDueDay: document.getElementById('edit-loan-due-day').valueAsNumber,
+        loanLatePenalty: document.getElementById('edit-loan-penalty').valueAsNumber,
         lateFeeAmount: isNaN(lateFee) ? 100 : lateFee,
         bachatGatRegNumber: document.getElementById('edit-gov-reg').value,
         collectionDueDay: collectionDueDay,

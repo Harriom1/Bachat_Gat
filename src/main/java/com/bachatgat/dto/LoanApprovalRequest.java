@@ -6,8 +6,14 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public class LoanApprovalRequest {
+    private Integer emiDueDay;
+    private LocalDate startDate;
+    private LocalDate firstEmiDueDate;
+    private BigDecimal emiLatePenalty;
+    private BigDecimal expectedOutstandingPrincipal;
     @NotNull(message = "Approved amount is required")
     @Positive(message = "Approved amount must be greater than zero")
     private BigDecimal approvedAmount;
@@ -46,4 +52,16 @@ public class LoanApprovalRequest {
     public void setInterestType(String interestType) { this.interestType = interestType; }
     public String getAdminNotes() { return adminNotes; }
     public void setAdminNotes(String adminNotes) { this.adminNotes = adminNotes; }
+
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate value) { this.startDate = value; }
+    public LocalDate getFirstEmiDueDate() { return firstEmiDueDate; }
+    public void setFirstEmiDueDate(LocalDate value) { this.firstEmiDueDate = value; }
+    public BigDecimal getEmiLatePenalty() { return emiLatePenalty; }
+    public void setEmiLatePenalty(BigDecimal value) { this.emiLatePenalty = value; }
+    public BigDecimal getExpectedOutstandingPrincipal() { return expectedOutstandingPrincipal; }
+    public void setExpectedOutstandingPrincipal(BigDecimal value) { this.expectedOutstandingPrincipal = value; }
+
+    public Integer getEmiDueDay() { return emiDueDay; }
+    public void setEmiDueDay(Integer value) { this.emiDueDay = value; }
 }

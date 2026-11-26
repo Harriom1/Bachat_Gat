@@ -522,6 +522,13 @@ class ApiClient {
     return this.request(`/admin/groups/${id}`);
   }
 
+  updateGroupBusinessRules(id, rules) {
+    return this.request('/admin/groups/' + encodeURIComponent(id) + '/business-rules', {
+      method: 'PATCH',
+      body: rules
+    });
+  }
+
   updateGroup(id, groupData) {
     return this.request(`/admin/groups/${id}`, {
       method: 'PUT',
@@ -599,6 +606,17 @@ class ApiClient {
     });
   }
 
+  getMemberLoanCapacity(id) {
+    return this.request('/admin/members/' + encodeURIComponent(id) + '/loan-capacity');
+  }
+
+  updateMemberLoanCapacity(id, loanCapacity) {
+    return this.request('/admin/members/' + encodeURIComponent(id) + '/loan-capacity', {
+      method: 'PATCH',
+      body: {loanCapacity}
+    });
+  }
+
   updateMemberStatus(id, status) {
     return this.request(`/admin/members/${id}/status`, {
       method: 'PATCH',
@@ -660,6 +678,17 @@ class ApiClient {
 
   getLoanApplicationById(id) {
     return this.request(`/admin/loan-applications/${id}`);
+  }
+
+  getLoanApprovalDetails(id) {
+    return this.request('/admin/loan-applications/' + encodeURIComponent(id) + '/approval-details');
+  }
+
+  previewLoanApproval(id, terms) {
+    return this.request('/admin/loan-applications/' + encodeURIComponent(id) + '/approval-preview', {
+      method: 'POST',
+      body: terms
+    });
   }
 
   approveLoanApplication(id, approvalData) {
@@ -974,8 +1003,9 @@ class ApiClient {
     return this.request('/me/loan-eligibility');
   }
 
-  getLoanRepaymentPreview(amount, durationMonths) {
+  getLoanRepaymentPreview(amount, durationMonths, topUpLoanId) {
     const query = new URLSearchParams({amount, durationMonths});
+    if (topUpLoanId) query.set('topUpLoanId', topUpLoanId);
     return this.request(`/me/loan-repayment-preview?${query}`);
   }
 }

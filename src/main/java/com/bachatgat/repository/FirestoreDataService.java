@@ -804,6 +804,11 @@ public class FirestoreDataService {
     // LOAN APPLICATION OPERATIONS
     // ==========================================
     public List<LoanApplication> getLoanApplicationsByGroupId(String groupId) {
+        if (firestore != null && groupId != null) {
+            return awaitLoanRead(firestore.collection("loanApplications").whereEqualTo("groupId", groupId).get())
+                    .getDocuments().stream().map(snapshot -> fromSnapshot(snapshot, LoanApplication.class, LoanApplication::setId))
+                    .sorted(Comparator.comparing(LoanApplication::getCreatedAt).reversed()).toList();
+        }
         ensureLoaded("loanApplications");
         return loanApplications.values().stream()
                 .filter(la -> groupId == null || la.getGroupId().equals(groupId))
@@ -812,6 +817,11 @@ public class FirestoreDataService {
     }
 
     public List<LoanApplication> getLoanApplicationsByMemberId(String memberId) {
+        if (firestore != null) {
+            return awaitLoanRead(firestore.collection("loanApplications").whereEqualTo("memberId", memberId).get())
+                    .getDocuments().stream().map(snapshot -> fromSnapshot(snapshot, LoanApplication.class, LoanApplication::setId))
+                    .sorted(Comparator.comparing(LoanApplication::getCreatedAt).reversed()).toList();
+        }
         ensureLoaded("loanApplications");
         return loanApplications.values().stream()
                 .filter(la -> la.getMemberId().equalsIgnoreCase(memberId))
@@ -820,6 +830,11 @@ public class FirestoreDataService {
     }
 
     public Optional<LoanApplication> findLoanApplicationById(String id) {
+        if (firestore != null) {
+            var snapshot = awaitLoanRead(firestore.collection("loanApplications").document(id).get());
+            if (!snapshot.exists()) return Optional.empty();
+            return Optional.of(fromSnapshot(snapshot, LoanApplication.class, LoanApplication::setId));
+        }
         ensureLoaded("loanApplications");
         return Optional.ofNullable(loanApplications.get(id));
     }
@@ -913,15 +928,27 @@ public class FirestoreDataService {
             Optional<Loan> storedLoan = findLoanById(loanId);
             if (storedLoan.isPresent() && !"FLAT".equalsIgnoreCase(storedLoan.get().getInterestType())) {
                 Loan l = storedLoan.get();
-                List<LoanRepaymentSchedule> recalculated = com.bachatgat.util.FinancialCalculator.generateReducingScheduleWithPayments(
-                        l.getPrincipalAmount(), l.getInterestRate(),
-                        "MONTHLY".equalsIgnoreCase(l.getInterestRateBasis()),
-                        l.getDurationMonths() > 0 ? l.getDurationMonths() : 12,
-                        l.getDisbursementDate() != null ? l.getDisbursementDate() : LocalDate.now(), s);
+                if (l.getReplacementLoanId() != null) return s;
+                if (l.getStartDate() != null) l = objectMapper.convertValue(l, Loan.class);
+                LocalDate asOf = l.getStartDate() == null ? LocalDate.now() : LoanScheduleCalculatorSupport.today();
+                List<LoanRepaymentSchedule> recalculated = LoanScheduleCalculatorSupport.rebuild(l, s, asOf);
                 reconcileReducingLoanSummary(l, recalculated);
+                if (LoanScheduleCalculatorSupport.isServicing(l) || l.getStatus() == LoanStatus.COMPLETED) {
+                    LoanScheduleCalculatorSupport.applyPenalties(l, recalculated, asOf);
+                }
+                if (l.getStartDate() != null) return recalculated;
                 loanSchedules.put(l.getId(), recalculated);
                 if (l.getLoanId() != null) loanSchedules.put(l.getLoanId(), recalculated);
                 return recalculated;
+            }
+            if (storedLoan.isPresent() && storedLoan.get().getStartDate() != null
+                    && storedLoan.get().getReplacementLoanId() == null) {
+                Loan loan = objectMapper.convertValue(storedLoan.get(), Loan.class);
+                List<LoanRepaymentSchedule> rows = objectMapper.convertValue(s, new TypeReference<>() {});
+                if (LoanScheduleCalculatorSupport.isServicing(loan) || loan.getStatus() == LoanStatus.COMPLETED) {
+                    LoanScheduleCalculatorSupport.applyPenalties(loan, rows, LoanScheduleCalculatorSupport.today());
+                }
+                return rows;
             }
             return s;
         }
@@ -1028,6 +1055,191 @@ public class FirestoreDataService {
         return new ArrayList<>();
     }
 
+    public Member getMemberForLending(String memberId, String groupId) {
+        if (firestore == null) {
+            return findMemberByMemberId(memberId).filter(member -> groupId == null || groupId.equals(member.getGroupId()))
+                    .orElseThrow(() -> new com.bachatgat.exception.ResourceNotFoundException("Member not found: " + memberId));
+        }
+        var query = firestore.collection("members").whereEqualTo("memberId", memberId);
+        if (groupId != null) query = query.whereEqualTo("groupId", groupId);
+        return awaitLoanRead(query.get()).getDocuments().stream()
+                .map(snapshot -> fromSnapshot(snapshot, Member.class, Member::setId))
+                .filter(this::isVisibleMember)
+                .findFirst()
+                .orElseThrow(() -> new com.bachatgat.exception.ResourceNotFoundException("Member not found: " + memberId));
+    }
+
+    public Group getGroupForLending(String groupId) {
+        Group group = findGroupById(groupId)
+                .orElseThrow(() -> new com.bachatgat.exception.ResourceNotFoundException("Group not found: " + groupId));
+        if (firestore == null) return group;
+        return fromSnapshot(awaitLoanRead(firestore.collection("groups").document(groupId).get()),
+                Group.class, FirestoreDataService::loadGroup);
+    }
+
+    public List<Transaction> getGroupTransactionsForLending(String groupId) {
+        if (firestore == null) return getTransactionsByGroupId(groupId);
+        return awaitLoanRead(firestore.collection("transactions").whereEqualTo("groupId", groupId).get())
+                .getDocuments().stream().map(snapshot -> fromSnapshot(snapshot, Transaction.class, Transaction::setId)).toList();
+    }
+
+    public List<Loan> getGroupLoansForLending(String groupId) {
+        if (firestore == null || groupId == null) return getLoansByGroupId(groupId);
+        return awaitLoanRead(firestore.collection("loans").whereEqualTo("groupId", groupId).get())
+                .getDocuments().stream().map(snapshot -> fromSnapshot(snapshot, Loan.class, Loan::setId))
+                .sorted(Comparator.comparing(Loan::getCreatedAt).reversed()).toList();
+    }
+
+    private <T> T fromSnapshot(DocumentSnapshot snapshot, Class<T> type, BiConsumer<T, String> idSetter) {
+        if (!snapshot.exists()) {
+            throw new com.bachatgat.exception.ResourceNotFoundException("Record not found: " + snapshot.getId());
+        }
+        T value = objectMapper.convertValue(snapshot.getData(), type);
+        idSetter.accept(value, snapshot.getId());
+        return value;
+    }
+
+    private <T> T awaitLoanRead(java.util.concurrent.Future<T> future) {
+        try {
+            return future.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Loan operation was interrupted.", ex);
+        } catch (java.util.concurrent.ExecutionException ex) {
+            throw new IllegalStateException("Could not complete the loan operation. Refresh before retrying.", ex);
+        }
+    }
+
+    public void updateMemberLoanCapacity(Member member, BigDecimal capacity, AuditLog audit) {
+        if (firestore != null) {
+            var batch = firestore.batch();
+            var snapshot = awaitLoanRead(firestore.collection("members").document(member.getId()).get());
+            Member latest = fromSnapshot(snapshot, Member.class, Member::setId);
+            audit.setOldValue(String.valueOf(latest.getLoanCapacity()));
+            var update = new HashMap<String, Object>();
+            update.put("loanCapacity", capacity == null ? null : capacity.doubleValue());
+            batch.update(snapshot.getReference(), update, loanVersion(snapshot));
+            batch.create(firestore.collection("auditLogs").document(audit.getId()), loanDocument(audit));
+            awaitLoanRead(batch.commit());
+        }
+        member.setLoanCapacity(capacity);
+        members.computeIfPresent(member.getId(), (id, cached) -> {
+            cached.setLoanCapacity(capacity);
+            return cached;
+        });
+        auditLogs.put(audit.getId(), audit);
+    }
+
+    public record LoanApprovalState(LoanApplication application, Member member, Group group,
+                                    DocumentSnapshot applicationVersion, DocumentSnapshot memberVersion,
+                                    DocumentSnapshot groupVersion) {}
+
+    public LoanApprovalState beginLoanApproval(LoanApplication application) {
+        Member member = getMemberForLending(application.getMemberId(), application.getGroupId());
+        Group group = getGroupForLending(application.getGroupId());
+        if (firestore == null) return new LoanApprovalState(objectMapper.convertValue(application, LoanApplication.class),
+                member, group, null, null, null);
+        var appVersion = awaitLoanRead(firestore.collection("loanApplications").document(application.getId()).get());
+        var groupVersion = awaitLoanRead(firestore.collection("groups").document(group.getId()).get());
+        var memberVersion = awaitLoanRead(firestore.collection("members").document(member.getId()).get());
+        return new LoanApprovalState(fromSnapshot(appVersion, LoanApplication.class, LoanApplication::setId),
+                fromSnapshot(memberVersion, Member.class, Member::setId),
+                fromSnapshot(groupVersion, Group.class, FirestoreDataService::loadGroup),
+                appVersion, memberVersion, groupVersion);
+    }
+
+    public synchronized void confirmLoanApproval(LoanApprovalState approval, Loan loan,
+            List<LoanRepaymentSchedule> rows, LoanPaymentState source, List<LoanRepaymentSchedule> sourceSchedule,
+            List<Transaction> entries, AuditLog audit, BigDecimal groupDelta, BigDecimal memberOutstanding) {
+        LoanApplication application = approval.application();
+        Group group = approval.group();
+        Member member = approval.member();
+        if (firestore != null) {
+            var batch = firestore.batch();
+            batch.update(approval.applicationVersion().getReference(), loanDocument(application), loanVersion(approval.applicationVersion()));
+            var groupUpdate = new HashMap<String, Object>();
+            groupUpdate.put("updatedAt", loanDocument(loan).get("updatedAt"));
+            var memberUpdate = new HashMap<String, Object>();
+            memberUpdate.put("updatedAt", loanDocument(loan).get("updatedAt"));
+            if (memberOutstanding != null) {
+                groupUpdate.put("totalLoanOutstanding", Objects.requireNonNullElse(group.getTotalLoanOutstanding(), BigDecimal.ZERO).add(groupDelta).max(BigDecimal.ZERO));
+                memberUpdate.put("activeLoanId", loan.getLoanId());
+                memberUpdate.put("currentLoanOutstanding", memberOutstanding);
+            }
+            batch.update(approval.groupVersion().getReference(), groupUpdate, loanVersion(approval.groupVersion()));
+            batch.update(approval.memberVersion().getReference(), memberUpdate, loanVersion(approval.memberVersion()));
+            batch.create(firestore.collection("loans").document(loan.getId()), loanDocument(loan));
+            batch.create(firestore.collection("loanSchedules").document(loan.getId()), loanScheduleDocument(loan, rows));
+            if (source != null) {
+                var closed = source.loan();
+                batch.update(source.loanVersion().getReference(), loanDocument(closed), loanVersion(source.loanVersion()));
+                var snapshot = source.scheduleVersion();
+                var schedule = loanScheduleDocument(closed, sourceSchedule);
+                if (snapshot.exists()) batch.update(snapshot.getReference(), schedule, loanVersion(snapshot));
+                else batch.create(snapshot.getReference(), schedule);
+            }
+            for (Transaction entry : entries) {
+                batch.create(firestore.collection("transactions").document(entry.getId()), loanDocument(entry));
+            }
+            batch.create(firestore.collection("auditLogs").document(audit.getId()), loanDocument(audit));
+            awaitLoanRead(batch.commit());
+        } else {
+            if (loanApplications.get(application.getId()).getStatus() != LoanApplicationStatus.PENDING) {
+                throw new com.bachatgat.exception.InvalidFinancialOperationException("Application has already been reviewed.");
+            }
+            if (source != null) verifyInMemoryLoanVersion(source);
+        }
+        loanApplications.put(application.getId(), application);
+        cacheApprovedLoan(loan, rows);
+        if (source != null) cacheApprovedLoan(source.loan(), sourceSchedule);
+        entries.forEach(entry -> transactions.put(entry.getId(), entry));
+        auditLogs.put(audit.getId(), audit);
+        if (memberOutstanding != null) {
+            member.setActiveLoanId(loan.getLoanId());
+            member.setCurrentLoanOutstanding(memberOutstanding);
+            group.setTotalLoanOutstanding(Objects.requireNonNullElse(group.getTotalLoanOutstanding(), BigDecimal.ZERO).add(groupDelta).max(BigDecimal.ZERO));
+            members.put(member.getId(), member);
+            groups.put(group.getId(), group);
+        }
+    }
+
+    public synchronized LoanApplication rejectLoanApplication(LoanApprovalState state, AuditLog audit) {
+        var app = state.application();
+        if (firestore != null) {
+            var batch = firestore.batch();
+            batch.update(state.applicationVersion().getReference(), loanDocument(app), loanVersion(state.applicationVersion()));
+            batch.create(firestore.collection("auditLogs").document(audit.getId()), loanDocument(audit));
+            awaitLoanRead(batch.commit());
+        } else if (loanApplications.get(app.getId()).getStatus() != LoanApplicationStatus.PENDING) {
+            throw new com.bachatgat.exception.InvalidFinancialOperationException("Application has already been reviewed.");
+        }
+        loanApplications.put(app.getId(), app);
+        auditLogs.put(audit.getId(), audit);
+        return app;
+    }
+
+    private void cacheApprovedLoan(Loan loan, List<LoanRepaymentSchedule> rows) {
+        loans.put(loan.getId(), loan);
+        loanSchedules.put(loan.getId(), rows);
+        if (loan.getLoanId() != null) {
+            loans.put(loan.getLoanId(), loan);
+            loanSchedules.put(loan.getLoanId(), rows);
+        }
+    }
+
+    private Map<String, Object> loanDocument(Object value) {
+        return objectMapper.convertValue(value, new TypeReference<Map<String, Object>>() {});
+    }
+
+    private Map<String, Object> loanScheduleDocument(Loan loan, List<LoanRepaymentSchedule> schedule) {
+        return Map.of("loanId", loan.getId(), "schedule",
+                objectMapper.convertValue(schedule, new TypeReference<List<Map<String, Object>>>() {}));
+    }
+
+    private com.google.cloud.firestore.Precondition loanVersion(DocumentSnapshot snapshot) {
+        return com.google.cloud.firestore.Precondition.updatedAt(snapshot.getUpdateTime());
+    }
+
     private void refreshLoanSchedule(String loanId) {
         if (firestore == null) return;
         Optional<Loan> storedLoan = findLoanById(loanId);
@@ -1068,20 +1280,74 @@ public class FirestoreDataService {
                 principal, rate, duration, startDate, storedTotalInterest, storedMonthlyInstallment);
     }
 
+    public Loan getCurrentLoanView(Loan cached) {
+        var state = beginLoanPayment(cached);
+        Loan loan = state.loan();
+        if (firestore != null) {
+            loans.put(loan.getId(), loan);
+            if (loan.getLoanId() != null) loans.put(loan.getLoanId(), loan);
+        }
+        if (loan.getStartDate() == null || !LoanScheduleCalculatorSupport.isServicing(loan)) return loan;
+        // Keep the persisted balances used for write deltas separate from the read-only projection.
+        Loan view = objectMapper.convertValue(loan, Loan.class);
+        var projection = new LoanPaymentState(view, state.loanVersion(), state.scheduleVersion(),
+                state.originalUpdate(), state.originalOutstanding());
+        LocalDate today = LoanScheduleCalculatorSupport.today();
+        var rows = getLoanScheduleForPayment(projection, today);
+        int overdue = LoanScheduleCalculatorSupport.overdueInstallments(rows, today, 0);
+        view.setOverdueInstallments(overdue);
+        if (overdue > 0) view.setStatus(LoanStatus.OVERDUE);
+        return view;
+    }
+
+    public List<LoanRepaymentSchedule> getLoanScheduleForSettlement(LoanPaymentState state, LocalDate asOf) {
+        var calculation = new LoanPaymentState(objectMapper.convertValue(state.loan(), Loan.class), state.loanVersion(),
+                state.scheduleVersion(), state.originalUpdate(), state.originalOutstanding());
+        return getLoanScheduleForPayment(calculation, asOf);
+    }
+
+    public List<LoanRepaymentSchedule> getLoanScheduleForPayment(LoanPaymentState state, LocalDate asOf) {
+        Loan loan = state.loan();
+        DocumentSnapshot version = state.scheduleVersion();
+        Object stored = version == null ? loanSchedules.get(loan.getId()) : version.get("schedule");
+        if (stored == null && loan.getLoanId() != null && !loan.getId().equals(loan.getLoanId())) {
+            stored = firestore == null ? loanSchedules.get(loan.getLoanId())
+                    : awaitLoanRead(firestore.collection("loanSchedules").document(loan.getLoanId()).get()).get("schedule");
+        }
+        List<LoanRepaymentSchedule> rows;
+        if (stored != null) {
+            rows = objectMapper.convertValue(stored, new TypeReference<>() {});
+        } else if ("FLAT".equalsIgnoreCase(loan.getInterestType())) {
+            LocalDate start = loan.getStartDate() != null ? loan.getStartDate() : loan.getDisbursementDate();
+            rows = generateFlatSchedule(loan.getPrincipalAmount(), loan.getInterestRate(), Math.max(1, loan.getDurationMonths()),
+                    start == null ? asOf : start, loan.getTotalInterest(), loan.getMonthlyInstallment());
+        } else {
+            rows = List.of();
+        }
+        rows = LoanScheduleCalculatorSupport.rebuild(loan, rows, asOf);
+        if (!"FLAT".equalsIgnoreCase(loan.getInterestType())) reconcileReducingLoanSummary(loan, rows);
+        LoanScheduleCalculatorSupport.applyPenalties(loan, rows, asOf);
+        return rows;
+    }
+
     public List<LoanRepaymentSchedule> getLoanScheduleForPayment(String loanId) {
         return objectMapper.convertValue(getLoanSchedule(loanId), new TypeReference<List<LoanRepaymentSchedule>>() {});
     }
 
-    public record LoanPaymentState(Loan loan, DocumentSnapshot loanVersion, DocumentSnapshot scheduleVersion) {}
+    public record LoanPaymentState(Loan loan, DocumentSnapshot loanVersion, DocumentSnapshot scheduleVersion,
+                                   LocalDateTime originalUpdate, BigDecimal originalOutstanding) {}
 
     public LoanPaymentState beginLoanPayment(Loan cached) {
         if (firestore == null) {
-            return new LoanPaymentState(objectMapper.convertValue(cached, Loan.class), null, null);
+            Loan latest = loans.getOrDefault(cached.getId(), cached);
+            return new LoanPaymentState(objectMapper.convertValue(latest, Loan.class), null, null,
+                    latest.getUpdatedAt(), latest.getTotalOutstanding());
         }
         try {
             var loan = firestore.collection("loans").document(cached.getId()).get().get();
             var schedule = firestore.collection("loanSchedules").document(cached.getId()).get().get();
-            return new LoanPaymentState(objectMapper.convertValue(loan.getData(), Loan.class), loan, schedule);
+            Loan latest = fromSnapshot(loan, Loan.class, Loan::setId);
+            return new LoanPaymentState(latest, loan, schedule, latest.getUpdatedAt(), latest.getTotalOutstanding());
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Interrupted while loading the loan.", ex);
@@ -1091,51 +1357,92 @@ public class FirestoreDataService {
     }
 
     public void saveLoanDueCheck(LoanPaymentState state, List<LoanRepaymentSchedule> schedule) {
-        commitLoanAndSchedule(state, schedule, null);
+        commitLoanAndSchedule(state, schedule, List.of());
     }
 
     public Loan saveLoanPayment(LoanPaymentState state, List<LoanRepaymentSchedule> schedule, Transaction entry) {
-        return commitLoanAndSchedule(state, schedule, Objects.requireNonNull(entry));
+        return saveLoanPayments(state, schedule, List.of(entry));
     }
 
-    private Loan commitLoanAndSchedule(LoanPaymentState state, List<LoanRepaymentSchedule> schedule, Transaction entry) {
+    public Loan saveLoanPayments(LoanPaymentState state, List<LoanRepaymentSchedule> schedule, List<Transaction> entries) {
+        return commitLoanAndSchedule(state, schedule, entries);
+    }
+
+    private void verifyInMemoryLoanVersion(LoanPaymentState state) {
+        Loan latest = loans.get(state.loan().getId());
+        if (latest == null || !Objects.equals(latest.getUpdatedAt(), state.originalUpdate())) {
+            throw new IllegalStateException("The loan changed. Refresh before retrying.");
+        }
+    }
+
+    private synchronized Loan commitLoanAndSchedule(LoanPaymentState state, List<LoanRepaymentSchedule> schedule,
+                                                    List<Transaction> entries) {
         Loan loan = state.loan();
         loan.setUpdatedAt(LocalDateTime.now());
+        BigDecimal delta = loan.getTotalOutstanding().subtract(state.originalOutstanding());
+        boolean updateAggregates = loan.getStartDate() != null;
+        BigDecimal receivedInterest = entries.stream().map(Transaction::getInterestAmount).reduce(BigDecimal.ZERO, BigDecimal::add);
+        Member member = updateAggregates ? getMemberForLending(loan.getMemberId(), loan.getGroupId()) : null;
+        Group group = updateAggregates ? getGroupForLending(loan.getGroupId()) : null;
         if (firestore != null) {
             var batch = firestore.batch();
             var version = state.scheduleVersion();
-            var scheduleData = Map.of("loanId", loan.getId(), "schedule",
-                    objectMapper.convertValue(schedule, new TypeReference<List<Map<String, Object>>>() {}));
-            if (version.exists()) {
-                batch.update(version.getReference(), scheduleData,
-                        com.google.cloud.firestore.Precondition.updatedAt(version.getUpdateTime()));
-            } else {
-                batch.create(version.getReference(), scheduleData);
+            var scheduleData = loanScheduleDocument(loan, schedule);
+            if (version.exists()) batch.update(version.getReference(), scheduleData, loanVersion(version));
+            else batch.create(version.getReference(), scheduleData);
+            batch.update(state.loanVersion().getReference(), loanDocument(loan), loanVersion(state.loanVersion()));
+            for (Transaction entry : entries) {
+                batch.create(firestore.collection("transactions").document(entry.getId()), loanDocument(entry));
             }
-            batch.update(state.loanVersion().getReference(), objectMapper.convertValue(loan,
-                            new TypeReference<Map<String, Object>>() {}),
-                    com.google.cloud.firestore.Precondition.updatedAt(state.loanVersion().getUpdateTime()));
-            if (entry != null) {
-                batch.create(firestore.collection("transactions").document(entry.getId()),
-                        objectMapper.convertValue(entry, new TypeReference<Map<String, Object>>() {}));
+            if (updateAggregates) {
+                var memberDoc = awaitLoanRead(firestore.collection("members").document(member.getId()).get());
+                member = fromSnapshot(memberDoc, Member.class, Member::setId);
+                Map<String, Object> update = new HashMap<>();
+                update.put("currentLoanOutstanding", aggregateAfter(member.getCurrentLoanOutstanding(), delta));
+                if (loan.getLoanId().equals(member.getActiveLoanId())) {
+                    if (loan.getStatus() == LoanStatus.COMPLETED) update.put("activeLoanId", otherActiveLoanId(loan));
+                }
+                if (receivedInterest.signum() > 0) {
+                    update.put("totalLoanInterestPaid", aggregateAfter(member.getTotalLoanInterestPaid(), receivedInterest));
+                }
+                batch.update(memberDoc.getReference(), update, loanVersion(memberDoc));
+                var groupDoc = awaitLoanRead(firestore.collection("groups").document(group.getId()).get());
+                group = fromSnapshot(groupDoc, Group.class, FirestoreDataService::loadGroup);
+                batch.update(groupDoc.getReference(),
+                        Map.of("totalLoanOutstanding", aggregateAfter(group.getTotalLoanOutstanding(), delta)),
+                        loanVersion(groupDoc));
             }
-            try {
-                batch.commit().get();
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("Payment confirmation was interrupted. Check the transaction reference before retrying.", ex);
-            } catch (java.util.concurrent.ExecutionException ex) {
-                throw new IllegalStateException("Could not confirm the payment. Refresh and check the transaction reference before retrying.", ex);
+            awaitLoanRead(batch.commit());
+        } else {
+            verifyInMemoryLoanVersion(state);
+            if (entries.stream().anyMatch(entry -> transactions.containsKey(entry.getId()))) {
+                throw new IllegalStateException("A payment with this reference already exists.");
             }
         }
-        loans.put(loan.getId(), loan);
-        loanSchedules.put(loan.getId(), schedule);
-        if (loan.getLoanId() != null) {
-            loans.put(loan.getLoanId(), loan);
-            loanSchedules.put(loan.getLoanId(), schedule);
+        cacheApprovedLoan(loan, schedule);
+        entries.forEach(entry -> transactions.put(entry.getId(), entry));
+        if (updateAggregates) {
+            member.setCurrentLoanOutstanding(aggregateAfter(member.getCurrentLoanOutstanding(), delta));
+            if (loan.getLoanId().equals(member.getActiveLoanId())) {
+                if (loan.getStatus() == LoanStatus.COMPLETED) member.setActiveLoanId(otherActiveLoanId(loan));
+            }
+            member.setTotalLoanInterestPaid(aggregateAfter(member.getTotalLoanInterestPaid(), receivedInterest));
+            group.setTotalLoanOutstanding(aggregateAfter(group.getTotalLoanOutstanding(), delta));
+            members.put(member.getId(), member);
+            groups.put(group.getId(), group);
         }
-        if (entry != null) transactions.put(entry.getId(), entry);
         return loan;
+    }
+
+    private BigDecimal aggregateAfter(BigDecimal balance, BigDecimal delta) {
+        return Objects.requireNonNullElse(balance, BigDecimal.ZERO).add(delta).max(BigDecimal.ZERO);
+    }
+
+    private String otherActiveLoanId(Loan settled) {
+        return getGroupLoansForLending(settled.getGroupId()).stream()
+                .filter(loan -> !loan.getId().equals(settled.getId()) && loan.getMemberId().equals(settled.getMemberId())
+                        && LoanScheduleCalculatorSupport.isServicing(loan))
+                .map(Loan::getLoanId).findFirst().orElse(null);
     }
 
     public void saveLoanSchedule(String loanId, List<LoanRepaymentSchedule> schedule) {

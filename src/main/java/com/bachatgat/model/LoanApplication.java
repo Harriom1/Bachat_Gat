@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class LoanApplication {
+    private String topUpLoanId;
     @DocumentId
     private String id;
     private String applicationId; // e.g. LA-2026-001
@@ -95,4 +96,7 @@ public class LoanApplication {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getTopUpLoanId() { return topUpLoanId; }
+    public void setTopUpLoanId(String value) { this.topUpLoanId = value; }
 }

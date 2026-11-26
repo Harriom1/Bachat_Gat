@@ -7,6 +7,7 @@ import com.bachatgat.util.FinancialCalculator;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +59,71 @@ public final class LoanScheduleCalculatorSupport {
         loan.setMonthlyInstallment(currentTerms.getOriginalScheduledEmi());
         loan.setNextDueDate(schedule.stream().filter(item -> item.getStatus() != RepaymentStatus.PAID
                         && item.getTotalDue().compareTo(item.getPaidAmount()) > 0)
+                .findFirst().map(LoanRepaymentSchedule::getDueDate).orElse(null));
+    }
+
+    public static LocalDate today() {
+        return LocalDate.now(ZoneId.of("Asia/Kolkata"));
+    }
+
+    public static List<LoanRepaymentSchedule> rebuild(Loan loan, List<LoanRepaymentSchedule> rows, LocalDate asOf) {
+        if ("FLAT".equalsIgnoreCase(loan.getInterestType())) return rows;
+        LocalDate start = loan.getStartDate() != null ? loan.getStartDate() : loan.getDisbursementDate();
+        return FinancialCalculator.generateReducingScheduleWithPayments(loan.getPrincipalAmount(), loan.getInterestRate(),
+                "MONTHLY".equalsIgnoreCase(loan.getInterestRateBasis()), Math.max(1, loan.getDurationMonths()),
+                start == null ? asOf : start, rows, loan.getFirstEmiDueDate(), loan.getEmiDueDay(), asOf);
+    }
+
+    public static boolean isServicing(Loan loan) {
+        return switch (loan.getStatus()) {
+            case ACTIVE, PARTIALLY_PAID, OVERDUE -> true;
+            default -> false;
+        };
+    }
+
+    public static int overdueInstallments(List<LoanRepaymentSchedule> rows, LocalDate asOf, int graceDays) {
+        return (int) rows.stream().filter(row -> row.getDueDate().plusDays(graceDays).isBefore(asOf)
+                && row.getStatus() != RepaymentStatus.PAID
+                && row.getTotalDue().compareTo(row.getPaidAmount()) > 0).count();
+    }
+
+    // Penalties are tracked against their own installment and never earn interest.
+    public static void applyPenalties(Loan loan, List<LoanRepaymentSchedule> rows, LocalDate asOf) {
+        if (loan.getEmiLatePenalty() == null || loan.getStatus() == com.bachatgat.model.LoanStatus.CLOSED) return;
+        BigDecimal charged = BigDecimal.ZERO;
+        BigDecimal paid = BigDecimal.ZERO;
+        for (LoanRepaymentSchedule row : rows) {
+            BigDecimal emiDue = row.getEmiAmount();
+            BigDecimal emiPaid = row.getPaidInterestAmount().add(row.getPaidPrincipalAmount());
+            BigDecimal paidPenalty = row.getPaidPenaltyAmount();
+            BigDecimal emiOpen = emiDue.subtract(emiPaid).subtract(row.getPostMaturityPrepayment()).max(BigDecimal.ZERO);
+            boolean late = row.getDueDate().isBefore(asOf) &&
+                    (emiOpen.signum() > 0 || row.getPaidDate() != null && row.getPaidDate().isAfter(row.getDueDate()));
+            BigDecimal fee = late && emiDue.signum() > 0 ? loan.getEmiLatePenalty() : paidPenalty;
+            boolean wasApplied = row.getTotalDue().compareTo(emiDue.add(row.getPenaltyAmount())) == 0;
+            BigDecimal emiOutstanding = "FLAT".equalsIgnoreCase(loan.getInterestType()) ? emiOpen
+                    : wasApplied ? row.getOutstandingAmount().subtract(row.getPenaltyAmount().subtract(paidPenalty)).max(BigDecimal.ZERO)
+                    : row.getOutstandingAmount();
+            row.setPenaltyAmount(fee);
+            row.setPaidAmount(emiPaid.add(paidPenalty));
+            row.setTotalDue(emiDue.add(fee));
+            BigDecimal penaltyOpen = fee.subtract(paidPenalty).max(BigDecimal.ZERO);
+            row.setOutstandingAmount(emiOutstanding.add(penaltyOpen));
+            if (penaltyOpen.signum() > 0 && row.getStatus() == RepaymentStatus.PAID) {
+                row.setStatus(RepaymentStatus.OVERDUE);
+            }
+            if (penaltyOpen.signum() == 0 && emiOutstanding.signum() == 0 && emiOpen.signum() == 0
+                    && !row.getDueDate().isAfter(asOf)) row.setStatus(RepaymentStatus.PAID);
+            charged = charged.add(fee);
+            paid = paid.add(paidPenalty);
+        }
+        BigDecimal outstanding = charged.subtract(paid);
+        loan.setOutstandingPenalty(outstanding);
+        loan.setTotalOutstanding(loan.getOutstandingPrincipal().add(loan.getOutstandingInterest()).add(outstanding));
+        loan.setTotalPayable(loan.getPrincipalAmount().add(loan.getTotalInterest()).add(charged));
+        loan.setTotalPaid(loan.getPrincipalPaid().add(loan.getInterestPaid()).add(paid));
+        loan.setNextDueDate(rows.stream().filter(row -> row.getStatus() != RepaymentStatus.PAID
+                        && row.getTotalDue().compareTo(row.getPaidAmount()) > 0)
                 .findFirst().map(LoanRepaymentSchedule::getDueDate).orElse(null));
     }
 

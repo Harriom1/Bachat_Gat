@@ -417,6 +417,12 @@
     function applyGroupDueDay() {
       const start = document.getElementById('rev-startDate').value;
       if (!start || !approvalDetails) return;
+      if (approvalDetails.defaultFirstEmiDueDate && approvalDetails.defaultFirstEmiDueDate > start) {
+        document.getElementById('rev-firstDue').value = approvalDetails.defaultFirstEmiDueDate;
+        groupDueDaySelected = true;
+        recalculateInterestDetails();
+        return;
+      }
       const [year, month] = start.split('-').map(Number);
       const daysInNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
       const day = Math.min(approvalDetails.dueDay, daysInNextMonth);

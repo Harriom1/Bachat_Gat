@@ -218,6 +218,76 @@ class LoanDatesTopUpIntegrationTest {
         assertThrows(InvalidFinancialOperationException.class, () -> apply(another, 280_001, null));
     }
 
+    @Test
+    void exhaustedGroupCapExplainsBothNewLoanAndTopUpRejection() {
+        LoanApplication app = apply(member, 270_000, null);
+        Loan loan = applications.approveApplication(app.getId(),
+                terms(270_000, 12, today, today.plusMonths(1), "100"), "admin");
+        group.setMaxLoanAmount(BigDecimal.valueOf(200_000));
+        group.setAllowMultipleLoans(true);
+        group.setMaxActiveLoans(5);
+        data.saveGroup(group);
+
+        var eligibility = applications.getLoanEligibility(member.getMemberId());
+        assertEquals(false, eligibility.get("eligible"));
+        assertTrue(eligibility.get("reason").toString().contains("group's total lending cap"));
+        var options = (List<?>) eligibility.get("topUpOptions");
+        var topUp = (java.util.Map<?, ?>) options.getFirst();
+        assertEquals(false, topUp.get("eligible"));
+        assertTrue(topUp.get("reason").toString().contains("group's total lending cap"));
+        var failure = assertThrows(InvalidFinancialOperationException.class, () -> apply(member, 100_000, loan.getId()));
+        assertTrue(failure.getMessage().contains("group's total lending cap"));
+    }
+
+    @Test
+    void availableCashPolicyAllowsTopUpAboveFixedGroupCapWithinMemberLimits() {
+        group.setMaxLoanAmount(BigDecimal.valueOf(2_000_000));
+        group.setAllowMultipleLoans(true);
+        group.setMaxActiveLoans(5);
+        data.saveGroup(group);
+        Member other = member("OTHER-001", group);
+        LoanApplication app = apply(member, 270_000, null);
+        Loan loan = applications.approveApplication(app.getId(),
+                terms(270_000, 12, today, today.plusMonths(1), "100"), "admin");
+        LoanApplication otherApp = apply(other, 300_000, null);
+        applications.approveApplication(otherApp.getId(),
+                terms(300_000, 12, today, today.plusMonths(1), "100"), "admin");
+
+        group.setMaxLoanAmount(BigDecimal.valueOf(500_000));
+        group.setUseAvailableCashForGroupLoanLimit(true);
+        data.saveGroup(group);
+        var eligibility = applications.getLoanEligibility(member.getMemberId());
+        assertEquals(true, eligibility.get("eligible"));
+        assertMoney("230000", (BigDecimal) eligibility.get("maxAdditional"));
+        assertThrows(InvalidFinancialOperationException.class, () -> apply(member, 230_001, loan.getId()));
+        LoanApplication topUp = apply(member, 100_000, loan.getId());
+        var topUpTerms = terms(100_000, 36, today.plusDays(5), today.plusDays(14), "100");
+        topUpTerms.setExpectedOutstandingPrincipal(BigDecimal.valueOf(270_000));
+        BigDecimal cashBefore = funds.getAvailableFund(group.getId());
+        Loan replacement = applications.approveApplication(topUp.getId(), topUpTerms, "admin");
+        assertMoney("370000", replacement.getPrincipalAmount());
+        assertMoney("100000", cashBefore.subtract(funds.getAvailableFund(group.getId())));
+    }
+
+    @Test
+    void availableCashPolicyStillRejectsRequestsAboveTheCashOnHand() {
+        group.setUseAvailableCashForGroupLoanLimit(true);
+        data.saveGroup(group);
+        LoanApplication app = apply(member, 270_000, null);
+        Loan loan = applications.approveApplication(app.getId(),
+                terms(270_000, 12, today, today.plusMonths(1), "100"), "admin");
+        BigDecimal expense = funds.getAvailableFund(group.getId()).subtract(BigDecimal.valueOf(50_000));
+        data.saveTransaction(new Transaction("TXN-TEST-EXPENSE", group.getId(), null, null, null,
+                TransactionType.EXPENSE, expense, BigDecimal.ZERO, BigDecimal.ZERO, today,
+                "TEST-EXPENSE", "Group expense", "BANK_TRANSFER", "admin"));
+
+        var eligibility = applications.getLoanEligibility(member.getMemberId());
+        var topUp = (java.util.Map<?, ?>) ((List<?>) eligibility.get("topUpOptions")).getFirst();
+        assertMoney("50000", (BigDecimal) topUp.get("maxAdditional"));
+        assertThrows(com.bachatgat.exception.InsufficientGroupFundsException.class,
+                () -> apply(member, 100_000, loan.getId()));
+    }
+
     private Group group(String name) {
         Group group = new Group();
         group.setGroupName(name);

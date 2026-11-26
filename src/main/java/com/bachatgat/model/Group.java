@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Group {
+    private boolean useAvailableCashForGroupLoanLimit;
     private LocalDate defaultLoanStartDate;
     private LocalDate defaultFirstEmiDueDate;
     private Integer loanDueDay;
@@ -223,4 +224,7 @@ public class Group {
     public void setDefaultLoanStartDate(LocalDate value) { this.defaultLoanStartDate = value; }
     public LocalDate getDefaultFirstEmiDueDate() { return defaultFirstEmiDueDate; }
     public void setDefaultFirstEmiDueDate(LocalDate value) { this.defaultFirstEmiDueDate = value; }
+
+    public boolean getUseAvailableCashForGroupLoanLimit() { return useAvailableCashForGroupLoanLimit; }
+    public void setUseAvailableCashForGroupLoanLimit(boolean value) { this.useAvailableCashForGroupLoanLimit = value; }
 }

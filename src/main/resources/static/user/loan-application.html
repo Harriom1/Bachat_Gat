@@ -195,6 +195,7 @@
             <ul style="padding-left: 1.25rem; font-size: 0.9rem; color: var(--text-muted); line-height: 1.8;">
               <li><strong data-i18n="groupInterestRate">Group Interest Rate:</strong> <span id="group-loan-rate" style="font-weight: 700; color: var(--primary);">-</span></li>
               <li><strong data-i18n="loanLimitPerMember">Loan Limit for 1 Member:</strong> <span id="group-max-loan" style="font-weight: 600; color: var(--text-main);">-</span></li>
+              <li id="group-cash-loan-rule" hidden><strong>Group funding limit:</strong> Available group cash.</li>
               <li><strong data-i18n="multipleActiveLoans">Multiple Active Loans:</strong> <span id="group-multi-loan-rule" style="font-weight: 600; color: var(--text-main);">-</span></li>
               <li><strong data-i18n="submissionRule">Submission:</strong> <span data-i18n="submissionRuleDesc">After submitting, your application is marked PENDING ADMIN APPROVAL.</span></li>
               <li><strong data-i18n="committeeReview">Committee Review:</strong> <span data-i18n="committeeReviewDesc">The Bachat Gat President and committee evaluate your request. The committee can adjust the sanctioned amount and rate.</span></li>
@@ -275,6 +276,7 @@
         const selector = document.getElementById('app-top-up-loan');
         const previousSelection = selector.value;
         const options = el.topUpOptions || [];
+        document.getElementById('group-cash-loan-rule').hidden = !el.useAvailableCashForGroupLoanLimit;
         selector.replaceChildren(new Option('New Loan', ''));
         options.forEach(loan => selector.add(new Option(
           'Top-up on ' + loan.loanId + ' · ' + Common.formatIndianCurrency(loan.outstandingPrincipal) + ' principal outstanding', loan.id
@@ -347,9 +349,7 @@
         : (window.i18n?.t('notEligible', 'Not Eligible') || 'Not Eligible');
       badge.className = eligible ? 'status-badge badge-active' : 'status-badge badge-danger';
       document.getElementById('ineligibility-alert').style.display = eligible ? 'none' : 'block';
-      document.getElementById('ineligibility-reason-text').textContent = topUp
-        ? 'This loan is currently ineligible for a top-up. Check its overdue installments and available limit.'
-        : memberEligibility.reason;
+      document.getElementById('ineligibility-reason-text').textContent = topUp?.reason || memberEligibility.reason;
       document.getElementById('btn-submit-app').disabled = !eligible;
       const maximum = topUp?.maxAdditional ?? memberEligibility.maxAdditional;
       const input = document.getElementById('app-amount');

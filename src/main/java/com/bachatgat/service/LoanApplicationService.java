@@ -168,7 +168,9 @@ public class LoanApplicationService {
         if (previous != null && !disburseNow) {
             throw new InvalidFinancialOperationException("A top-up must be disbursed when its existing loan is settled.");
         }
-        if (disburseNow) validateAvailableFund(app.getGroupId(), terms.additional());
+        if (disburseNow || context.group().getUseAvailableCashForGroupLoanLimit()) {
+            validateAvailableFund(app.getGroupId(), terms.additional());
+        }
 
         RepaymentPlan plan = repaymentPlan(terms);
         Loan loan = new Loan();
@@ -295,7 +297,7 @@ public class LoanApplicationService {
         Loan source = application.getTopUpLoanId() == null ? null : topUpSource(context, application.getTopUpLoanId());
         Group group = context.group();
         Map<String, Object> details = new java.util.HashMap<>(Map.of(
-                "maxAdditional", maximumAdditional(context, source), "outstandingPrincipal", sourcePrincipal(source),
+                "maxAdditional", approvalCapacity(context, source), "outstandingPrincipal", sourcePrincipal(source),
                 "interestRate", defaultRate(group, context.rules()), "interestType", interestType(context, source),
                 "dueDay", group.getLoanDueDay(), "penalty", group.getLoanLatePenalty(),
                 "today", LoanScheduleCalculatorSupport.today().toString()));
@@ -484,21 +486,51 @@ public class LoanApplicationService {
         return loans.stream().map(Loan::getOutstandingPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private BigDecimal maximumAdditional(LendingContext context, Loan source) {
+    private record Capacity(BigDecimal amount, String rule) {
+        private Capacity limitedBy(BigDecimal remaining, String limitingRule) {
+            BigDecimal allowed = remaining.max(BigDecimal.ZERO);
+            return allowed.compareTo(amount) < 0 ? new Capacity(allowed, limitingRule) : this;
+        }
+    }
+
+    private Capacity lendingCapacity(LendingContext context, Loan source) {
         BigDecimal memberOpen = outstandingPrincipal(context.memberLoans());
+        BigDecimal individualExposure = context.member().getLoanCapacity() == null ? sourcePrincipal(source) : memberOpen;
+        Capacity capacity = new Capacity(context.memberLimit().subtract(individualExposure).max(BigDecimal.ZERO),
+                "your individual loan limit")
+                .limitedBy(context.outstandingLimit().subtract(memberOpen), "your total outstanding principal limit");
+        if (context.group().getUseAvailableCashForGroupLoanLimit()) return capacity;
         BigDecimal groupOpen = context.groupLoans().stream().filter(LoanApplicationService::countsTowardLimits)
                 .map(Loan::getOutstandingPrincipal).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal individualExposure = context.member().getLoanCapacity() == null ? sourcePrincipal(source) : memberOpen;
-        return context.memberLimit().subtract(individualExposure)
-                .min(context.outstandingLimit().subtract(memberOpen))
-                .min(context.groupLimit().subtract(groupOpen)).max(BigDecimal.ZERO);
+        return capacity.limitedBy(context.groupLimit().subtract(groupOpen), "the group's total lending cap");
+    }
+
+    private BigDecimal approvalCapacity(LendingContext context, Loan source) {
+        Capacity capacity = lendingCapacity(context, source);
+        if (context.group().getUseAvailableCashForGroupLoanLimit()) {
+            capacity = capacity.limitedBy(groupFundService.getCurrentLendingCapacity(context.group().getId()),
+                    "the group's available cash");
+        }
+        return capacity.amount();
     }
 
     private void validateLoanAmount(BigDecimal amount, LendingContext context, Loan source) {
-        BigDecimal maximum = maximumAdditional(context, source);
-        if (amount.compareTo(maximum) > 0) {
-            throw new InvalidFinancialOperationException("The requested amount exceeds the current lending limit of ₹" + maximum + ".");
+        Capacity capacity = lendingCapacity(context, source);
+        if (amount.compareTo(capacity.amount()) > 0) {
+            throw new InvalidFinancialOperationException("You can request up to ₹" + capacity.amount()
+                    + " under " + capacity.rule() + ".");
         }
+    }
+
+    private record LoanEligibility(boolean eligible, String reason, BigDecimal maxAdditional) {}
+
+    private LoanEligibility eligibility(LendingContext context, Loan source, BigDecimal cash) {
+        Capacity capacity = lendingCapacity(context, source).limitedBy(cash, "the group's available cash");
+        String reason = borrowingBlock(context, source);
+        if (reason == null && capacity.amount().signum() == 0) {
+            reason = "No additional amount is available under " + capacity.rule() + ".";
+        }
+        return new LoanEligibility(reason == null, reason == null ? "Eligible to apply for a loan." : reason, capacity.amount());
     }
 
     private Loan topUpSource(LendingContext context, String loanId) {
@@ -642,17 +674,18 @@ public class LoanApplicationService {
     public Map<String, Object> getLoanEligibility(String memberId, String groupId) {
         LendingContext context = lendingContext(memberId, groupId);
         List<Loan> active = context.memberLoans().stream().filter(LoanScheduleCalculatorSupport::isServicing).toList();
-        BigDecimal maximum = maximumAdditional(context, null);
-        String blocked = borrowingBlock(context, null);
-        if (blocked == null && maximum.signum() == 0) blocked = "The available lending limit has been reached.";
+        BigDecimal cash = groupFundService.getCurrentLendingCapacity(context.group().getId());
+        LoanEligibility newLoan = eligibility(context, null, cash);
         var topUps = active.stream().filter(loan -> sourcePrincipal(loan).signum() > 0)
-                .map(loan -> Map.of("id", loan.getId(), "loanId", loan.getLoanId(),
-                        "outstandingPrincipal", sourcePrincipal(loan), "maxAdditional", maximumAdditional(context, loan),
-                        "eligible", borrowingBlock(context, loan) == null && maximumAdditional(context, loan).signum() > 0))
-                .toList();
+                .map(loan -> {
+                    LoanEligibility topUp = eligibility(context, loan, cash);
+                    return Map.of("id", loan.getId(), "loanId", loan.getLoanId(),
+                            "outstandingPrincipal", sourcePrincipal(loan), "maxAdditional", topUp.maxAdditional(),
+                            "eligible", topUp.eligible(), "reason", topUp.reason());
+                }).toList();
         Map<String, Object> result = new java.util.HashMap<>();
-        result.put("eligible", blocked == null);
-        result.put("reason", blocked == null ? "Eligible to apply for a loan." : blocked);
+        result.put("eligible", newLoan.eligible());
+        result.put("reason", newLoan.reason());
         result.put("activeLoanCount", active.size());
         result.put("activeLoans", active);
         result.put("topUpOptions", topUps);
@@ -662,12 +695,13 @@ public class LoanApplicationService {
         result.put("maxPerMember", context.memberLimit());
         result.put("maxIndividualLoanLimit", context.memberLimit());
         result.put("maxLoanAmountPerMember", context.memberLimit());
-        result.put("maxAdditional", maximum);
+        result.put("maxAdditional", newLoan.maxAdditional());
         result.put("maxLoanAmount", context.groupLimit());
         result.put("maxGroupLoanCapacity", context.groupLimit());
         result.put("maxOutstandingLoanAmount", context.outstandingLimit());
         result.put("maxOutstandingLimit", context.outstandingLimit());
-        result.put("availableGroupFund", groupFundService.getCurrentLendingCapacity(context.group().getId()));
+        result.put("availableGroupFund", cash);
+        result.put("useAvailableCashForGroupLoanLimit", context.group().getUseAvailableCashForGroupLoanLimit());
         BigDecimal rate = defaultRate(context.group(), context.rules());
         String type = interestType(context, null);
         result.put("defaultInterestRate", rate);

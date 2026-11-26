@@ -44,11 +44,17 @@ class LoanDatesTopUpIntegrationTest {
         other.setLoanDueDay(18);
         other.setLoanLatePenalty(new BigDecimal("25.50"));
         data.saveGroup(other);
+        group.setDefaultLoanStartDate(LocalDate.of(2026, 12, 1));
+        group.setDefaultFirstEmiDueDate(LocalDate.of(2026, 12, 10));
+        data.saveGroup(group);
         LoanApplication app = apply(member, 12_000, null);
+        assertEquals("2026-12-01", applications.getApprovalDetails(app).get("defaultLoanStartDate"));
+        assertEquals("2026-12-10", applications.getApprovalDetails(app).get("defaultFirstEmiDueDate"));
         assertEquals(10, applications.getApprovalDetails(app).get("dueDay"));
         assertEquals(new BigDecimal("100"), applications.getApprovalDetails(app).get("penalty"));
         LoanApplication otherApp = apply(member("MEM-002", other), 5_000, null);
         assertEquals(18, applications.getApprovalDetails(otherApp).get("dueDay"));
+        assertFalse(applications.getApprovalDetails(otherApp).containsKey("defaultLoanStartDate"));
         assertEquals(new BigDecimal("25.50"), applications.getApprovalDetails(otherApp).get("penalty"));
 
         var request = terms(12_000, 3, today.minusDays(2), today.plusDays(12), "100");

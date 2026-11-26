@@ -1,5 +1,5 @@
 // Static files only. API calls, uploads and authenticated payloads stay on the network.
-const shellCache = 'bachatgat-static-perf-v1';
+const shellCache = 'bachatgat-static-perf-v2';
 const shellPages = new Set(['/', '/index.html', '/login.html', '/admin/dashboard.html', '/user/dashboard.html']);
 
 self.addEventListener('install', event => event.waitUntil(self.skipWaiting()));
@@ -16,7 +16,7 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.search
       || request.headers.has('Authorization')) return;
   const shell = request.mode === 'navigate' && shellPages.has(url.pathname);
-  const asset = url.pathname.startsWith('/assets/perf-v1/');
+  const asset = url.pathname.startsWith('/assets/perf-v2/');
   if (!shell && !asset) return;
 
   const storage = caches.open(shellCache).catch(() => null);

@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class Group {
+    private LocalDate defaultLoanStartDate;
+    private LocalDate defaultFirstEmiDueDate;
     private Integer loanDueDay;
     private BigDecimal loanLatePenalty;
     public static final BigDecimal DEFAULT_LOAN_LIMIT = BigDecimal.valueOf(500_000);
@@ -216,4 +218,9 @@ public class Group {
         return name.contains("mitrisankpla") ? BigDecimal.valueOf(100) : BigDecimal.ZERO;
     }
     public void setLoanLatePenalty(BigDecimal value) { this.loanLatePenalty = value; }
+
+    public LocalDate getDefaultLoanStartDate() { return defaultLoanStartDate; }
+    public void setDefaultLoanStartDate(LocalDate value) { this.defaultLoanStartDate = value; }
+    public LocalDate getDefaultFirstEmiDueDate() { return defaultFirstEmiDueDate; }
+    public void setDefaultFirstEmiDueDate(LocalDate value) { this.defaultFirstEmiDueDate = value; }
 }

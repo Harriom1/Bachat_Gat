@@ -15,7 +15,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
         // Release-scoped URLs can be reused across navigations without an HTTP
         // round trip. Publish a new URL prefix when any of these assets change.
         for (String directory : new String[]{"js", "css", "i18n", "fonts"}) {
-            registry.addResourceHandler("/assets/perf-v1/" + directory + "/**")
+            registry.addResourceHandler("/assets/perf-v2/" + directory + "/**", "/assets/perf-v1/" + directory + "/**")
                     .addResourceLocations("classpath:/static/" + directory + "/")
                     .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
         }

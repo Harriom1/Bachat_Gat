@@ -29,7 +29,7 @@ class I18nManager {
 
   loadDictionary(lang) {
     if (!this.dictionaries.has(lang)) {
-      const request = fetch('/assets/perf-v1/i18n/' + lang + '.json')
+      const request = fetch('/assets/perf-v2/i18n/' + lang + '.json')
         .then(response => {
           if (!response.ok) throw new Error('Translation request failed');
           return response.json();

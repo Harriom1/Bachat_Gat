@@ -2,7 +2,7 @@
 <html lang="en"><head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>My Group Report - Bachat Gat</title>
-  <link rel="stylesheet" href="/assets/perf-v1/css/style.css"><link rel="stylesheet" href="/assets/perf-v1/css/dashboard.css"><link rel="stylesheet" href="/assets/perf-v1/css/tables.css"><link rel="stylesheet" href="/assets/perf-v1/css/responsive.css">
+  <link rel="stylesheet" href="/assets/perf-v2/css/style.css"><link rel="stylesheet" href="/assets/perf-v2/css/dashboard.css"><link rel="stylesheet" href="/assets/perf-v2/css/tables.css"><link rel="stylesheet" href="/assets/perf-v2/css/responsive.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <style>
     .report-personal-detail{display:block!important}
@@ -52,7 +52,7 @@
       <div class="content-card report-ledger-card" style="margin-top:1rem"><h2>All Loans — Current Position</h2><div class="table-responsive"><table class="data-table mobile-card-table"><thead><tr><th>Loan ID</th><th>Borrower</th><th>Principal</th><th>EMI</th><th>Interest Rate</th><th>Outstanding</th><th>Status</th></tr></thead><tbody id="loan-ledger"></tbody></table></div></div>
       <section id="member-reports" class="member-reports report-personal-detail" aria-label="Member-wise financial reports"></section>
     </div></main></div>
-  <script src="/assets/perf-v1/js/api.js"></script><script src="/assets/perf-v1/js/auth.js"></script><script src="/assets/perf-v1/js/common.js"></script><script src="/assets/perf-v1/js/i18n.js"></script><script src="/assets/perf-v1/js/group-rules.js"></script>
+  <script src="/assets/perf-v2/js/api.js"></script><script src="/assets/perf-v2/js/auth.js"></script><script src="/assets/perf-v2/js/common.js"></script><script src="/assets/perf-v2/js/i18n.js"></script><script src="/assets/perf-v2/js/group-rules.js"></script>
   <script>
     const months=['','January','February','March','April','May','June','July','August','September','October','November','December'];
     function esc(v){return Common.text ? Common.text(v) : String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

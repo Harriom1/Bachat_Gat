@@ -293,10 +293,17 @@ public class LoanApplicationService {
     public Map<String, Object> getApprovalDetails(LoanApplication application) {
         LendingContext context = lendingContext(application.getMemberId(), application.getGroupId());
         Loan source = application.getTopUpLoanId() == null ? null : topUpSource(context, application.getTopUpLoanId());
-        return Map.of("maxAdditional", maximumAdditional(context, source), "outstandingPrincipal", sourcePrincipal(source),
-                "interestRate", defaultRate(context.group(), context.rules()), "interestType", interestType(context, source),
-                "dueDay", context.group().getLoanDueDay(), "penalty", context.group().getLoanLatePenalty(),
-                "today", LoanScheduleCalculatorSupport.today().toString());
+        Group group = context.group();
+        Map<String, Object> details = new java.util.HashMap<>(Map.of(
+                "maxAdditional", maximumAdditional(context, source), "outstandingPrincipal", sourcePrincipal(source),
+                "interestRate", defaultRate(group, context.rules()), "interestType", interestType(context, source),
+                "dueDay", group.getLoanDueDay(), "penalty", group.getLoanLatePenalty(),
+                "today", LoanScheduleCalculatorSupport.today().toString()));
+        if (group.getDefaultLoanStartDate() != null && group.getDefaultFirstEmiDueDate() != null) {
+            details.put("defaultLoanStartDate", group.getDefaultLoanStartDate().toString());
+            details.put("defaultFirstEmiDueDate", group.getDefaultFirstEmiDueDate().toString());
+        }
+        return details;
     }
 
     public Map<String, Object> previewApproval(LoanApplication application, LoanApprovalRequest request) {

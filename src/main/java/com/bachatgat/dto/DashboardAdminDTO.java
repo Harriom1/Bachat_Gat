@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DashboardAdminDTO {
+    private BigDecimal totalBachatCapital;
     private int totalGroups = 0;
     private int totalActiveMembers = 0;
     private BigDecimal monthlyExpectedCollection = BigDecimal.ZERO;
@@ -99,4 +100,7 @@ public class DashboardAdminDTO {
     public void setPendingLoanCount(int value) { pendingLoanCount = value; }
     public BigDecimal getPendingLoanTotal() { return pendingLoanTotal; }
     public void setPendingLoanTotal(BigDecimal value) { pendingLoanTotal = value; }
+
+    public BigDecimal getTotalBachatCapital() { return totalBachatCapital; }
+    public void setTotalBachatCapital(BigDecimal value) { this.totalBachatCapital = value; }
 }

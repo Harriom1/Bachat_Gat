@@ -344,14 +344,12 @@ public class ReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("Group not found with ID: " + groupId));
 
         summary.put("group", group);
-        List<Member> members = dataService.getMembersByGroupIdIncludingArchived(groupId);
         List<Loan> loans = dataService.getLoansByGroupId(groupId);
         List<GroupExpense> expenses = dataService.getExpensesByGroupId(groupId);
 
-        BigDecimal totalSavings = members.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE)
-                .map(Member::getTotalSavingsBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal totalShareContributions = members.stream().filter(m -> m.getStatus() == MemberStatus.ACTIVE)
-                .map(Member::getCurrentShareBalance).map(this::nz).reduce(BigDecimal.ZERO, BigDecimal::add);
+        GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(groupId);
+        BigDecimal totalSavings = groupFundService.totalSavingsIncludingMemberAllocations(groupId, fund);
+        BigDecimal totalShareContributions = fund.savings();
         BigDecimal totalLoansDisbursed = loans.stream().map(loan -> loan.getTopUpAmount() != null ? loan.getTopUpAmount() : loan.getPrincipalAmount()).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalPrincipalRecovered = loans.stream().map(Loan::getPrincipalPaid).reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal totalInterestCollected = loans.stream().map(Loan::getInterestPaid).reduce(BigDecimal.ZERO, BigDecimal::add);

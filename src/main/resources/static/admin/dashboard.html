@@ -111,7 +111,7 @@
               <tr><th scope="row"><i class="bi bi-cash-stack"></i> <span data-i18n="monthlyCollected">Monthly Collection</span></th><td id="metric-monthly-collected">₹14,000</td><td>Expected: <strong id="metric-monthly-expected">₹1,00,000</strong> (<span id="metric-collection-pct" class="text-success">14%</span>)</td></tr>
 
           <!-- Total Savings Fund -->
-              <tr><th scope="row"><i class="bi bi-piggy-bank-fill"></i> <span data-i18n="totalSavings">Total Group Savings</span></th><td id="metric-total-savings">₹5,40,000</td><td><i class="bi bi-shield-lock-fill"></i> Separately ledged share capital</td></tr>
+              <tr><th scope="row"><i class="bi bi-piggy-bank-fill"></i> <span data-i18n="totalSavings">Total Group Savings</span></th><td id="metric-total-savings">₹5,40,000</td><td><i class="bi bi-shield-lock-fill"></i> Includes income and expenses allocated to member balances</td></tr>
               <tr><th scope="row" data-i18n="totalOtherIncome">Other Group Income</th><td id="metric-other-income">—</td><td>Includes income shared with members</td></tr>
 
           <!-- Loans Outstanding -->
@@ -131,7 +131,7 @@
                 <i class="bi bi-shield-check text-primary"></i> Group Fund Accounting Transparency Breakdown
               </h3>
               <p style="font-size: 0.8rem; color: #64748b; margin: 0.2rem 0 0 0;">
-                Section 14 Complete Formula: Group Fund = Total Savings + Loan Interest + Other Income - Expenses - Loans Disbursed + Principal Repaid
+                Section 14 Complete Formula: Group Fund = Bachat Capital + Loan Interest + Other Income - Expenses - Loans Disbursed + Principal Repaid
               </p>
             </div>
             <span class="badge" style="background: #e0f2fe; color: #0284c7; font-weight: 600;">SINGLE SOURCE OF TRUTH</span>
@@ -140,7 +140,7 @@
           <table class="dashboard-compact-table dashboard-breakdown-table">
             <caption>Accounting breakdown</caption>
             <tbody>
-              <tr><th scope="row">Total Savings</th><td id="trans-savings">+ ₹0</td></tr>
+              <tr><th scope="row">Bachat Capital</th><td id="trans-savings">+ ₹0</td></tr>
               <tr><th scope="row">Loan Interest</th><td id="trans-interest">+ ₹0</td></tr>
               <tr><th scope="row">Other Income</th><td id="trans-other-income">+ ₹0</td></tr>
               <tr><th scope="row">Group Expenses</th><td id="trans-expenses">- ₹0</td></tr>
@@ -422,7 +422,7 @@
 
         // Section 14 Fund Transparency Breakdown
         if (document.getElementById('trans-savings')) {
-          document.getElementById('trans-savings').textContent = '+ ' + Common.formatINR(data.totalSavings || 0);
+          document.getElementById('trans-savings').textContent = '+ ' + Common.formatINR(data.totalBachatCapital ?? data.totalSavings ?? 0);
           document.getElementById('trans-interest').textContent = '+ ' + Common.formatINR(data.totalInterestCollected || 0);
           document.getElementById('trans-other-income').textContent = '+ ' + Common.formatINR(data.totalOtherIncome || 0);
           document.getElementById('metric-other-income').textContent = Common.formatINR(data.totalOtherIncome || 0);

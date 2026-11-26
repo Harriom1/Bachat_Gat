@@ -166,6 +166,14 @@ public class GroupFundService {
                 legacy.expenses(), legacy.disbursed(), legacy.principalRepaid(), BigDecimal.ZERO);
     }
 
+    BigDecimal totalSavingsIncludingMemberAllocations(String groupId, FundBreakdown fund) {
+        BigDecimal memberAllocations = dataService.getMembersByGroupIdIncludingArchived(groupId).stream()
+                .filter(member -> member.getStatus() != MemberStatus.EXITED)
+                .map(member -> member.overallSavingsBalance().subtract(member.bachatCapitalBeforeExpenses()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return fund.savings().add(memberAllocations);
+    }
+
     private LegacyFundValues getLegacyFundValues(String groupId) {
         BigDecimal savings = dataService.getMembersByGroupIdIncludingArchived(groupId).stream()
                 // Suspended balances remain financially owned by the member;

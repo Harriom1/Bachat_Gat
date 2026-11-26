@@ -55,6 +55,10 @@ class GroupFundServiceTest {
         data.saveTransaction(receipt);
 
         GroupFundService funds = new GroupFundService(data);
+        DashboardService dashboard = new DashboardService(data, funds, mock(CollectionService.class), mock(MemberService.class));
+        var beforeAllocation = dashboard.getAdminDashboard(group.getId());
+        assertEquals(new BigDecimal("100000.00"), beforeAllocation.getTotalSavings());
+        assertEquals(new BigDecimal("200000.00"), beforeAllocation.getGroupAvailableFund());
         assertEquals(new BigDecimal("200000.00"), funds.getAvailableFund(group.getId()));
         new DistributionService(data, new NotificationService(data), new AuditService(data))
                 .distributeIncome(group.getId(), income.getId(), new DistributionRequest("EQUAL"), "admin");
@@ -66,7 +70,11 @@ class GroupFundServiceTest {
         assertEquals(new BigDecimal("200000.00"), funds.getAvailableFundBefore(group.getId(), date.plusDays(1)));
         assertEquals(new BigDecimal("100000.00"), funds.getBalanceByPaymentMethod(group.getId(), true));
 
-        DashboardService dashboard = new DashboardService(data, funds, mock(CollectionService.class), null);
+        var admin = dashboard.getAdminDashboard(group.getId());
+        assertEquals(new BigDecimal("200000.00"), admin.getTotalSavings());
+        assertEquals(new BigDecimal("100000.00"), admin.getTotalBachatCapital());
+        assertEquals(new BigDecimal("100000.00"), admin.getTotalOtherIncome());
+        assertEquals(new BigDecimal("200000.00"), admin.getGroupAvailableFund());
         for (int i = 1; i <= 10; i++) {
             var result = dashboard.getUserDashboard("INCOME-" + i);
             assertEquals(new BigDecimal("20000.00"), result.getMyTotalSavings());
@@ -77,6 +85,7 @@ class GroupFundServiceTest {
         // Older allocations also wrote the income into the stored savings field.
         data.findMemberByMemberId("INCOME-1").orElseThrow().setTotalSavingsBalance(new BigDecimal("20000.00"));
         assertEquals(new BigDecimal("20000.00"), dashboard.getUserDashboard("INCOME-1").getMyTotalSavings());
+        assertEquals(new BigDecimal("200000.00"), dashboard.getAdminDashboard(group.getId()).getTotalSavings());
         assertEquals(new BigDecimal("200000.00"), funds.getAvailableFund(group.getId()));
     }
 

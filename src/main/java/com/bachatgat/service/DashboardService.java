@@ -75,7 +75,8 @@ public class DashboardService {
 
         List<Transaction> ledger = dataService.getTransactionsByGroupId(targetGroupId);
         GroupFundService.FundBreakdown fund = groupFundService.getFundBreakdown(targetGroupId, ledger);
-        dto.setTotalSavings(fund.savings());
+        dto.setTotalBachatCapital(fund.savings());
+        dto.setTotalSavings(groupFundService.totalSavingsIncludingMemberAllocations(targetGroupId, fund));
 
         // Loans Aggregates
         List<Loan> groupLoans = dataService.getLoansByGroupId(targetGroupId);
